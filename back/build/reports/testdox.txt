@@ -1,0 +1,28 @@
+Cache Debounce (Tests\Feature\CacheDebounce)
+ [x] It debounces cache flush operations within time window
+ [x] It uses debounced flush as fallback when precise clearing fails
+ [x] It handles different category ids in debounced flush
+ [x] It can dispatch basic flush job
+ [x] It handles empty category ids in debounced flush
+ [x] It uses correct queue configuration
+ [x] It handles large batch of category ids efficiently
+ [x] It delays job execution correctly
+
+Otel Span (Tests\Feature\OtelSpan)
+ [x] It creates span for get tree operation with result attribute
+ [x] It creates different spans for different get tree parameters
+ [x] It records error spans correctly when exceptions occur
+ [x] It records performance attributes in spans
+ [x] It handles disabled opentelemetry gracefully
+ [x] It handles concurrent span creation
+
+Product Category Service Slug (Tests\Unit\ProductCategoryServiceSlug)
+ [x] It generates basic slug from name
+ [x] It generates unique slug within three attempts when conflicts exist
+ [x] It generates slug with correct format
+ [x] It correctly identifies slug conflicts
+ [x] It handles slug generation when editing existing category
+ [x] It handles massive slug conflicts efficiently
+ [x] It handles edge cases in slug generation
+ [x] It handles multilingual characters in slug generation
+

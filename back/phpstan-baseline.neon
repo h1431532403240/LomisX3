@@ -1,0 +1,187 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#1 \$max of method Symfony\\Component\\Console\\Style\\SymfonyStyle\:\:createProgressBar\(\) expects int, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/SeedStressProductCategories.php
+
+		-
+			message: '#^Variable \$distribution in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: app/Console/Commands/SeedStressProductCategories.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: app/Exceptions/BusinessException.php
+
+		-
+			message: '#^Method App\\Exceptions\\Handler\:\:render\(\) should return Illuminate\\Http\\JsonResponse\|Illuminate\\Http\\Response but returns Symfony\\Component\\HttpFoundation\\Response\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Exceptions/Handler.php
+
+		-
+			message: '#^Property Illuminate\\Http\\Resources\\Json\\JsonResource\:\:\$additional \(array\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: app/Http/Resources/ProductCategoryCollection.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$children\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$deleted_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$depth\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$full_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$has_children\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$meta_description\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$meta_title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$parent\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$parent_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$position\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ProductCategoryResource\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\ProductCategoryResource\:\:ancestors\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\ProductCategoryResource\:\:children\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\ProductCategoryResource\:\:descendants\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Resources/ProductCategoryResource.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:descendants\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/ProductCategory.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\User\:\:tokenCan\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Policies/ProductCategoryPolicy.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:search\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Repositories/ProductCategoryRepository.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:withDepth\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Repositories/ProductCategoryRepository.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:withTrashed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Repositories/ProductCategoryRepository.php
+
+		-
+			message: '#^Method App\\Services\\ProductCategoryCacheService\:\:paddedRootId\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/ProductCategoryCacheService.php

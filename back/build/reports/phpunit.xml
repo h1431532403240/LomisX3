@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\Users\Zou\Desktop\LomisX3\back\phpunit.xml" tests="22" assertions="117" errors="0" failures="0" skipped="0" time="1.796557">
+    <testsuite name="Feature" tests="14" assertions="57" errors="0" failures="0" skipped="0" time="1.450527">
+      <testsuite name="Tests\Feature\OtelSpanTest" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\OtelSpanTest.php" tests="6" assertions="38" errors="0" failures="0" skipped="0" time="0.737573">
+        <testcase name="it_handles_concurrent_span_creation" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\OtelSpanTest.php" line="219" class="Tests\Feature\OtelSpanTest" classname="Tests.Feature.OtelSpanTest" assertions="12" time="0.540448"/>
+        <testcase name="it_records_performance_attributes_in_spans" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\OtelSpanTest.php" line="159" class="Tests\Feature\OtelSpanTest" classname="Tests.Feature.OtelSpanTest" assertions="2" time="0.074422"/>
+        <testcase name="it_creates_different_spans_for_different_get_tree_parameters" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\OtelSpanTest.php" line="98" class="Tests\Feature\OtelSpanTest" classname="Tests.Feature.OtelSpanTest" assertions="8" time="0.035354"/>
+        <testcase name="it_records_error_spans_correctly_when_exceptions_occur" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\OtelSpanTest.php" line="130" class="Tests\Feature\OtelSpanTest" classname="Tests.Feature.OtelSpanTest" assertions="2" time="0.029834"/>
+        <testcase name="it_creates_span_for_get_tree_operation_with_result_attribute" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\OtelSpanTest.php" line="41" class="Tests\Feature\OtelSpanTest" classname="Tests.Feature.OtelSpanTest" assertions="13" time="0.035665"/>
+        <testcase name="it_handles_disabled_opentelemetry_gracefully" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\OtelSpanTest.php" line="197" class="Tests\Feature\OtelSpanTest" classname="Tests.Feature.OtelSpanTest" assertions="1" time="0.021850"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\CacheDebounceTest" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" tests="8" assertions="19" errors="0" failures="0" skipped="0" time="0.712954">
+        <testcase name="it_handles_different_category_ids_in_debounced_flush" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" line="108" class="Tests\Feature\CacheDebounceTest" classname="Tests.Feature.CacheDebounceTest" assertions="3" time="0.045102"/>
+        <testcase name="it_uses_debounced_flush_as_fallback_when_precise_clearing_fails" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" line="83" class="Tests\Feature\CacheDebounceTest" classname="Tests.Feature.CacheDebounceTest" assertions="2" time="0.022170"/>
+        <testcase name="it_handles_large_batch_of_category_ids_efficiently" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" line="208" class="Tests\Feature\CacheDebounceTest" classname="Tests.Feature.CacheDebounceTest" assertions="3" time="0.341897"/>
+        <testcase name="it_uses_correct_queue_configuration" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" line="184" class="Tests\Feature\CacheDebounceTest" classname="Tests.Feature.CacheDebounceTest" assertions="2" time="0.026645"/>
+        <testcase name="it_debounces_cache_flush_operations_within_time_window" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" line="41" class="Tests\Feature\CacheDebounceTest" classname="Tests.Feature.CacheDebounceTest" assertions="3" time="0.199939"/>
+        <testcase name="it_handles_empty_category_ids_in_debounced_flush" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" line="160" class="Tests\Feature\CacheDebounceTest" classname="Tests.Feature.CacheDebounceTest" assertions="2" time="0.021383"/>
+        <testcase name="it_delays_job_execution_correctly" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" line="243" class="Tests\Feature\CacheDebounceTest" classname="Tests.Feature.CacheDebounceTest" assertions="1" time="0.028981"/>
+        <testcase name="it_can_dispatch_basic_flush_job" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Feature\CacheDebounceTest.php" line="138" class="Tests\Feature\CacheDebounceTest" classname="Tests.Feature.CacheDebounceTest" assertions="3" time="0.026838"/>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Unit" tests="8" assertions="60" errors="0" failures="0" skipped="0" time="0.346029">
+      <testsuite name="Tests\Unit\ProductCategoryServiceSlugTest" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" tests="8" assertions="60" errors="0" failures="0" skipped="0" time="0.346029">
+        <testcase name="it_generates_slug_with_correct_format" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" line="109" class="Tests\Unit\ProductCategoryServiceSlugTest" classname="Tests.Unit.ProductCategoryServiceSlugTest" assertions="20" time="0.031807"/>
+        <testcase name="it_handles_massive_slug_conflicts_efficiently" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" line="200" class="Tests\Unit\ProductCategoryServiceSlugTest" classname="Tests.Unit.ProductCategoryServiceSlugTest" assertions="3" time="0.082075"/>
+        <testcase name="it_handles_slug_generation_when_editing_existing_category" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" line="170" class="Tests\Unit\ProductCategoryServiceSlugTest" classname="Tests.Unit.ProductCategoryServiceSlugTest" assertions="2" time="0.052691"/>
+        <testcase name="it_handles_multilingual_characters_in_slug_generation" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" line="259" class="Tests\Unit\ProductCategoryServiceSlugTest" classname="Tests.Unit.ProductCategoryServiceSlugTest" assertions="18" time="0.039793"/>
+        <testcase name="it_correctly_identifies_slug_conflicts" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" line="148" class="Tests\Unit\ProductCategoryServiceSlugTest" classname="Tests.Unit.ProductCategoryServiceSlugTest" assertions="2" time="0.046381"/>
+        <testcase name="it_generates_basic_slug_from_name" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" line="42" class="Tests\Unit\ProductCategoryServiceSlugTest" classname="Tests.Unit.ProductCategoryServiceSlugTest" assertions="3" time="0.017964"/>
+        <testcase name="it_generates_unique_slug_within_three_attempts_when_conflicts_exist" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" line="61" class="Tests\Unit\ProductCategoryServiceSlugTest" classname="Tests.Unit.ProductCategoryServiceSlugTest" assertions="6" time="0.052718"/>
+        <testcase name="it_handles_edge_cases_in_slug_generation" file="C:\Users\Zou\Desktop\LomisX3\back\tests\Unit\ProductCategoryServiceSlugTest.php" line="236" class="Tests\Unit\ProductCategoryServiceSlugTest" classname="Tests.Unit.ProductCategoryServiceSlugTest" assertions="6" time="0.022600"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

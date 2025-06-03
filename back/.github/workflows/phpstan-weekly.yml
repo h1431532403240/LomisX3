@@ -1,0 +1,216 @@
+name: 🔍 PHPStan 技術債務追蹤 (Weekly)
+
+on:
+  schedule:
+    # 每週一早上 8:00 UTC (台灣時間 16:00) 執行
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+    inputs:
+      create_issue:
+        description: '建立或更新 Issue'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  phpstan-debt-tracking:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+
+    - name: Cache Composer packages
+      uses: actions/cache@v4
+      with:
+        path: vendor
+        key: ${{ runner.os }}-phpstan-debt-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-phpstan-debt-
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction
+
+    - name: Run PHPStan without baseline (技術債務掃描)
+      run: |
+        echo "🔍 執行 PHPStan 分析 (無 baseline 模式)..."
+        
+        # 建立報告目錄
+        mkdir -p reports
+        
+        # 執行 PHPStan 分析，輸出到檔案
+        ./vendor/bin/phpstan analyse \
+          --memory-limit=-1 \
+          --error-format=table \
+          --no-interaction \
+          --ansi \
+          > reports/phpstan-analysis.txt 2>&1 || true
+        
+        # 同時生成 JSON 格式報告
+        ./vendor/bin/phpstan analyse \
+          --memory-limit=-1 \
+          --error-format=json \
+          --no-interaction \
+          > reports/phpstan-analysis.json 2>&1 || true
+        
+        echo "✅ PHPStan 分析完成"
+
+    - name: 分析當前 baseline 狀況
+      run: |
+        echo "📊 分析 baseline 檔案..."
+        
+        if [ -f "phpstan-baseline.neon" ]; then
+          baseline_count=$(grep -c "message:" phpstan-baseline.neon || echo 0)
+          echo "BASELINE_COUNT=${baseline_count}" >> $GITHUB_ENV
+          echo "當前 baseline 錯誤數量: ${baseline_count}"
+        else
+          echo "BASELINE_COUNT=0" >> $GITHUB_ENV
+          echo "未發現 baseline 檔案"
+        fi
+
+    - name: 生成技術債務報告
+      run: |
+        echo "📝 生成技術債務追蹤報告..."
+        
+        # 建立報告檔案
+        cat > reports/debt-report.md << 'EOF'
+        # 📊 PHPStan 技術債務追蹤報告
+        
+        **掃描時間**: $(date '+%Y-%m-%d %H:%M:%S UTC')
+        **分支**: ${{ github.ref_name }}
+        **Commit**: ${{ github.sha }}
+        
+        ## 🎯 債務概覽
+        
+        | 指標 | 數值 | 目標 | 狀態 |
+        |------|------|------|------|
+        | Baseline 錯誤數 | ${{ env.BASELINE_COUNT }} | ≤ 30 | $([ ${{ env.BASELINE_COUNT }} -le 30 ] && echo "✅ 達標" || echo "❌ 超標") |
+        | Sprint 目標 | 至少減少 5 條 | -5 | 🎯 進行中 |
+        
+        ## 📈 改進建議
+        
+        ### 優先處理項目
+        1. **型別安全**: 修正 `argument.type` 相關錯誤
+        2. **方法存在性**: 解決 `method.notFound` 問題
+        3. **回傳型別**: 修正 `return.type` 不匹配
+        
+        ### 遞減策略
+        - 每 Sprint 至少移除 5 條 baseline 項目
+        - 優先處理高風險的型別安全問題
+        - 逐步改善程式碼品質，避免新增技術債務
+        
+        EOF
+        
+        # 如果有 PHPStan 輸出，加入詳細分析
+        if [ -f "reports/phpstan-analysis.txt" ]; then
+          echo "" >> reports/debt-report.md
+          echo "## 🔍 詳細分析結果" >> reports/debt-report.md
+          echo "" >> reports/debt-report.md
+          echo '```' >> reports/debt-report.md
+          cat reports/phpstan-analysis.txt >> reports/debt-report.md
+          echo '```' >> reports/debt-report.md
+        fi
+        
+        echo "✅ 技術債務報告生成完成"
+
+    - name: 上傳報告 Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: phpstan-debt-report-${{ github.run_number }}
+        path: |
+          reports/
+          phpstan-baseline.neon
+        retention-days: 90
+
+    - name: 檢查是否需要建立/更新 Issue
+      if: github.event.inputs.create_issue != 'false'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // 讀取債務報告
+          const reportPath = 'reports/debt-report.md';
+          const reportContent = fs.readFileSync(reportPath, 'utf8');
+          
+          // 查找現有的技術債務 Issue
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: ['technical-debt', 'phpstan']
+          });
+          
+          const existingIssue = issues.data.find(issue => 
+            issue.title.includes('PHPStan 技術債務追蹤')
+          );
+          
+          const issueTitle = '🔍 PHPStan 技術債務追蹤 - Baseline 遞減計畫';
+          const issueBody = `${reportContent}
+          
+          ## 🚀 行動計畫
+          
+          - [ ] 本 Sprint 移除至少 5 條 baseline 項目
+          - [ ] 更新 CHANGELOG.md 技術債清理區塊
+          - [ ] 執行回歸測試確保穩定性
+          
+          ## 📋 追蹤歷史
+          
+          | Sprint | 開始數量 | 結束數量 | 減少數量 | 達成率 |
+          |--------|----------|----------|----------|--------|
+          | 本週 | ${{ env.BASELINE_COUNT }} | TBD | TBD | TBD |
+          
+          ---
+          
+          **自動更新**: 此 Issue 由 GitHub Actions 每週自動更新
+          **最後更新**: ${new Date().toISOString()}
+          `;
+          
+          if (existingIssue) {
+            // 更新現有 Issue
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingIssue.number,
+              body: issueBody
+            });
+            
+            console.log(`✅ 已更新現有 Issue #${existingIssue.number}`);
+          } else {
+            // 建立新 Issue
+            const newIssue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody,
+              labels: ['technical-debt', 'phpstan', 'priority:medium']
+            });
+            
+            console.log(`✅ 已建立新 Issue #${newIssue.data.number}`);
+          }
+
+    - name: 工作流程摘要
+      run: |
+        echo "### 🔍 PHPStan 技術債務追蹤完成" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| 項目 | 結果 |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Baseline 錯誤數 | ${{ env.BASELINE_COUNT }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 目標減少數量 | 至少 5 條/Sprint |" >> $GITHUB_STEP_SUMMARY
+        echo "| 報告生成 | ✅ 完成 |" >> $GITHUB_STEP_SUMMARY
+        echo "| Issue 更新 | ✅ 完成 |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📁 詳細報告已上傳至 Artifacts，可下載查看" 

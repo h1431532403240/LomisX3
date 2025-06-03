@@ -1,0 +1,454 @@
+openapi: 3.0.3
+info:
+  title: 'LomisX3 商品分類 API 文檔'
+  description: '商品分類模組的完整 RESTful API 文檔，包含分頁、篩選、樹狀結構等功能'
+  version: 1.0.0
+servers:
+  -
+    url: 'http://localhost'
+tags:
+  -
+    name: ''
+    description: ''
+components:
+  securitySchemes:
+    default:
+      type: http
+      scheme: bearer
+      description: '使用 Laravel Sanctum Bearer Token 進行認證。請在請求頭中包含：Authorization: Bearer {token}'
+security:
+  -
+    default: []
+paths:
+  /api/user:
+    get:
+      summary: "取得認證用戶資訊的路由\n需要 Sanctum 認證"
+      operationId: Sanctum
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - ''
+      security: []
+  /api/test:
+    get:
+      summary: "測試路由\n檢查 API 是否正常運作"
+      operationId: API
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'API 運作正常'
+                  timestamp: '2025-06-03T19:52:24.702808Z'
+                properties:
+                  message:
+                    type: string
+                    example: 'API 運作正常'
+                  timestamp:
+                    type: string
+                    example: '2025-06-03T19:52:24.702808Z'
+      tags:
+        - ''
+      security: []
+  /api/product-categories:
+    get:
+      summary: 取得分類清單
+      operationId: ''
+      description: ''
+      parameters: []
+      responses:
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+      tags:
+        - ''
+      security: []
+    post:
+      summary: 儲存新分類
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - ''
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 100 characters.'
+                  example: vmqeopfuudtdsufvyvddq
+                  nullable: false
+                slug:
+                  type: string
+                  description: 'Must match the regex /^[a-z0-9]+(?:-[a-z0-9]+)*$/. Must not be greater than 100 characters.'
+                  example: amniihfqcoynlazghdtqt
+                  nullable: true
+                parent_id:
+                  type: integer
+                  description: 'The <code>id</code> of an existing record in the product_categories table.'
+                  example: 17
+                  nullable: true
+                position:
+                  type: integer
+                  description: 'Must be at least 0.'
+                  example: 45
+                  nullable: true
+                status:
+                  type: boolean
+                  description: ''
+                  example: true
+                  nullable: true
+                description:
+                  type: string
+                  description: 'Must not be greater than 1000 characters.'
+                  example: 'Amet iste laborum eius est dolor dolores.'
+                  nullable: true
+                meta_title:
+                  type: string
+                  description: 'Must not be greater than 100 characters.'
+                  example: tdsufvyvddqamniihfqco
+                  nullable: true
+                meta_description:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: ynlazghdtqtqxbajwbpil
+                  nullable: true
+              required:
+                - name
+      security: []
+  '/api/product-categories/{id}':
+    get:
+      summary: 顯示指定分類
+      operationId: ''
+      description: ''
+      parameters: []
+      responses:
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Models\ProductCategory] 17'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Models\ProductCategory] 17'
+      tags:
+        - ''
+      security: []
+    put:
+      summary: 更新指定分類
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - ''
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 100 characters.'
+                  example: vmqeopfuudtdsufvyvddq
+                  nullable: false
+                slug:
+                  type: string
+                  description: 'Must match the regex /^[a-z0-9]+(?:-[a-z0-9]+)*$/. Must not be greater than 100 characters.'
+                  example: amniihfqcoynlazghdtqt
+                  nullable: true
+                parent_id:
+                  type: integer
+                  description: 'The <code>id</code> of an existing record in the product_categories table.'
+                  example: 17
+                  nullable: true
+                position:
+                  type: integer
+                  description: 'Must be at least 0.'
+                  example: 45
+                  nullable: true
+                status:
+                  type: boolean
+                  description: ''
+                  example: true
+                  nullable: true
+                description:
+                  type: string
+                  description: 'Must not be greater than 1000 characters.'
+                  example: 'Amet iste laborum eius est dolor dolores.'
+                  nullable: true
+                meta_title:
+                  type: string
+                  description: 'Must not be greater than 100 characters.'
+                  example: tdsufvyvddqamniihfqco
+                  nullable: true
+                meta_description:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: ynlazghdtqtqxbajwbpil
+                  nullable: true
+              required:
+                - name
+      security: []
+    delete:
+      summary: 刪除指定分類
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - ''
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the product category.'
+        example: 17
+        required: true
+        schema:
+          type: integer
+  /api/product-categories/tree:
+    get:
+      summary: 取得樹狀結構
+      operationId: ''
+      description: ''
+      parameters: []
+      responses:
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Models\ProductCategory] tree'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Models\ProductCategory] tree'
+      tags:
+        - ''
+      security: []
+  '/api/product-categories/{product_category_id}/breadcrumbs':
+    get:
+      summary: 取得麵包屑
+      operationId: ''
+      description: ''
+      parameters: []
+      responses:
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Models\ProductCategory] 17'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Models\ProductCategory] 17'
+      tags:
+        - ''
+      security: []
+    parameters:
+      -
+        in: path
+        name: product_category_id
+        description: 'The ID of the product category.'
+        example: 17
+        required: true
+        schema:
+          type: integer
+  '/api/product-categories/{product_category_id}/descendants':
+    get:
+      summary: 取得子孫分類
+      operationId: ''
+      description: ''
+      parameters: []
+      responses:
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Models\ProductCategory] 17'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Models\ProductCategory] 17'
+      tags:
+        - ''
+      security: []
+    parameters:
+      -
+        in: path
+        name: product_category_id
+        description: 'The ID of the product category.'
+        example: 17
+        required: true
+        schema:
+          type: integer
+  /api/product-categories/sort:
+    patch:
+      summary: 拖曳排序
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - ''
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                positions:
+                  type: array
+                  description: 'Must have at least 1 items.'
+                  example:
+                    - []
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: 'The <code>id</code> of an existing record in the product_categories table.'
+                        example: 17
+                        nullable: false
+                      position:
+                        type: integer
+                        description: 'Must be at least 0.'
+                        example: 45
+                        nullable: false
+                      parent_id:
+                        type: integer
+                        description: 'The <code>id</code> of an existing record in the product_categories table.'
+                        example: 17
+                        nullable: true
+                    required:
+                      - id
+                      - position
+              required:
+                - positions
+      security: []
+  /api/product-categories/batch-status:
+    patch:
+      summary: 批次更新狀態
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - ''
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  description: 'The <code>id</code> of an existing record in the product_categories table.'
+                  example:
+                    - 17
+                  items:
+                    type: integer
+                status:
+                  type: boolean
+                  description: ''
+                  example: false
+                  nullable: false
+              required:
+                - status
+      security: []
+  /api/product-categories/batch-delete:
+    delete:
+      summary: 批次刪除
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - ''
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  description: 'The <code>id</code> of an existing record in the product_categories table.'
+                  example:
+                    - 17
+                  items:
+                    type: integer
+      security: []
+  /api/product-categories/statistics:
+    get:
+      summary: 取得分類統計
+      operationId: ''
+      description: ''
+      parameters: []
+      responses:
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Models\ProductCategory] statistics'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Models\ProductCategory] statistics'
+      tags:
+        - ''
+      security: []

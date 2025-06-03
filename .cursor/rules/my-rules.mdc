@@ -1,0 +1,142 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+{
+  "$schema": "https://raw.githubusercontent.com/cursorinsight/cursor-rules/main/schema.json",
+
+  /* ──────────────────────────
+     0. Global / 通用規範
+     ────────────────────────── */
+  "rules": [
+    {
+      "pattern": "**/*.{ts,tsx,js,jsx,php,json,yml,yaml,md}",
+      "rules": [
+        "// === 基本要求 ===",
+        "禁止在程式碼中留下 console.log、var_dump、debugger 等除錯殘留",
+        "所有新檔案必須使用 UTF-8 (無 BOM)",
+        "檔案最末行必須留一個換行",
+        "// === Git / Commit ===",
+        "Commit message 請符合 Conventional Commits (feat/fix/chore docs/test/refactor…)",
+        "PR 必須通過 CI，並附上測試或文件更新"
+      ]
+    },
+
+    /* ──────────────────────────
+       1. Frontend (React + TS)
+       ────────────────────────── */
+    {
+      "pattern": "front/src/**/*.{ts,tsx}",
+      "rules": [
+        "// === TypeScript / React ===",
+        "嚴禁 any、@ts-ignore；使用 strict mode",
+        "所有元件採 Function Component + Hooks，不得使用 class",
+        "// === UI / CSS ===",
+        "只能使用 shadcn/ui + Tailwind；深色模式使用 Tailwind CSS 變數，如 bg-background / text-foreground",
+        "// === Routing / Layout ===",
+        "使用 react-router-dom v6；所有頁面置於 src/pages；路由檔名 kebab-case 對應",
+        "Layout 需抽離為 src/layouts/ 下的元件",
+        "// === State / Data ===",
+        "伺服器資料統一由 TanStack Query 取得；嚴禁直接在 useEffect fetch",
+        "// === Form ===",
+        "表單必須用 React-Hook-Form + Zod schema 驗證",
+        "// === 檔案結構 ===",
+        "Domain 模組放 src/modules/{domain}/**.tsx；API 用 src/api/{domain}.ts",
+        "元件檔名 PascalCase；其餘檔案 kebab-case",
+        "// === 其他 ===",
+        "新增或變更元件必須附對應 Storybook story 或 Playwright E2E 測試"
+      ]
+    },
+
+    /* ──────────────────────────
+       2. Backend (Laravel 10+)
+       ────────────────────────── */
+    {
+      "pattern": "back/app/**/*.{php}",
+      "rules": [
+        "// === 代碼風格 / 嚴格型別 ===",
+        "檔案頂部必須 declare(strict_types=1)",
+        "遵循 PSR-12；Pint 需保持綠燈",
+        "// === 架構分層 ===",
+        "Controller 放 App\\Http\\Controllers\\Api，採 Resource Controller；內不得含商業邏輯或查詢",
+        "業務邏輯 → App\\Services；資料存取 → App\\Repositories；模型事件 → Observer",
+        "所有 API Response 使用 Laravel Resource，置於 App\\Http\\Resources",
+        "Request 驗證使用 FormRequest，置於 App\\Http\\Requests",
+        "// === 路由 ===",
+        "API 路徑小寫-kebab；使用 Route::apiResource 或 prefix group",
+        "// === Cache / Observer 規範 ===",
+        "快取由 ProductCategoryCacheService 掌控：分片 + Redis Debounce (lock + queue)",
+        "Observer 只負責呼叫 Service 與 CacheService，不產生查詢",
+        "// === Static Analysis ===",
+        "必須通過 phpstan level 7；誤報納入 phpstan-baseline.neon，CI 不得新增錯誤",
+        "// === 測試 ===",
+        "新增 Service / Observer 必須附 Pest 測試；覆蓋率 ≥ 80%",
+        "// === 其他 ===",
+        "禁止直接 DB::raw / table，除非寫在 Repository 並有測試",
+        "API 必須 RESTful (動詞用 HTTP Method)"
+      ]
+    },
+
+    /* ──────────────────────────
+       3. Database / Migration
+       ────────────────────────── */
+    {
+      "pattern": "back/database/migrations/**/*.{php}",
+      "rules": [
+        "Migration 欄位請加 comment() 說明用途",
+        "新增 slug 唯一索引前必須檢查重複並拋 RuntimeException",
+        "索引名稱 ≤ 64 字元（MySQL 限制）"
+      ]
+    },
+
+    /* ──────────────────────────
+       4. Seeder / Console
+       ────────────────────────── */
+    {
+      "pattern": "back/app/Console/Commands/**/*Stress*.php",
+      "rules": [
+        "Stress seeder 必須支援 --count / --depth / --distribution / --chunk / --dry-run",
+        "大量插入使用 DB::table + chunk，避免一次塞爆記憶體"
+      ]
+    },
+
+    /* ──────────────────────────
+       5. Tests  (Pest)
+       ────────────────────────── */
+    {
+      "pattern": "back/tests/**/*.{php}",
+      "rules": [
+        "使用 Pest；檔名 *Test.php；test case 命名清晰 (it_can_xxx)",
+        "Feature Test：涵蓋 HTTP + DB + Observer；Unit Test：純函式或 Service",
+        "測試需可重複執行；不得 dd/var_dump"
+      ]
+    },
+
+    /* ──────────────────────────
+       6. CI / GitHub Actions
+       ────────────────────────── */
+    {
+      "pattern": ".github/workflows/ci.yml",
+      "rules": [
+        "流程：Pint → PHPStan (含 baseline) → Pest (coverage ≥80%) → 其他",
+        "PHPStan 要加 --error-format=github 與 --memory-limit=-1"
+      ]
+    },
+
+    /* ──────────────────────────
+       7. Dev-Env / Env Vars
+       ────────────────────────── */
+    {
+      "pattern": ".env.example",
+      "rules": [
+        "必須包含 CACHE_FLUSH_QUEUE, QUEUE_CONNECTION, PROMETHEUS_NAMESPACE 等變數",
+        "預設 QUEUE_CONNECTION=redis"
+      ]
+    }
+  ]
+}
+
+
+

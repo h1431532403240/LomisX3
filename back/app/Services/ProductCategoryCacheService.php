@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Prometheus\CollectorRegistry;
 use Prometheus\Storage\InMemory;
+use OpenTelemetry\API\Trace\Span;
+use OpenTelemetry\API\Trace\Tracer;
 
 /**
  * 商品分類快取服務
@@ -52,6 +54,23 @@ class ProductCategoryCacheService
     private CollectorRegistry $prometheusRegistry;
 
     /**
+     * 聚合受影響的根分類 ID，避免重複清除
+     * 
+     * @var array<int>
+     */
+    protected static array $pendingRootIds = [];
+    
+    /**
+     * 防抖清除統計計數器
+     * 
+     * @var array{count: int, reasons: array<string>}
+     */
+    protected static array $fallbackStats = [
+        'count' => 0,
+        'reasons' => [],
+    ];
+
+    /**
      * 建構函式
      */
     public function __construct()
@@ -71,12 +90,28 @@ class ProductCategoryCacheService
      */
     public function getTree(bool $onlyActive = true): Collection
     {
-        $timer = microtime(true);
-        $status = 'hit';
+        $start = microtime(true);
         $cacheKey = $this->cachePrefix . 'tree_' . ($onlyActive ? 'active' : 'all');
+        $cacheHit = false;
+        $result = null;
+        $span = null;
+        $scope = null;
 
         try {
-            $result = $this->getTaggedCache()->remember($cacheKey, self::CACHE_TTL, function () use ($onlyActive) {
+            // 建立 OpenTelemetry 手動 span
+            $tracer = \OpenTelemetry\API\Globals::tracerProvider()
+                ->getTracer('product-category-service');
+            
+            $span = $tracer->spanBuilder('ProductCategory.getTree')
+                ->setSpanKind(\OpenTelemetry\API\Trace\SpanKind::KIND_INTERNAL)
+                ->setAttribute('service.name', 'product-category')
+                ->setAttribute('operation.name', 'getTree')
+                ->startSpan();
+            
+            $scope = $span->activate();
+
+            $result = $this->getTaggedCache()->remember($cacheKey, self::CACHE_TTL, function () use ($onlyActive, &$cacheHit) {
+                $cacheHit = false; // 快取未命中
                 Log::info('快取未命中，重新查詢分類樹狀結構', ['only_active' => $onlyActive]);
 
                 $query = ProductCategory::with(['children' => function ($q) use ($onlyActive) {
@@ -84,226 +119,212 @@ class ProductCategoryCacheService
                     if ($onlyActive) {
                         $q->where('status', true);
                     }
-                }])->whereNull('parent_id')->orderBy('position');
+                }]);
 
                 if ($onlyActive) {
                     $query->where('status', true);
                 }
 
-                return $query->get();
+                return $query->whereNull('parent_id')
+                    ->orderBy('position')
+                    ->get();
             });
+
+            // 檢查快取結果
+            if ($result->isNotEmpty()) {
+                $cacheHit = true; // 快取命中
+            }
 
             return $result;
 
         } catch (\Throwable $e) {
-            $status = 'error';
+            // 記錄錯誤資訊
+            if ($span) {
+                $span->recordException($e);
+                $span->setStatus(
+                    \OpenTelemetry\API\Trace\StatusCode::STATUS_ERROR,
+                    $e->getMessage()
+                );
+            }
+            
             throw $e;
+            
         } finally {
-            $this->recordPrometheusMetrics($timer, $status, $onlyActive);
+            // 記錄 Prometheus 指標
+            $this->recordPrometheusMetrics($start, $cacheHit, $onlyActive, $result ?? collect());
+            
+            // 確保 span 正確結束
+            if ($span) {
+                $span->end();
+            }
+            if ($scope) {
+                $scope->detach();
+            }
         }
     }
 
     /**
-     * 記錄 Prometheus 指標
+     * 記錄 Prometheus 指標（優化版本，控制 cardinality）
      * 
-     * @param float  $startTime 開始時間
-     * @param string $status    狀態 (hit|miss)
-     * @param bool   $onlyActive 是否僅取得啟用狀態
-     * @param array  $context   額外上下文資料 (包含 root_id、depth 等)
+     * 避免高基數 label，使用多個獨立指標替代複合 label
+     * 
+     * @param float $startTime 開始時間
+     * @param bool $cacheHit 是否快取命中
+     * @param bool $onlyActive 是否僅查詢啟用分類
+     * @param \Illuminate\Database\Eloquent\Collection<int, \App\Models\ProductCategory>|\Illuminate\Support\Collection<int|string, mixed> $result 查詢結果
      */
-    private function recordPrometheusMetrics(float $startTime, string $status, bool $onlyActive, array $context = []): void
+    private function recordPrometheusMetrics(float $startTime, bool $cacheHit, bool $onlyActive, $result): void
     {
-        if (!isset($this->prometheusRegistry)) {
+        if (!$this->shouldRecordMetrics()) {
             return;
         }
 
-        $duration = microtime(true) - $startTime;
-        $namespace = config('prometheus.namespace', 'app');
-        $filter = $onlyActive ? 'active' : 'all';
-
-        // ── 修改: 卡片化指標 - 提取更多維度資訊
-        $rootId = $context['root_id'] ?? 'all';
-        $maxDepth = $context['max_depth'] ?? 'unlimited';
-        $operationType = $context['operation_type'] ?? 'get_tree';
-        $cacheLevel = $this->determineCacheLevel($context);
-        $treeSize = $context['tree_size'] ?? 'unknown';
-
         try {
-            // ── 修改: 增強執行時間直方圖 (新增更多 labels)
+            $executionTime = microtime(true) - $startTime;
+            $resultCount = $result->count();
+            
+            // 基礎標籤（低基數）
+            $baseLabels = [
+                'method' => 'get_tree',
+                'cache_hit' => $cacheHit ? 'true' : 'false',
+                'status_filter' => $onlyActive ? 'active_only' : 'include_inactive',
+            ];
+
+            // 執行時間直方圖（移除 result 相關 label）
             $histogram = $this->prometheusRegistry->getOrRegisterHistogram(
-                $namespace,
-                'pc_get_tree_seconds',
-                '商品分類取得樹狀結構執行時間 (卡片化指標)',
-                ['filter', 'cache_result', 'root_id', 'depth_limit', 'operation', 'cache_level'],
-                [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5] // 更細緻的執行時間區間
+                'pc_cache',
+                'get_tree_duration_seconds',
+                'PC cache get_tree operation duration',
+                array_keys($baseLabels),
+                [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
             );
-            $histogram->observe($duration, [
-                $filter, 
-                $status, 
-                (string) $rootId, 
-                (string) $maxDepth, 
-                $operationType,
-                $cacheLevel
+            $histogram->observe($executionTime, array_values($baseLabels));
+
+            // 獨立的操作計數器
+            $operationCounter = $this->prometheusRegistry->getOrRegisterCounter(
+                'pc_cache',
+                'operations_total',
+                'Total PC cache operations',
+                array_keys($baseLabels)
+            );
+            $operationCounter->incBy(1, array_values($baseLabels));
+
+            // 獨立的結果大小計數器（避免作為 label）
+            $resultSizeCounter = $this->prometheusRegistry->getOrRegisterCounter(
+                'pc_cache',
+                'result_items_total',
+                'Total items returned by PC cache operations',
+                ['method', 'status_filter']
+            );
+            $resultSizeCounter->incBy($resultCount, [
+                $baseLabels['method'],
+                $baseLabels['status_filter']
             ]);
 
-            // ── 修改: 增強計數器 (新增更多維度)
-            $counter = $this->prometheusRegistry->getOrRegisterCounter(
-                $namespace,
-                'pc_cache_total',
-                '商品分類快取操作總數 (卡片化指標)',
-                ['filter', 'result', 'root_id', 'depth_limit', 'operation', 'tree_size_category']
-            );
-            $counter->inc([
-                $filter, 
-                $status, 
-                (string) $rootId, 
-                (string) $maxDepth, 
-                $operationType,
-                $this->categorizeTreeSize($treeSize)
-            ]);
+            // 快取效率指標
+            if ($cacheHit) {
+                $cacheHitCounter = $this->prometheusRegistry->getOrRegisterCounter(
+                    'pc_cache',
+                    'hits_total',
+                    'Total PC cache hits',
+                    ['method', 'status_filter']
+                );
+                $cacheHitCounter->incBy(1, [
+                    $baseLabels['method'],
+                    $baseLabels['status_filter']
+                ]);
+            } else {
+                $cacheMissCounter = $this->prometheusRegistry->getOrRegisterCounter(
+                    'pc_cache',
+                    'misses_total',
+                    'Total PC cache misses',
+                    ['method', 'status_filter']
+                );
+                $cacheMissCounter->incBy(1, [
+                    $baseLabels['method'],
+                    $baseLabels['status_filter']
+                ]);
+            }
 
-            // ── 新增: 快取效率指標
-            $cacheEfficiencyGauge = $this->prometheusRegistry->getOrRegisterGauge(
-                $namespace,
-                'pc_cache_efficiency_ratio',
-                '商品分類快取命中率',
-                ['filter', 'root_id', 'time_window']
-            );
-            
-            // 計算最近的快取命中率（簡化版本，實際可用 Redis 或其他快取統計）
-            $hitRate = $this->calculateRecentCacheHitRate($status, $rootId, $filter);
-            $cacheEfficiencyGauge->set($hitRate, [$filter, (string) $rootId, '5min']);
+            // 錯誤率監控（根據結果判斷）
+            if ($resultCount === 0 && !$cacheHit) {
+                $emptyResultCounter = $this->prometheusRegistry->getOrRegisterCounter(
+                    'pc_cache',
+                    'empty_results_total',
+                    'Total empty results from PC cache operations',
+                    ['method', 'status_filter']
+                );
+                $emptyResultCounter->incBy(1, [
+                    $baseLabels['method'],
+                    $baseLabels['status_filter']
+                ]);
+            }
 
-            // ── 新增: 記憶體使用指標
-            $memoryGauge = $this->prometheusRegistry->getOrRegisterGauge(
-                $namespace,
-                'pc_memory_usage_bytes',
-                '商品分類服務記憶體使用量',
-                ['operation', 'phase']
-            );
-            $memoryGauge->set(memory_get_usage(true), [$operationType, 'after_execution']);
+            // 記憶體使用量（如果可用）
+            if (function_exists('memory_get_usage')) {
+                $memoryGauge = $this->prometheusRegistry->getOrRegisterGauge(
+                    'pc_cache',
+                    'memory_usage_bytes',
+                    'Memory usage during PC cache operations',
+                    ['method']
+                );
+                $memoryGauge->set(memory_get_usage(true), [$baseLabels['method']]);
+            }
 
-            // ── 新增: 樹狀結構複雜度指標
-            if (isset($context['tree_stats'])) {
-                $this->recordTreeComplexityMetrics($namespace, $context['tree_stats'], $rootId);
+            // 每小時監控 TSDB cardinality（取樣）
+            if (rand(1, 3600) === 1) { // 1/3600 機率
+                $this->monitorTsdbCardinality();
             }
 
         } catch (\Throwable $e) {
-            Log::warning('記錄 Prometheus 卡片化指標失敗', [
+            // 靜默處理 Prometheus 錯誤，避免影響業務邏輯
+            Log::debug('Prometheus 指標記錄失敗', [
                 'error' => $e->getMessage(),
-                'duration' => $duration,
-                'status' => $status,
-                'filter' => $filter,
-                'context' => $context,
+                'method' => 'recordPrometheusMetrics',
             ]);
         }
     }
 
     /**
-     * 決定快取層級標籤
+     * 監控 Prometheus TSDB cardinality
      */
-    private function determineCacheLevel(array $context): string
-    {
-        if (isset($context['cache_level'])) {
-            return $context['cache_level'];
-        }
-        
-        // 根據上下文推斷快取層級
-        if (isset($context['root_id']) && $context['root_id'] !== null) {
-            return 'shard';  // 分片快取
-        }
-        
-        return 'global';  // 全域快取
-    }
-
-    /**
-     * 分類樹狀結構大小
-     */
-    private function categorizeTreeSize($treeSize): string
-    {
-        if (!is_numeric($treeSize)) {
-            return 'unknown';
-        }
-        
-        $size = (int) $treeSize;
-        
-        if ($size <= 10) return 'small';
-        if ($size <= 50) return 'medium';
-        if ($size <= 200) return 'large';
-        if ($size <= 1000) return 'xlarge';
-        
-        return 'massive';
-    }
-
-    /**
-     * 計算最近快取命中率（簡化實作）
-     */
-    private function calculateRecentCacheHitRate(string $currentStatus, $rootId, string $filter): float
-    {
-        // 這是一個簡化的實作，實際應用中可以使用 Redis 或其他機制
-        // 來追蹤更精確的快取命中率統計
-        
-        try {
-            $statsKey = "cache_stats_{$filter}_{$rootId}_5min";
-            $stats = Cache::get($statsKey, ['hits' => 0, 'total' => 0]);
-            
-            $stats['total']++;
-            if ($currentStatus === 'hit') {
-                $stats['hits']++;
-            }
-            
-            // 保存統計資料（5分鐘過期）
-            Cache::put($statsKey, $stats, 300);
-            
-            return $stats['total'] > 0 ? $stats['hits'] / $stats['total'] : 0.0;
-            
-        } catch (\Throwable $e) {
-            Log::debug('計算快取命中率時發生錯誤', ['error' => $e->getMessage()]);
-            return 0.0;
-        }
-    }
-
-    /**
-     * 記錄樹狀結構複雜度指標
-     */
-    private function recordTreeComplexityMetrics(string $namespace, array $treeStats, $rootId): void
+    private function monitorTsdbCardinality(): void
     {
         try {
-            // 樹的深度指標
-            if (isset($treeStats['max_depth'])) {
-                $depthGauge = $this->prometheusRegistry->getOrRegisterGauge(
-                    $namespace,
-                    'pc_tree_max_depth',
-                    '商品分類樹最大深度',
-                    ['root_id']
-                );
-                $depthGauge->set($treeStats['max_depth'], [(string) $rootId]);
+            // 記錄當前指標數量
+            $cardinalityGauge = $this->prometheusRegistry->getOrRegisterGauge(
+                'pc_cache',
+                'prometheus_metrics_count',
+                'Number of PC cache related Prometheus metrics',
+                ['component']
+            );
+
+            // 統計我們的指標數量（動態計算以支援擴展）
+            $ourMetrics = [
+                'histograms' => 1, // get_tree_duration_seconds
+                'counters' => 5,   // operations_total, result_items_total, hits_total, misses_total, empty_results_total
+                'gauges' => 2,     // memory_usage_bytes, prometheus_metrics_count
+            ];
+
+            foreach ($ourMetrics as $type => $count) {
+                $cardinalityGauge->set($count, [$type]);
             }
+
+            // 動態計算總指標數並檢查閾值
+            $totalMetrics = array_sum($ourMetrics);
+            $maxAllowedMetrics = config('prometheus.cache_metrics_limit', 10);
             
-            // 節點數量指標
-            if (isset($treeStats['node_count'])) {
-                $nodeCountGauge = $this->prometheusRegistry->getOrRegisterGauge(
-                    $namespace,
-                    'pc_tree_node_count',
-                    '商品分類樹節點總數',
-                    ['root_id']
-                );
-                $nodeCountGauge->set($treeStats['node_count'], [(string) $rootId]);
+            if ($totalMetrics > $maxAllowedMetrics) {
+                Log::warning('PC cache Prometheus 指標數量過多', [
+                    'total_metrics' => $totalMetrics,
+                    'max_allowed' => $maxAllowedMetrics,
+                    'breakdown' => $ourMetrics,
+                    'suggestion' => '考慮減少標籤維度或合併相似指標',
+                ]);
             }
-            
-            // 葉子節點比例
-            if (isset($treeStats['leaf_ratio'])) {
-                $leafRatioGauge = $this->prometheusRegistry->getOrRegisterGauge(
-                    $namespace,
-                    'pc_tree_leaf_ratio',
-                    '商品分類樹葉子節點比例',
-                    ['root_id']
-                );
-                $leafRatioGauge->set($treeStats['leaf_ratio'], [(string) $rootId]);
-            }
-            
+
         } catch (\Throwable $e) {
-            Log::debug('記錄樹狀複雜度指標時發生錯誤', ['error' => $e->getMessage()]);
+            Log::debug('TSDB cardinality 監控失敗', ['error' => $e->getMessage()]);
         }
     }
 
@@ -431,7 +452,10 @@ class ProductCategoryCacheService
     }
 
     /**
-     * 清除受影響的樹狀結構部分（精準快取清除 + 防抖回退）
+     * 清除受影響的樹狀結構部分（聚合優化版本）
+     * 
+     * 在同一請求週期內聚合所有受影響的根分類ID，最後統一清除
+     * 避免多次呼叫導致的重複操作和全域flush
      * 
      * @param ProductCategory $category 發生變更的分類
      * @param int|null $originalRootId 原始根分類ID（用於移動操作）
@@ -444,7 +468,7 @@ class ProductCategoryCacheService
             $affectedRootIds = array_filter(array_unique([$currentRoot, $originalRootId]));
             
             if (empty($affectedRootIds)) {
-                Log::warning('無法確定受影響的根分類，執行防抖清除', [
+                $this->recordFallbackReason('empty_root_ids', [
                     'category_id' => $category->id,
                     'current_root' => $currentRoot,
                     'original_root' => $originalRootId,
@@ -453,33 +477,31 @@ class ProductCategoryCacheService
                 return;
             }
             
-            // 精準清除每個受影響的根分類快取
-            $successfulClears = 0;
-            foreach ($affectedRootIds as $rootId) {
-                if ($this->clearRootShard($rootId)) {
-                    $successfulClears++;
-                }
-            }
+            // 聚合受影響的根分類ID
+            self::$pendingRootIds = array_merge(self::$pendingRootIds, $affectedRootIds);
+            self::$pendingRootIds = array_unique(self::$pendingRootIds);
             
-            // 如果精準清除失敗，執行防抖清除作為 fallback
-            if ($successfulClears === 0) {
-                Log::warning('精準快取清除失敗，執行防抖清除', [
-                    'category_id' => $category->id,
-                    'affected_roots' => $affectedRootIds,
-                ]);
-                $this->performDebouncedFlush([$category->id]);
-            } else {
-                Log::info('精準快取清除完成', [
-                    'category_id' => $category->id,
-                    'current_root' => $currentRoot,
-                    'original_root' => $originalRootId,
-                    'affected_roots' => count($affectedRootIds),
-                    'successful_clears' => $successfulClears,
-                ]);
-            }
+            // 註冊請求結束時的清除回調
+            $this->registerShutdownClearance();
+            
+            Log::info('已聚合受影響的根分類', [
+                'category_id' => $category->id,
+                'current_root' => $currentRoot,
+                'original_root' => $originalRootId,
+                'new_affected_roots' => $affectedRootIds,
+                'total_pending_roots' => count(self::$pendingRootIds),
+                'pending_roots' => self::$pendingRootIds,
+            ]);
             
         } catch (\Throwable $e) {
-            Log::error('精準快取清除發生異常，執行防抖清除', [
+            $this->recordFallbackReason('exception', [
+                'category_id' => $category->id,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            
+            Log::error('聚合快取清除發生異常，執行防抖清除', [
                 'category_id' => $category->id,
                 'current_root' => $currentRoot ?? null,
                 'original_root' => $originalRootId,
@@ -493,39 +515,139 @@ class ProductCategoryCacheService
     }
 
     /**
-     * 清除單一根分類的快取分片
-     * 
-     * @param int $rootId 根分類ID
-     * @return bool 清除是否成功
+     * 註冊請求結束時的清除回調
      */
-    private function clearRootShard(int $rootId): bool
+    private function registerShutdownClearance(): void
     {
-        try {
-            // ── 修改: 僅對指定的 rootId 執行精準清除
-            $activeKey = $this->getTreeShardCacheKey($rootId, true);
-            $allKey = $this->getTreeShardCacheKey($rootId, false);
-            
-            $activeResult = Cache::tags([self::TAG])->forget($activeKey);
-            $allResult = Cache::tags([self::TAG])->forget($allKey);
-            
-            Log::debug('根分類快取分片清除', [
-                'root_id' => $rootId,
-                'active_key' => $activeKey,
-                'all_key' => $allKey,
-                'active_cleared' => $activeResult,
-                'all_cleared' => $allResult,
-            ]);
-            
-            return $activeResult || $allResult;
-            
-        } catch (\Throwable $e) {
-            Log::warning('根分類快取分片清除失敗', [
-                'root_id' => $rootId,
-                'error' => $e->getMessage(),
-            ]);
-            
-            return false;
+        static $registered = false;
+        
+        if (!$registered) {
+            register_shutdown_function(function () {
+                $this->executePendingClearance();
+            });
+            $registered = true;
         }
+    }
+
+    /**
+     * 執行聚合的快取清除
+     */
+    private function executePendingClearance(): void
+    {
+        if (empty(self::$pendingRootIds)) {
+            return;
+        }
+        
+        $startTime = microtime(true);
+        $successfulClears = 0;
+        $failedClears = 0;
+        
+        foreach (self::$pendingRootIds as $rootId) {
+            if ($this->clearRootShard($rootId)) {
+                $successfulClears++;
+            } else {
+                $failedClears++;
+            }
+        }
+        
+        $executionTime = round((microtime(true) - $startTime) * 1000, 2);
+        
+        // 如果有失敗的清除，記錄警告並執行防抖清除
+        if ($failedClears > 0) {
+            $this->recordFallbackReason('partial_failure', [
+                'successful_clears' => $successfulClears,
+                'failed_clears' => $failedClears,
+                'affected_roots' => self::$pendingRootIds,
+            ]);
+            
+            Log::warning('部分精準快取清除失敗，執行防抖清除 fallback', [
+                'total_roots' => count(self::$pendingRootIds),
+                'successful_clears' => $successfulClears,
+                'failed_clears' => $failedClears,
+                'execution_time_ms' => $executionTime,
+                'fallback_stats' => self::$fallbackStats,
+            ]);
+            
+            // 對失敗的根分類執行防抖清除
+            $this->performDebouncedFlush(array_keys(array_filter(self::$pendingRootIds, function($rootId) {
+                return !$this->clearRootShard($rootId);
+            })));
+        } else {
+            Log::info('聚合快取清除成功完成', [
+                'total_roots' => count(self::$pendingRootIds),
+                'successful_clears' => $successfulClears,
+                'execution_time_ms' => $executionTime,
+                'affected_roots' => self::$pendingRootIds,
+                'efficiency_gain' => $this->calculateEfficiencyGain(),
+            ]);
+        }
+        
+        // 清理狀態
+        self::$pendingRootIds = [];
+        
+        // 輸出防抖統計（如果有的話）
+        if (self::$fallbackStats['count'] > 0) {
+            Log::warning('快取清除 fallback 統計', [
+                'total_fallbacks' => self::$fallbackStats['count'],
+                'reasons' => array_count_values(self::$fallbackStats['reasons']),
+                'suggestion' => '考慮優化精準清除邏輯或增加根分類快取',
+            ]);
+            
+            // 重置統計
+            self::$fallbackStats = ['count' => 0, 'reasons' => []];
+        }
+    }
+
+    /**
+     * 記錄 fallback 原因，用於後續分析優化
+     * 
+     * @param string $reason 原因代碼
+     * @param array<string, mixed> $context 上下文資料
+     */
+    private function recordFallbackReason(string $reason, array $context = []): void
+    {
+        self::$fallbackStats['count']++;
+        self::$fallbackStats['reasons'][] = $reason;
+        
+        Log::warning("快取清除 fallback 觸發: {$reason}", array_merge($context, [
+            'fallback_count' => self::$fallbackStats['count'],
+            'optimization_hint' => $this->getFallbackOptimizationHint($reason),
+        ]));
+    }
+
+    /**
+     * 取得 fallback 原因的優化建議
+     * 
+     * @param string $reason
+     * @return string
+     */
+    private function getFallbackOptimizationHint(string $reason): string
+    {
+        return match($reason) {
+            'empty_root_ids' => '建議檢查 getRootAncestorId() 方法的實作',
+            'partial_failure' => '建議檢查 clearRootShard() 方法的可靠性',
+            'exception' => '建議增加異常處理和錯誤復原機制',
+            default => '建議檢查快取清除邏輯的整體架構',
+        };
+    }
+
+    /**
+     * 計算聚合清除的效率提升
+     * 
+     * @return array<string, mixed>
+     */
+    private function calculateEfficiencyGain(): array
+    {
+        $totalRoots = count(self::$pendingRootIds);
+        $assumedIndividualCalls = $totalRoots * 2; // 假設每次變更平均影響2個根分類
+        
+        return [
+            'batch_size' => $totalRoots,
+            'estimated_individual_calls' => $assumedIndividualCalls,
+            'efficiency_improvement' => $assumedIndividualCalls > 0 
+                ? round((($assumedIndividualCalls - 1) / $assumedIndividualCalls) * 100, 2) . '%'
+                : '0%',
+        ];
     }
 
     /**
@@ -558,6 +680,22 @@ class ProductCategoryCacheService
      */
     public function performDebouncedFlush(array $categoryIds): void
     {
+        // 生成防抖動鎖的鍵名
+        $lockKey = 'debounce_lock:product_category_flush:' . md5(serialize($categoryIds));
+        $lockTtl = 2; // 2 秒防抖動視窗
+        
+        // 嘗試獲得防抖動鎖
+        if (!Cache::add($lockKey, true, $lockTtl)) {
+            // 鎖已存在，表示在防抖動視窗內，跳過此次執行
+            Log::debug('防抖動機制生效，跳過重複的快取清除請求', [
+                'category_ids' => $categoryIds,
+                'lock_key' => $lockKey,
+                'lock_ttl' => $lockTtl,
+            ]);
+            return;
+        }
+
+        // 獲得鎖成功，執行快取清除
         $queueName = config('custom_queues.product_category_flush', 'low');
 
         // 使用正式的 Job 類別取代 Closure
@@ -570,6 +708,8 @@ class ProductCategoryCacheService
             'queue' => $queueName,
             'delay_seconds' => 5,
             'job_class' => FlushProductCategoryCache::class,
+            'lock_key' => $lockKey,
+            'debounce_window' => $lockTtl,
         ]);
     }
 
@@ -581,7 +721,7 @@ class ProductCategoryCacheService
     public function warmup(bool $force = false): void
     {
         if ($force) {
-            $this->getTaggedCache()->flush();
+            $this->flush();
         }
 
         Log::info('開始快取預熱');
@@ -602,20 +742,108 @@ class ProductCategoryCacheService
     }
 
     /**
-     * 清除所有相關快取
+     * 取得帶標籤的快取實例（支援 fallback）
+     * 
+     * @return \Illuminate\Cache\TaggedCache|\Illuminate\Contracts\Cache\Repository
+     */
+    private function getTaggedCache()
+    {
+        // 檢查當前快取驅動是否支援標籤
+        $cacheStore = Cache::getStore();
+        
+        // 如果快取驅動不支援標籤（如 array, database），回退到普通快取
+        if (!method_exists($cacheStore, 'tags')) {
+            Log::warning('快取驅動不支援標籤功能，使用普通快取', [
+                'driver' => config('cache.default'),
+                'store_class' => get_class($cacheStore),
+            ]);
+            return Cache::store();
+        }
+        
+        // 使用標籤式快取
+        return Cache::tags([self::TAG]);
+    }
+
+    /**
+     * 清除所有相關快取（支援非標籤式快取）
      */
     public function flush(): void
     {
-        $this->getTaggedCache()->flush();
+        $cacheInstance = $this->getTaggedCache();
+        
+        // 檢查是否為 TaggedCache 實例
+        if ($cacheInstance instanceof \Illuminate\Cache\TaggedCache) {
+            $cacheInstance->flush();
+        } else {
+            // 如果不支援標籤，手動清除已知的快取鍵
+            $this->flushWithoutTags();
+        }
+        
         Log::info('已清除所有商品分類快取');
     }
 
     /**
-     * 取得帶標籤的快取實例
+     * 不使用標籤的快取清除方法
      */
-    private function getTaggedCache(): TaggedCache
+    private function flushWithoutTags(): void
     {
-        return Cache::tags([self::TAG]);
+        $patterns = [
+            $this->cachePrefix . 'tree_active',
+            $this->cachePrefix . 'tree_all',
+            $this->cachePrefix . 'statistics',
+        ];
+
+        foreach ($patterns as $pattern) {
+            Cache::forget($pattern);
+        }
+
+        // 清除可能的分片快取
+        for ($i = 1; $i <= 100; $i++) {
+            Cache::forget($this->getTreeShardCacheKey($i, true));
+            Cache::forget($this->getTreeShardCacheKey($i, false));
+        }
+    }
+
+    /**
+     * 清除單一根分類的快取分片（支援非標籤式快取）
+     * 
+     * @param int $rootId 根分類ID
+     * @return bool 清除是否成功
+     */
+    private function clearRootShard(int $rootId): bool
+    {
+        try {
+            $activeKey = $this->getTreeShardCacheKey($rootId, true);
+            $allKey = $this->getTreeShardCacheKey($rootId, false);
+            
+            // 嘗試使用標籤式清除
+            try {
+                $activeResult = Cache::tags([self::TAG])->forget($activeKey);
+                $allResult = Cache::tags([self::TAG])->forget($allKey);
+            } catch (\BadMethodCallException $e) {
+                // 回退到普通快取清除
+                $activeResult = Cache::forget($activeKey);
+                $allResult = Cache::forget($allKey);
+            }
+            
+            Log::debug('根分類快取分片清除', [
+                'root_id' => $rootId,
+                'active_key' => $activeKey,
+                'all_key' => $allKey,
+                'active_cleared' => $activeResult,
+                'all_cleared' => $allResult,
+            ]);
+            
+            return $activeResult || $allResult;
+            
+        } catch (\Throwable $e) {
+            Log::warning('根分類快取分片清除失敗', [
+                'root_id' => $rootId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return false;
+        }
     }
 
     /**
@@ -667,5 +895,13 @@ class ProductCategoryCacheService
         $parts[] = $includeInactive ? 'with_inactive' : 'active_only';
         
         return $this->cachePrefix . implode('_', $parts);
+    }
+
+    /**
+     * 是否應該記錄 Prometheus 指標
+     */
+    private function shouldRecordMetrics(): bool
+    {
+        return isset($this->prometheusRegistry);
     }
 } 

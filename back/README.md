@@ -92,7 +92,19 @@ php artisan category:seed:stress --count=100 --depth=3
 php artisan category:seed:stress --count=50 --depth=2 --dry-run
 ```
 
-5. **啟動開發伺服器**
+5. **快取預熱** (推薦)
+```bash
+# 預熱啟用分類的快取
+php artisan category:cache-warmup --active
+
+# 預熱所有分類的快取
+php artisan category:cache-warmup
+
+# 乾跑模式查看預熱計畫
+php artisan category:cache-warmup --active --dry-run
+```
+
+6. **啟動開發伺服器**
 ```bash
 php artisan serve
 ```

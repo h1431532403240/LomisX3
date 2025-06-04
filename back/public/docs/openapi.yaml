@@ -8,6 +8,9 @@ servers:
     url: 'http://localhost'
 tags:
   -
+    name: 商品分類管理
+    description: ''
+  -
     name: ''
     description: ''
 components:
@@ -20,33 +23,487 @@ security:
   -
     default: []
 paths:
-  /api/user:
+  /api/product-categories:
     get:
-      summary: "取得認證用戶資訊的路由\n需要 Sanctum 認證"
-      operationId: Sanctum
-      description: ''
-      parameters: []
+      summary: 取得分類清單
+      operationId: ''
+      description: 支援分頁、篩選、搜尋等功能。可通過查詢參數控制返回結果。
+      parameters:
+        -
+          in: query
+          name: search
+          description: 搜尋關鍵字（支援名稱、描述）
+          example: 電子產品
+          required: false
+          schema:
+            type: string
+            description: 搜尋關鍵字（支援名稱、描述）
+            example: 電子產品
+            nullable: false
+        -
+          in: query
+          name: status
+          description: 分類狀態篩選
+          example: true
+          required: false
+          schema:
+            type: boolean
+            description: 分類狀態篩選
+            example: true
+            nullable: false
+        -
+          in: query
+          name: parent_id
+          description: 父分類ID篩選
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 父分類ID篩選
+            example: 1
+            nullable: false
+        -
+          in: query
+          name: depth
+          description: 分類深度篩選
+          example: 2
+          required: false
+          schema:
+            type: integer
+            description: 分類深度篩選
+            example: 2
+            nullable: false
+        -
+          in: query
+          name: with_children
+          description: 是否包含子分類
+          example: true
+          required: false
+          schema:
+            type: boolean
+            description: 是否包含子分類
+            example: true
+            nullable: false
+        -
+          in: query
+          name: max_depth
+          description: 最大深度限制
+          example: 3
+          required: false
+          schema:
+            type: integer
+            description: 最大深度限制
+            example: 3
+            nullable: false
+        -
+          in: query
+          name: with_trashed
+          description: 是否包含已刪除項目
+          example: false
+          required: false
+          schema:
+            type: boolean
+            description: 是否包含已刪除項目
+            example: false
+            nullable: false
+        -
+          in: query
+          name: per_page
+          description: 每頁項目數（1-100）
+          example: 20
+          required: false
+          schema:
+            type: integer
+            description: 每頁項目數（1-100）
+            example: 20
+            nullable: false
+        -
+          in: query
+          name: page
+          description: 頁碼
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 頁碼
+            example: 1
+            nullable: false
       responses:
-        401:
+        200:
           description: ''
           content:
             application/json:
               schema:
                 type: object
                 example:
-                  message: Unauthenticated.
+                  data:
+                    -
+                      id: 1
+                      name: 電子產品
+                      slug: electronics
+                      parent_id: null
+                      position: 1
+                      status: true
+                      depth: 0
+                      description: 各類電子產品分類
+                      meta_title: '電子產品 | LomisX3'
+                      meta_description: 電子產品相關商品分類
+                      path: /1/
+                      has_children: true
+                      full_path: 電子產品
+                      children_count: 5
+                      created_at: '2025-01-07T10:00:00.000000Z'
+                      updated_at: '2025-01-07T10:00:00.000000Z'
+                  links:
+                    first: 'http://localhost/api/product-categories?page=1'
+                    last: 'http://localhost/api/product-categories?page=10'
+                    prev: null
+                    next: 'http://localhost/api/product-categories?page=2'
+                  meta:
+                    current_page: 1
+                    from: 1
+                    last_page: 10
+                    per_page: 20
+                    to: 20
+                    total: 200
                 properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        id: 1
+                        name: 電子產品
+                        slug: electronics
+                        parent_id: null
+                        position: 1
+                        status: true
+                        depth: 0
+                        description: 各類電子產品分類
+                        meta_title: '電子產品 | LomisX3'
+                        meta_description: 電子產品相關商品分類
+                        path: /1/
+                        has_children: true
+                        full_path: 電子產品
+                        children_count: 5
+                        created_at: '2025-01-07T10:00:00.000000Z'
+                        updated_at: '2025-01-07T10:00:00.000000Z'
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: 電子產品
+                        slug:
+                          type: string
+                          example: electronics
+                        parent_id:
+                          type: string
+                          example: null
+                        position:
+                          type: integer
+                          example: 1
+                        status:
+                          type: boolean
+                          example: true
+                        depth:
+                          type: integer
+                          example: 0
+                        description:
+                          type: string
+                          example: 各類電子產品分類
+                        meta_title:
+                          type: string
+                          example: '電子產品 | LomisX3'
+                        meta_description:
+                          type: string
+                          example: 電子產品相關商品分類
+                        path:
+                          type: string
+                          example: /1/
+                        has_children:
+                          type: boolean
+                          example: true
+                        full_path:
+                          type: string
+                          example: 電子產品
+                        children_count:
+                          type: integer
+                          example: 5
+                        created_at:
+                          type: string
+                          example: '2025-01-07T10:00:00.000000Z'
+                        updated_at:
+                          type: string
+                          example: '2025-01-07T10:00:00.000000Z'
+                  links:
+                    type: object
+                    properties:
+                      first:
+                        type: string
+                        example: 'http://localhost/api/product-categories?page=1'
+                      last:
+                        type: string
+                        example: 'http://localhost/api/product-categories?page=10'
+                      prev:
+                        type: string
+                        example: null
+                      next:
+                        type: string
+                        example: 'http://localhost/api/product-categories?page=2'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      from:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 10
+                      per_page:
+                        type: integer
+                        example: 20
+                      to:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        example: 200
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 驗證失敗
+                  errors:
+                    per_page:
+                      - 每頁項目數不能超過100
+                properties:
+                  success:
+                    type: boolean
+                    example: false
                   message:
                     type: string
-                    example: Unauthenticated.
+                    example: 驗證失敗
+                  errors:
+                    type: object
+                    properties:
+                      per_page:
+                        type: array
+                        example:
+                          - 每頁項目數不能超過100
+                        items:
+                          type: string
       tags:
-        - ''
+        - 商品分類管理
       security: []
-  /api/test:
+    post:
+      summary: 儲存新分類
+      operationId: ''
+      description: 創建新的商品分類。系統將自動計算層級深度、生成唯一slug，並觸發快取更新。
+      parameters: []
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 分類建立成功
+                  data:
+                    id: 15
+                    name: 智慧型手機
+                    slug: smartphones
+                    parent_id: 1
+                    position: 10
+                    status: true
+                    depth: 1
+                    description: 各種品牌的智慧型手機
+                    meta_title: '智慧型手機 | LomisX3'
+                    meta_description: 提供各大品牌智慧型手機，包含最新機型與優惠價格
+                    path: /1/15/
+                    has_children: false
+                    full_path: '電子產品 > 智慧型手機'
+                    children_count: 0
+                    created_at: '2025-01-07T10:30:00.000000Z'
+                    updated_at: '2025-01-07T10:30:00.000000Z'
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 分類建立成功
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 15
+                      name:
+                        type: string
+                        example: 智慧型手機
+                      slug:
+                        type: string
+                        example: smartphones
+                      parent_id:
+                        type: integer
+                        example: 1
+                      position:
+                        type: integer
+                        example: 10
+                      status:
+                        type: boolean
+                        example: true
+                      depth:
+                        type: integer
+                        example: 1
+                      description:
+                        type: string
+                        example: 各種品牌的智慧型手機
+                      meta_title:
+                        type: string
+                        example: '智慧型手機 | LomisX3'
+                      meta_description:
+                        type: string
+                        example: 提供各大品牌智慧型手機，包含最新機型與優惠價格
+                      path:
+                        type: string
+                        example: /1/15/
+                      has_children:
+                        type: boolean
+                        example: false
+                      full_path:
+                        type: string
+                        example: '電子產品 > 智慧型手機'
+                      children_count:
+                        type: integer
+                        example: 0
+                      created_at:
+                        type: string
+                        example: '2025-01-07T10:30:00.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2025-01-07T10:30:00.000000Z'
+        400:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類建立失敗：超過最大層級限制
+                  code: MAX_DEPTH_EXCEEDED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類建立失敗：超過最大層級限制
+                  code:
+                    type: string
+                    example: MAX_DEPTH_EXCEEDED
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類建立失敗：名稱已存在
+                  code: CATEGORY_CREATE_FAILED
+                  errors:
+                    name:
+                      - 分類名稱已存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類建立失敗：名稱已存在
+                  code:
+                    type: string
+                    example: CATEGORY_CREATE_FAILED
+                  errors:
+                    type: object
+                    properties:
+                      name:
+                        type: array
+                        example:
+                          - 分類名稱已存在
+                        items:
+                          type: string
+      tags:
+        - 商品分類管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 分類名稱（2-100字元）
+                  example: 智慧型手機
+                  nullable: false
+                slug:
+                  type: string
+                  description: 自訂URL別名（可選，系統會自動生成）
+                  example: smartphones
+                  nullable: true
+                parent_id:
+                  type: integer
+                  description: 父分類ID（可選）
+                  example: 1
+                  nullable: true
+                position:
+                  type: integer
+                  description: 排序位置（可選，預設自動計算）
+                  example: 10
+                  nullable: true
+                status:
+                  type: boolean
+                  description: 啟用狀態（預設true）
+                  example: true
+                  nullable: true
+                description:
+                  type: string
+                  description: 分類描述（可選）
+                  example: 各種品牌的智慧型手機
+                  nullable: true
+                meta_title:
+                  type: string
+                  description: SEO標題（可選，預設使用分類名稱）
+                  example: '智慧型手機 | LomisX3'
+                  nullable: true
+                meta_description:
+                  type: string
+                  description: SEO描述（可選）
+                  example: 提供各大品牌智慧型手機，包含最新機型與優惠價格
+                  nullable: true
+              required:
+                - name
+      security: []
+  '/api/product-categories/{id}':
     get:
-      summary: "測試路由\n檢查 API 是否正常運作"
-      operationId: API
-      description: ''
+      summary: 顯示指定分類
+      operationId: ''
+      description: 取得單一商品分類的詳細資訊，包含父分類和子分類資料。
       parameters: []
       responses:
         200:
@@ -56,105 +513,122 @@ paths:
               schema:
                 type: object
                 example:
-                  message: 'API 運作正常'
-                  timestamp: '2025-06-03T19:52:24.702808Z'
+                  success: true
+                  data:
+                    id: 1
+                    name: 電子產品
+                    slug: electronics
+                    parent_id: null
+                    position: 1
+                    status: true
+                    depth: 0
+                    description: 各類電子產品分類
+                    meta_title: '電子產品 | LomisX3'
+                    meta_description: 電子產品相關商品分類
+                    path: /1/
+                    has_children: true
+                    full_path: 電子產品
+                    children_count: 5
+                    parent: null
+                    children:
+                      -
+                        id: 2
+                        name: 智慧型手機
+                        slug: smartphones
+                        parent_id: 1
+                        status: true
+                        depth: 1
+                    created_at: '2025-01-07T10:00:00.000000Z'
+                    updated_at: '2025-01-07T10:00:00.000000Z'
                 properties:
-                  message:
-                    type: string
-                    example: 'API 運作正常'
-                  timestamp:
-                    type: string
-                    example: '2025-06-03T19:52:24.702808Z'
-      tags:
-        - ''
-      security: []
-  /api/product-categories:
-    get:
-      summary: 取得分類清單
-      operationId: ''
-      description: ''
-      parameters: []
-      responses:
-        403:
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  message: 'This action is unauthorized.'
-                properties:
-                  message:
-                    type: string
-                    example: 'This action is unauthorized.'
-      tags:
-        - ''
-      security: []
-    post:
-      summary: 儲存新分類
-      operationId: ''
-      description: ''
-      parameters: []
-      responses: {  }
-      tags:
-        - ''
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  description: 'Must not be greater than 100 characters.'
-                  example: vmqeopfuudtdsufvyvddq
-                  nullable: false
-                slug:
-                  type: string
-                  description: 'Must match the regex /^[a-z0-9]+(?:-[a-z0-9]+)*$/. Must not be greater than 100 characters.'
-                  example: amniihfqcoynlazghdtqt
-                  nullable: true
-                parent_id:
-                  type: integer
-                  description: 'The <code>id</code> of an existing record in the product_categories table.'
-                  example: 17
-                  nullable: true
-                position:
-                  type: integer
-                  description: 'Must be at least 0.'
-                  example: 45
-                  nullable: true
-                status:
-                  type: boolean
-                  description: ''
-                  example: true
-                  nullable: true
-                description:
-                  type: string
-                  description: 'Must not be greater than 1000 characters.'
-                  example: 'Amet iste laborum eius est dolor dolores.'
-                  nullable: true
-                meta_title:
-                  type: string
-                  description: 'Must not be greater than 100 characters.'
-                  example: tdsufvyvddqamniihfqco
-                  nullable: true
-                meta_description:
-                  type: string
-                  description: 'Must not be greater than 255 characters.'
-                  example: ynlazghdtqtqxbajwbpil
-                  nullable: true
-              required:
-                - name
-      security: []
-  '/api/product-categories/{id}':
-    get:
-      summary: 顯示指定分類
-      operationId: ''
-      description: ''
-      parameters: []
-      responses:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      name:
+                        type: string
+                        example: 電子產品
+                      slug:
+                        type: string
+                        example: electronics
+                      parent_id:
+                        type: string
+                        example: null
+                      position:
+                        type: integer
+                        example: 1
+                      status:
+                        type: boolean
+                        example: true
+                      depth:
+                        type: integer
+                        example: 0
+                      description:
+                        type: string
+                        example: 各類電子產品分類
+                      meta_title:
+                        type: string
+                        example: '電子產品 | LomisX3'
+                      meta_description:
+                        type: string
+                        example: 電子產品相關商品分類
+                      path:
+                        type: string
+                        example: /1/
+                      has_children:
+                        type: boolean
+                        example: true
+                      full_path:
+                        type: string
+                        example: 電子產品
+                      children_count:
+                        type: integer
+                        example: 5
+                      parent:
+                        type: string
+                        example: null
+                      children:
+                        type: array
+                        example:
+                          -
+                            id: 2
+                            name: 智慧型手機
+                            slug: smartphones
+                            parent_id: 1
+                            status: true
+                            depth: 1
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 2
+                            name:
+                              type: string
+                              example: 智慧型手機
+                            slug:
+                              type: string
+                              example: smartphones
+                            parent_id:
+                              type: integer
+                              example: 1
+                            status:
+                              type: boolean
+                              example: true
+                            depth:
+                              type: integer
+                              example: 1
+                      created_at:
+                        type: string
+                        example: '2025-01-07T10:00:00.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2025-01-07T10:00:00.000000Z'
         404:
           description: ''
           content:
@@ -162,24 +636,148 @@ paths:
               schema:
                 type: object
                 example:
-                  message: 'No query results for model [App\Models\ProductCategory] 17'
+                  success: false
+                  message: 分類不存在
                 properties:
+                  success:
+                    type: boolean
+                    example: false
                   message:
                     type: string
-                    example: 'No query results for model [App\Models\ProductCategory] 17'
+                    example: 分類不存在
       tags:
-        - ''
+        - 商品分類管理
       security: []
     put:
       summary: 更新指定分類
       operationId: ''
-      description: ''
+      description: 更新商品分類資訊。變更父分類時會自動重新計算層級結構和快取。
       parameters: []
-      responses: {  }
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 分類更新成功
+                  data:
+                    id: 1
+                    name: 更新的分類名稱
+                    slug: updated-slug
+                    parent_id: 2
+                    position: 15
+                    status: false
+                    depth: 1
+                    description: 更新的分類描述
+                    meta_title: 更新的SEO標題
+                    meta_description: 更新的SEO描述
+                    path: /2/1/
+                    has_children: true
+                    full_path: '父分類 > 更新的分類名稱'
+                    children_count: 3
+                    created_at: '2025-01-07T10:00:00.000000Z'
+                    updated_at: '2025-01-07T11:00:00.000000Z'
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 分類更新成功
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      name:
+                        type: string
+                        example: 更新的分類名稱
+                      slug:
+                        type: string
+                        example: updated-slug
+                      parent_id:
+                        type: integer
+                        example: 2
+                      position:
+                        type: integer
+                        example: 15
+                      status:
+                        type: boolean
+                        example: false
+                      depth:
+                        type: integer
+                        example: 1
+                      description:
+                        type: string
+                        example: 更新的分類描述
+                      meta_title:
+                        type: string
+                        example: 更新的SEO標題
+                      meta_description:
+                        type: string
+                        example: 更新的SEO描述
+                      path:
+                        type: string
+                        example: /2/1/
+                      has_children:
+                        type: boolean
+                        example: true
+                      full_path:
+                        type: string
+                        example: '父分類 > 更新的分類名稱'
+                      children_count:
+                        type: integer
+                        example: 3
+                      created_at:
+                        type: string
+                        example: '2025-01-07T10:00:00.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2025-01-07T11:00:00.000000Z'
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類不存在
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類更新失敗：會造成循環引用
+                  code: CATEGORY_UPDATE_FAILED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類更新失敗：會造成循環引用
+                  code:
+                    type: string
+                    example: CATEGORY_UPDATE_FAILED
       tags:
-        - ''
+        - 商品分類管理
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -187,55 +785,105 @@ paths:
               properties:
                 name:
                   type: string
-                  description: 'Must not be greater than 100 characters.'
-                  example: vmqeopfuudtdsufvyvddq
+                  description: 分類名稱（2-100字元）
+                  example: 更新的分類名稱
                   nullable: false
                 slug:
                   type: string
-                  description: 'Must match the regex /^[a-z0-9]+(?:-[a-z0-9]+)*$/. Must not be greater than 100 characters.'
-                  example: amniihfqcoynlazghdtqt
+                  description: 自訂URL別名
+                  example: updated-slug
                   nullable: true
                 parent_id:
                   type: integer
-                  description: 'The <code>id</code> of an existing record in the product_categories table.'
-                  example: 17
+                  description: 父分類ID（設為null表示設為根分類）
+                  example: 2
                   nullable: true
                 position:
                   type: integer
-                  description: 'Must be at least 0.'
-                  example: 45
+                  description: 排序位置
+                  example: 15
                   nullable: true
                 status:
                   type: boolean
-                  description: ''
-                  example: true
+                  description: 啟用狀態
+                  example: false
                   nullable: true
                 description:
                   type: string
-                  description: 'Must not be greater than 1000 characters.'
-                  example: 'Amet iste laborum eius est dolor dolores.'
+                  description: 分類描述
+                  example: 更新的分類描述
                   nullable: true
                 meta_title:
                   type: string
-                  description: 'Must not be greater than 100 characters.'
-                  example: tdsufvyvddqamniihfqco
+                  description: SEO標題
+                  example: 更新的SEO標題
                   nullable: true
                 meta_description:
                   type: string
-                  description: 'Must not be greater than 255 characters.'
-                  example: ynlazghdtqtqxbajwbpil
+                  description: SEO描述
+                  example: 更新的SEO描述
                   nullable: true
-              required:
-                - name
       security: []
     delete:
       summary: 刪除指定分類
       operationId: ''
-      description: ''
+      description: 軟刪除商品分類。只能刪除沒有子分類的分類，刪除後會觸發快取更新。
       parameters: []
-      responses: {  }
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 分類刪除成功
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 分類刪除成功
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類不存在
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類刪除失敗：該分類包含子分類
+                  code: CATEGORY_DELETE_FAILED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類刪除失敗：該分類包含子分類
+                  code:
+                    type: string
+                    example: CATEGORY_DELETE_FAILED
       tags:
-        - ''
+        - 商品分類管理
       security: []
     parameters:
       -
@@ -246,27 +894,209 @@ paths:
         required: true
         schema:
           type: integer
+      -
+        in: path
+        name: productCategory
+        description: 分類ID
+        example: 1
+        required: true
+        schema:
+          type: integer
   /api/product-categories/tree:
     get:
       summary: 取得樹狀結構
       operationId: ''
-      description: ''
-      parameters: []
+      description: 獲取完整的分類樹狀結構，支援快取優化，適用於選單展示和層級瀏覽。
+      parameters:
+        -
+          in: query
+          name: only_active
+          description: 僅顯示啟用的分類（預設true）
+          example: true
+          required: false
+          schema:
+            type: boolean
+            description: 僅顯示啟用的分類（預設true）
+            example: true
+            nullable: false
+        -
+          in: query
+          name: max_depth
+          description: 最大顯示深度
+          example: 3
+          required: false
+          schema:
+            type: integer
+            description: 最大顯示深度
+            example: 3
+            nullable: false
+        -
+          in: query
+          name: root_id
+          description: 指定根分類ID（顯示特定子樹）
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 指定根分類ID（顯示特定子樹）
+            example: 1
+            nullable: false
       responses:
-        404:
+        200:
           description: ''
           content:
             application/json:
               schema:
                 type: object
                 example:
-                  message: 'No query results for model [App\Models\ProductCategory] tree'
+                  success: true
+                  data:
+                    -
+                      id: 1
+                      name: 電子產品
+                      slug: electronics
+                      parent_id: null
+                      position: 1
+                      status: true
+                      depth: 0
+                      has_children: true
+                      children_count: 3
+                      children:
+                        -
+                          id: 2
+                          name: 智慧型手機
+                          slug: smartphones
+                          parent_id: 1
+                          position: 1
+                          status: true
+                          depth: 1
+                          has_children: false
+                          children_count: 0
+                          children: []
+                  meta:
+                    total_categories: 25
+                    max_depth: 3
+                    cache_hit: true
                 properties:
-                  message:
-                    type: string
-                    example: 'No query results for model [App\Models\ProductCategory] tree'
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    example:
+                      -
+                        id: 1
+                        name: 電子產品
+                        slug: electronics
+                        parent_id: null
+                        position: 1
+                        status: true
+                        depth: 0
+                        has_children: true
+                        children_count: 3
+                        children:
+                          -
+                            id: 2
+                            name: 智慧型手機
+                            slug: smartphones
+                            parent_id: 1
+                            position: 1
+                            status: true
+                            depth: 1
+                            has_children: false
+                            children_count: 0
+                            children: []
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: 電子產品
+                        slug:
+                          type: string
+                          example: electronics
+                        parent_id:
+                          type: string
+                          example: null
+                        position:
+                          type: integer
+                          example: 1
+                        status:
+                          type: boolean
+                          example: true
+                        depth:
+                          type: integer
+                          example: 0
+                        has_children:
+                          type: boolean
+                          example: true
+                        children_count:
+                          type: integer
+                          example: 3
+                        children:
+                          type: array
+                          example:
+                            -
+                              id: 2
+                              name: 智慧型手機
+                              slug: smartphones
+                              parent_id: 1
+                              position: 1
+                              status: true
+                              depth: 1
+                              has_children: false
+                              children_count: 0
+                              children: []
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                                example: 2
+                              name:
+                                type: string
+                                example: 智慧型手機
+                              slug:
+                                type: string
+                                example: smartphones
+                              parent_id:
+                                type: integer
+                                example: 1
+                              position:
+                                type: integer
+                                example: 1
+                              status:
+                                type: boolean
+                                example: true
+                              depth:
+                                type: integer
+                                example: 1
+                              has_children:
+                                type: boolean
+                                example: false
+                              children_count:
+                                type: integer
+                                example: 0
+                              children:
+                                type: array
+                                example: []
+                  meta:
+                    type: object
+                    properties:
+                      total_categories:
+                        type: integer
+                        example: 25
+                      max_depth:
+                        type: integer
+                        example: 3
+                      cache_hit:
+                        type: boolean
+                        example: true
       tags:
-        - ''
+        - 商品分類管理
       security: []
   '/api/product-categories/{product_category_id}/breadcrumbs':
     get:
@@ -288,7 +1118,7 @@ paths:
                     type: string
                     example: 'No query results for model [App\Models\ProductCategory] 17'
       tags:
-        - ''
+        - 商品分類管理
       security: []
     parameters:
       -
@@ -319,7 +1149,7 @@ paths:
                     type: string
                     example: 'No query results for model [App\Models\ProductCategory] 17'
       tags:
-        - ''
+        - 商品分類管理
       security: []
     parameters:
       -
@@ -338,7 +1168,7 @@ paths:
       parameters: []
       responses: {  }
       tags:
-        - ''
+        - 商品分類管理
       requestBody:
         required: true
         content:
@@ -383,7 +1213,7 @@ paths:
       parameters: []
       responses: {  }
       tags:
-        - ''
+        - 商品分類管理
       requestBody:
         required: true
         content:
@@ -414,7 +1244,7 @@ paths:
       parameters: []
       responses: {  }
       tags:
-        - ''
+        - 商品分類管理
       requestBody:
         required: false
         content:
@@ -449,6 +1279,54 @@ paths:
                   message:
                     type: string
                     example: 'No query results for model [App\Models\ProductCategory] statistics'
+      tags:
+        - 商品分類管理
+      security: []
+  /api/user:
+    get:
+      summary: "取得認證用戶資訊的路由\n需要 Sanctum 認證"
+      operationId: Sanctum
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - ''
+      security: []
+  /api/test:
+    get:
+      summary: "測試路由\n檢查 API 是否正常運作"
+      operationId: API
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'API 運作正常'
+                  timestamp: '2025-06-04T11:11:52.528906Z'
+                properties:
+                  message:
+                    type: string
+                    example: 'API 運作正常'
+                  timestamp:
+                    type: string
+                    example: '2025-06-04T11:11:52.528906Z'
       tags:
         - ''
       security: []

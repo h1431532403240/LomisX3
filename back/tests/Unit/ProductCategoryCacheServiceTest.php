@@ -1,11 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit;
 
 use App\Repositories\Contracts\ProductCategoryRepositoryInterface;
 use App\Services\ProductCategoryCacheService;
+use Illuminate\Cache\CacheManager;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 /**
  * 商品分類快取服務測試
@@ -13,6 +17,8 @@ use PHPUnit\Framework\TestCase;
  */
 class ProductCategoryCacheServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected ProductCategoryCacheService $cacheService;
 
     protected $mockRepository;
@@ -21,7 +27,10 @@ class ProductCategoryCacheServiceTest extends TestCase
     {
         parent::setUp();
 
+        // 建立模擬的儲存庫
         $this->mockRepository = Mockery::mock(ProductCategoryRepositoryInterface::class);
+        
+        // 建立快取服務實例
         $this->cacheService = new ProductCategoryCacheService($this->mockRepository);
     }
 
@@ -41,13 +50,11 @@ class ProductCategoryCacheServiceTest extends TestCase
         $this->assertIsArray($info);
         $this->assertEquals('product_categories', $info['tag']);
         $this->assertEquals(3600, $info['ttl']);
-        $this->assertArrayHasKey('supported_operations', $info);
-        $this->assertTrue($info['supported_operations']['tree_caching']);
-        $this->assertTrue($info['supported_operations']['breadcrumb_caching']);
-        $this->assertTrue($info['supported_operations']['children_caching']);
-        $this->assertTrue($info['supported_operations']['descendants_caching']);
-        $this->assertTrue($info['supported_operations']['statistics_caching']);
-        $this->assertTrue($info['supported_operations']['warmup_support']);
+        $this->assertArrayHasKey('prefix', $info);
+        $this->assertArrayHasKey('lock_timeout', $info);
+        $this->assertArrayHasKey('driver', $info);
+        $this->assertEquals(3, $info['lock_timeout']);
+        $this->assertStringContainsString('pc_', $info['prefix']);
     }
 
     /**

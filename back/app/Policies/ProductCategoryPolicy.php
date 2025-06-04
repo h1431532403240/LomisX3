@@ -32,7 +32,7 @@ class ProductCategoryPolicy
     {
         // 檢查使用者角色是否為 ADMIN
         $userRole = Role::fromString($user->role ?? '');
-        if ($userRole && $userRole->isAdmin()) {
+        if ($userRole && $userRole->isAdminOrAbove()) {
             return true;
         }
 

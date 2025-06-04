@@ -1,0 +1,198 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "商品分類快取監控 (ProductCategory Cache)",
+    "tags": ["laravel", "product-category", "cache", "performance"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": [
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(pc_cache_total, instance)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*",
+          "multi": true,
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "快取命中率 (Cache Hit Rate)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(pc_cache_total{result=\"hit\", instance=~\"$instance\"}[5m]) / rate(pc_cache_total{instance=~\"$instance\"}[5m]) * 100",
+            "legendFormat": "命中率 %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "green", "value": 85}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "快取操作 QPS (Cache Operations per Second)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(pc_cache_total{instance=~\"$instance\"}[5m])",
+            "legendFormat": "{{result}} - {{filter}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"label": "Operations/sec", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "getTree() 執行時間分布 (Response Time Distribution)",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(pc_get_tree_seconds_bucket{instance=~\"$instance\"}[5m])",
+            "legendFormat": "{{le}}",
+            "refId": "A"
+          }
+        ],
+        "heatmap": {
+          "xBucketSize": null,
+          "yBucketSize": null,
+          "yBucketNumber": null
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "平均回應時間 (Average Response Time)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(pc_get_tree_seconds_sum{instance=~\"$instance\"}[5m]) / rate(pc_get_tree_seconds_count{instance=~\"$instance\"}[5m])",
+            "legendFormat": "{{status}} 平均時間",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"label": "Seconds", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "根分類分組分布 (Root Group Distribution)",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (root_group) (rate(pc_cache_total{instance=~\"$instance\"}[5m]))",
+            "legendFormat": "{{root_group}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "錯誤率 (Error Rate)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(pc_cache_total{result=\"error\", instance=~\"$instance\"}[5m]) / rate(pc_cache_total{instance=~\"$instance\"}[5m]) * 100",
+            "legendFormat": "錯誤率 %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"label": "Error Rate %", "min": 0},
+          {"show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [5], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "5m",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "商品分類快取錯誤率過高",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "部署標記",
+          "datasource": "-- Grafana --",
+          "type": "dashboard",
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "enable": true,
+          "hide": true
+        }
+      ]
+    }
+  },
+  "meta": {
+    "type": "db",
+    "canSave": true,
+    "canEdit": true,
+    "canAdmin": true,
+    "canStar": true,
+    "slug": "product-category-cache-monitoring",
+    "url": "/d/pc-cache/product-category-cache-monitoring",
+    "expires": "0001-01-01T00:00:00Z",
+    "created": "2024-12-26T00:00:00Z",
+    "updated": "2024-12-26T00:00:00Z",
+    "updatedBy": "admin",
+    "createdBy": "admin",
+    "version": 1,
+    "hasAcl": false,
+    "isFolder": false,
+    "folderId": 0,
+    "folderTitle": "General",
+    "folderUrl": "",
+    "provisioned": false,
+    "provisionedExternalId": ""
+  }
+} 

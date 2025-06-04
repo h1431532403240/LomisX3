@@ -51,36 +51,15 @@
         </style>
     </head>
     <body>
-        <h2>Cache Debounce (Tests\Feature\CacheDebounce)</h2>
+        <h2>Pagination Cursor (Tests\Feature\PaginationCursor)</h2>
         <ul>
-            <li class="success">It debounces cache flush operations within time window</li>
-            <li class="success">It uses debounced flush as fallback when precise clearing fails</li>
-            <li class="success">It handles different category ids in debounced flush</li>
-            <li class="success">It can dispatch basic flush job</li>
-            <li class="success">It handles empty category ids in debounced flush</li>
-            <li class="success">It uses correct queue configuration</li>
-            <li class="success">It handles large batch of category ids efficiently</li>
-            <li class="success">It delays job execution correctly</li>
-        </ul>
-        <h2>Otel Span (Tests\Feature\OtelSpan)</h2>
-        <ul>
-            <li class="success">It creates span for get tree operation with result attribute</li>
-            <li class="success">It creates different spans for different get tree parameters</li>
-            <li class="success">It records error spans correctly when exceptions occur</li>
-            <li class="success">It records performance attributes in spans</li>
-            <li class="success">It handles disabled opentelemetry gracefully</li>
-            <li class="success">It handles concurrent span creation</li>
-        </ul>
-        <h2>Product Category Service Slug (Tests\Unit\ProductCategoryServiceSlug)</h2>
-        <ul>
-            <li class="success">It generates basic slug from name</li>
-            <li class="success">It generates unique slug within three attempts when conflicts exist</li>
-            <li class="success">It generates slug with correct format</li>
-            <li class="success">It correctly identifies slug conflicts</li>
-            <li class="success">It handles slug generation when editing existing category</li>
-            <li class="success">It handles massive slug conflicts efficiently</li>
-            <li class="success">It handles edge cases in slug generation</li>
-            <li class="success">It handles multilingual characters in slug generation</li>
+            <li class="success">Cursor pagination meta format</li>
+            <li class="success">Next cursor encoding</li>
+            <li class="success">Prev cursor encoding</li>
+            <li class="success">Pagination navigation urls</li>
+            <li class="success">Empty cursor pagination</li>
+            <li class="success">Cursor vs standard pagination meta</li>
+            <li class="success">Per page parameter</li>
         </ul>
     </body>
 </html>

@@ -3,7 +3,6 @@ description:
 globs: 
 alwaysApply: false
 ---
-
 {
   "$schema": "https://raw.githubusercontent.com/cursorinsight/cursor-rules/main/schema.json",
 
@@ -20,7 +19,13 @@ alwaysApply: false
         "檔案最末行必須留一個換行",
         "// === Git / Commit ===",
         "Commit message 請符合 Conventional Commits (feat/fix/chore docs/test/refactor…)",
-        "PR 必須通過 CI，並附上測試或文件更新"
+        "PR 必須通過 CI，並附上測試或文件更新",
+        "// === 代碼品質 ===",
+        "新增/修改前端檔案必須通過 eslint --max-warnings 0 與 prettier --check",
+        "禁止直接使用 DB::table() 或 raw query，特殊情況必須寫在 Repository 並附 Unit Test",
+        "// === LomisX3 專案記憶 ===",
+        "開發新模組前必須檢查是否有類似功能已實現，參考 ProductCategory 模組 (v2.3 企業級)",
+        "禁止重複實現已有架構元件，優先複用現有模式"
       ]
     },
 
@@ -45,13 +50,15 @@ alwaysApply: false
         "// === 檔案結構 ===",
         "Domain 模組放 src/modules/{domain}/**.tsx；API 用 src/api/{domain}.ts",
         "元件檔名 PascalCase；其餘檔案 kebab-case",
-        "// === 其他 ===",
-        "新增或變更元件必須附對應 Storybook story 或 Playwright E2E 測試"
+        "// === 測試要求 ===",
+        "新增或變更元件必須附對應 Storybook story 或 Playwright E2E 測試",
+        "所有 Story 必須通過 npm run storybook:build 檢查",
+        "E2E 測試必須通過 npm run test:e2e 執行"
       ]
     },
 
     /* ──────────────────────────
-       2. Backend (Laravel 10+)
+       2. Backend (Laravel 12+) - LomisX3 架構規範
        ────────────────────────── */
     {
       "pattern": "back/app/**/*.{php}",
@@ -59,84 +66,220 @@ alwaysApply: false
         "// === 代碼風格 / 嚴格型別 ===",
         "檔案頂部必須 declare(strict_types=1)",
         "遵循 PSR-12；Pint 需保持綠燈",
-        "// === 架構分層 ===",
+        "// === LomisX3 已實現模組（禁止重複實現）===",
+        "ProductCategory 模組 v2.3 已達企業級標準：",
+        "- Repository: ProductCategoryRepositoryInterface + ProductCategoryRepository",
+        "- Service: ProductCategoryService + ProductCategoryCacheService",
+        "- Cache: Redis 標籤式 + 根分片策略 + 防抖動",
+        "- Auth: Sanctum tokenCan() 細粒度權限",
+        "- API: /api/product-categories (RESTful + 進階功能)",
+        "- Tests: 85%+ 覆蓋率, Feature + Unit 完整測試",
+        "// === 強制架構模式（基於 ProductCategory 成功經驗）===",
         "Controller 放 App\\Http\\Controllers\\Api，採 Resource Controller；內不得含商業邏輯或查詢",
         "業務邏輯 → App\\Services；資料存取 → App\\Repositories；模型事件 → Observer",
         "所有 API Response 使用 Laravel Resource，置於 App\\Http\\Resources",
         "Request 驗證使用 FormRequest，置於 App\\Http\\Requests",
+        "每個模組必須實現 Repository Pattern: Interface + Implementation",
+        "Service 必須注入 Repository，使用 BusinessException 錯誤處理",
+        "// === 禁止重複實現的元件 ===",
+        "❌ 快取邏輯：使用 ProductCategoryCacheService 模式 (標籤式 + 根分片 + debounce)",
+        "❌ 錯誤處理：使用現有 BusinessException + ErrorCode 枚舉",
+        "❌ 驗證規則：優先使用 MaxDepthRule, NotSelfOrDescendant",
+        "❌ 權限檢查：使用 Sanctum tokenCan() + authorizeResource() 模式",
+        "❌ 分頁邏輯：使用 ProductCategoryCollection 模式 (標準 + Cursor)",
+        "// === 必須參考的實現（開發新模組時）===",
+        "Controller 參考: app/Http/Controllers/Api/ProductCategoryController.php",
+        "Service 參考: app/Services/ProductCategoryService.php",
+        "Cache 參考: app/Services/ProductCategoryCacheService.php",
+        "Repository 參考: app/Repositories/ProductCategoryRepository.php",
+        "Tests 參考: tests/Feature/ProductCategory*.php",
         "// === 路由 ===",
         "API 路徑小寫-kebab；使用 Route::apiResource 或 prefix group",
+        "新模組 API 格式: /api/{module-name} (參考 /api/product-categories)",
         "// === Cache / Observer 規範 ===",
-        "快取由 ProductCategoryCacheService 掌控：分片 + Redis Debounce (lock + queue)",
+        "快取統一使用 Redis 標籤式: Cache::tags(['{module}_cache'])",
+        "快取鍵格式: {prefix}_{type}_{params} (如 pc_tree_active_root0001 體現分片)",
+        "TTL 統一 3600 秒，使用精準清除策略",
         "Observer 只負責呼叫 Service 與 CacheService，不產生查詢",
+        "// === 效能要求 ===",
+        "新 API 第一次請求（cold start）需 ≤ 800ms，本地 Laravel Valet + SQLite 測量",
+        "避免 N+1 查詢，使用 with() 預載入或 Repository 層查詢優化",
+        "// === 權限 / 認證 ===", 
+        "使用 Laravel Sanctum + tokenCan() 檢查",
+        "權限格式: {module}.{action} (如 categories.read)",
+        "Controller 使用 authorizeResource() 自動授權",
+        "// === API 回應格式 ===",
+        "統一格式: {\"success\": bool, \"data\": {}, \"meta\": {}}",
+        "錯誤使用 BusinessException，自動轉換標準格式",
         "// === Static Analysis ===",
-        "必須通過 phpstan level 7；誤報納入 phpstan-baseline.neon，CI 不得新增錯誤",
+        "必須通過 phpstan level 5；誤報納入 phpstan-baseline.neon，CI 不得新增錯誤",
         "// === 測試 ===",
-        "新增 Service / Observer 必須附 Pest 測試；覆蓋率 ≥ 80%",
+        "新增 Service / Observer 必須附 Pest 測試；覆蓋率 ≥ 85%",
+        "測試結構: Feature (API + DB + Observer) + Unit (Service + Repository)",
+        "使用 Mockery 進行依賴模擬",
         "// === 其他 ===",
         "禁止直接 DB::raw / table，除非寫在 Repository 並有測試",
-        "API 必須 RESTful (動詞用 HTTP Method)"
+        "API 必須 RESTful (動詞用 HTTP Method)",
+        "所有寫操作必須使用 DB::transaction() 保護"
       ]
     },
 
     /* ──────────────────────────
-       3. Database / Migration
+       3. Docker / 容器化規範
+       ────────────────────────── */
+    {
+      "pattern": "docker-compose*.yml",
+      "rules": [
+        "服務命名使用 kebab-case (lomis-app, lomis-redis, lomis-mysql)",
+        "環境變數必須對應 .env.example 中的設定",
+        "資料庫密碼等敏感資訊使用 ${VARIABLE:-default} 格式",
+        "Redis 服務必須使用 redis:7-alpine 或更新版本",
+        "MySQL 服務必須使用 mysql:8.0 或更新版本"
+      ]
+    },
+
+    /* ──────────────────────────
+       4. Database / Migration - LomisX3 標準
        ────────────────────────── */
     {
       "pattern": "back/database/migrations/**/*.{php}",
       "rules": [
         "Migration 欄位請加 comment() 說明用途",
         "新增 slug 唯一索引前必須檢查重複並拋 RuntimeException",
-        "索引名稱 ≤ 64 字元（MySQL 限制）"
+        "索引名稱 ≤ 64 字元（MySQL 限制）",
+        "// === LomisX3 索引規範 ===",
+        "參考 ProductCategory 索引設計：複合索引優先，單一索引補充",
+        "階層式資料必須建立: parent_id, status, position 複合索引",
+        "搜尋欄位必須建立: name, slug 索引"
       ]
     },
 
     /* ──────────────────────────
-       4. Seeder / Console
+       5. Seeder / Console - LomisX3 標準
        ────────────────────────── */
     {
       "pattern": "back/app/Console/Commands/**/*Stress*.php",
       "rules": [
         "Stress seeder 必須支援 --count / --depth / --distribution / --chunk / --dry-run",
-        "大量插入使用 DB::table + chunk，避免一次塞爆記憶體"
+        "大量插入使用 DB::table + chunk，避免一次塞爆記憶體",
+        "// === LomisX3 Seeder 標準 ===",
+        "參考 SeedStressProductCategories 實現：",
+        "- 支援 balanced/random 分布策略",
+        "- 預設 chunk=2000 批量插入",
+        "- 支援乾跑模式 JSON 輸出",
+        "- 詳細進度條和統計顯示"
       ]
     },
 
     /* ──────────────────────────
-       5. Tests  (Pest)
+       6. Tests (Pest) - LomisX3 標準
        ────────────────────────── */
     {
       "pattern": "back/tests/**/*.{php}",
       "rules": [
         "使用 Pest；檔名 *Test.php；test case 命名清晰 (it_can_xxx)",
         "Feature Test：涵蓋 HTTP + DB + Observer；Unit Test：純函式或 Service",
-        "測試需可重複執行；不得 dd/var_dump"
+        "測試需可重複執行；不得 dd/var_dump",
+        "// === LomisX3 測試標準 ===",
+        "參考 ProductCategory 測試結構：",
+        "- Feature: API 端點 + Observer 事件 + Cache 行為",
+        "- Unit: Service 業務邏輯 + Repository 查詢邏輯",
+        "- 使用 Mockery 進行依賴注入測試",
+        "- 覆蓋率要求 ≥ 85%",
+        "測試命名: {Module}{Action}Test.php (Feature), {Class}Test.php (Unit)"
       ]
     },
 
     /* ──────────────────────────
-       6. CI / GitHub Actions
+       7. CI / GitHub Actions - LomisX3 標準
        ────────────────────────── */
     {
       "pattern": ".github/workflows/ci.yml",
       "rules": [
-        "流程：Pint → PHPStan (含 baseline) → Pest (coverage ≥80%) → 其他",
-        "PHPStan 要加 --error-format=github 與 --memory-limit=-1"
+        "流程：Pint → PHPStan (含 baseline) → Pest (coverage ≥85%) → 其他",
+        "PHPStan 要加 --error-format=github 與 --memory-limit=-1",
+        "// === 前端測試要求 ===",
+        "必須執行 npm run test:e2e 與 npm run storybook:build",
+        "前端代碼必須通過 eslint --max-warnings 0 檢查",
+        "// === LomisX3 CI 標準 ===",
+        "必須包含 PHPStan baseline drift 檢測",
+        "必須包含 API 文檔生成 (Scribe)",
+        "生成的 docs/openapi.json 需 commit 進 repo，並在 PR diff 中檢查",
+        "必須上傳測試覆蓋率報告",
+        "PHP 版本測試: 8.2, 8.3"
       ]
     },
 
     /* ──────────────────────────
-       7. Dev-Env / Env Vars
+       8. Dev-Env / Env Vars - LomisX3 標準
        ────────────────────────── */
     {
       "pattern": ".env.example",
       "rules": [
         "必須包含 CACHE_FLUSH_QUEUE, QUEUE_CONNECTION, PROMETHEUS_NAMESPACE 等變數",
-        "預設 QUEUE_CONNECTION=redis"
+        "預設 QUEUE_CONNECTION=redis",
+        "// === LomisX3 環境變數標準 ===", 
+        "必須包含 ProductCategory 相關配置：",
+        "- CACHE_FLUSH_QUEUE=low",
+        "- PROMETHEUS_NAMESPACE=pc", 
+        "- OTEL_SDK_DISABLED=true (測試環境)",
+        "快取配置: CACHE_DRIVER=redis, REDIS_HOST=127.0.0.1"
+      ]
+    },
+
+    /* ──────────────────────────
+       9. LomisX3 模組開發檢查清單
+       ────────────────────────── */
+    {
+      "pattern": "back/app/{Http/Controllers,Services,Repositories}/**/*.php",
+      "rules": [
+        "// === 開發新模組前必須檢查 ===",
+        "1. 是否已有類似功能? 檢查現有模組清單",
+        "2. 可否複用現有元件? 優先使用 ProductCategory 模式", 
+        "3. 命名是否符合規範? API kebab-case, Cache {prefix}_",
+        "4. 是否遵循架構模式? Repository + Service + Cache",
+        "// === 模組完成後必須更新 ===",
+        "1. 更新 MODULE_REGISTRY (如果存在)",
+        "2. 更新 .env.example 相關配置",
+        "3. 更新 CI workflow (如需要)",
+        "4. 撰寫模組文檔"
       ]
     }
-  ]
+  ],
+
+  /* ──────────────────────────
+     LomisX3 專案模組註冊表
+     ────────────────────────── */
+  "metadata": {
+    "project": "LomisX3 管理系統",
+    "version": "2.4.0", 
+    "cursorRulesVersion": "2025-06-04",
+    "lastUpdated": "2025-01-07",
+    "modules": {
+      "ProductCategory": {
+        "status": "✅ 企業級完成",
+        "version": "v2.3",
+        "apiPrefix": "/api/product-categories",
+        "cachePrefix": "pc_",
+        "permissions": "categories.{read,create,update,delete}",
+        "features": ["階層式結構", "拖拽排序", "快取優化", "權限控制", "完整測試"]
+      }
+    },
+    "sharedComponents": [
+      "BusinessException + ErrorCode 枚舉 (統一錯誤處理)",
+      "ProductCategoryCacheService 快取模式 (標籤式 + 根分片 + 防抖動)", 
+      "MaxDepthRule, NotSelfOrDescendant 驗證規則",
+      "Sanctum tokenCan 權限檢查模式",
+      "Repository Pattern 標準實現 (Interface + Implementation)",
+      "Observer 模式 (Service + Cache 整合)",
+      "API Resource 標準格式 (success, data, meta)",
+      "Stress Seeder 模式 (balanced 分布 + chunk 批量)"
+    ],
+    "performanceTargets": {
+      "apiColdStart": "≤ 800ms",
+      "cacheHitRate": "> 85%", 
+      "testCoverage": "≥ 85%",
+      "phpstanLevel": "Level 5"
+    }
+  }
 }
-
-
-

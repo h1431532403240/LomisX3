@@ -276,7 +276,7 @@ class FlushProductCategoryCacheJobTest extends TestCase
     {
         // Arrange
         Log::shouldReceive('info')->twice();
-        Log::shouldReceive('warning')->twice(); // Prometheus 錯誤警告
+        Log::shouldReceive('warning')->times(3); // Prometheus 錯誤警告（3次：2次 counter + 1次 histogram）
         
         // Prometheus 拋出異常
         $this->mockPrometheus->shouldReceive('getOrRegisterCounter')

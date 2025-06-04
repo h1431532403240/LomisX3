@@ -1,0 +1,165 @@
+# Prometheus 監控配置
+# 針對 LomisX3 商品分類模組的全面監控設定
+
+global:
+  # 預設抓取間隔
+  scrape_interval: 15s
+  # 評估規則間隔
+  evaluation_interval: 15s
+  # 外部標籤
+  external_labels:
+    monitor: 'lomis-x3-monitor'
+    environment: 'production'
+    service: 'product-category'
+
+# 規則檔案配置
+rule_files:
+  - "alert.rules"
+
+# 抓取配置
+scrape_configs:
+  # Prometheus 自監控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Laravel 應用監控
+  - job_name: 'laravel-app'
+    static_configs:
+      - targets: ['app:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      module: ['http_2xx']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 'app:9090'
+
+  # Laravel Octane 監控
+  - job_name: 'laravel-octane'
+    static_configs:
+      - targets: ['octane:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    honor_labels: true
+
+  # MySQL 資料庫監控
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Redis 主節點監控
+  - job_name: 'redis-master'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: redis_instance
+        replacement: 'master'
+
+  # Redis 從節點監控
+  - job_name: 'redis-slaves'
+    static_configs:
+      - targets: 
+        - 'redis-slave-1:9121'
+        - 'redis-slave-2:9121'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # 系統節點監控
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Nginx 反向代理監控
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:9113']
+    metrics_path: '/nginx_status'
+    scrape_interval: 30s
+
+  # Laravel Queue 監控
+  - job_name: 'laravel-queue'
+    static_configs:
+      - targets: ['queue-worker:9090']
+    metrics_path: '/queue/metrics'
+    scrape_interval: 15s
+    honor_labels: true
+
+  # Laravel Horizon 監控 (如果使用)
+  - job_name: 'laravel-horizon'
+    static_configs:
+      - targets: ['app:8000']
+    metrics_path: '/horizon/api/stats'
+    scrape_interval: 30s
+    honor_labels: true
+
+  # 自定義商品分類業務指標
+  - job_name: 'product-category-business'
+    static_configs:
+      - targets: ['app:8000']
+    metrics_path: '/api/metrics/business'
+    scrape_interval: 60s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # API 端點健康檢查
+  - job_name: 'api-health'
+    static_configs:
+      - targets: 
+        - 'app:8000'
+        - 'octane:8080'
+    metrics_path: '/api/health'
+    scrape_interval: 15s
+    scrape_timeout: 5s
+    honor_labels: true
+
+  # 快取效能監控
+  - job_name: 'cache-performance'
+    static_configs:
+      - targets: ['app:8000']
+    metrics_path: '/api/metrics/cache'
+    scrape_interval: 30s
+    honor_labels: true
+
+# 警報管理器配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+
+# 遠端寫入配置 (可選，用於長期儲存)
+# remote_write:
+#   - url: "http://cortex:9009/api/prom/push"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
+# 遠端讀取配置 (可選)
+# remote_read:
+#   - url: "http://cortex:9009/api/prom/read" 

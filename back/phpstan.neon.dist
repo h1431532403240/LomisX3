@@ -1,29 +1,10 @@
-includes:
-    - ./vendor/larastan/larastan/extension.neon
-    - phpstan-baseline.neon
-
 parameters:
+    level: 7
     paths:
         - app
-
-    level: 5
-
-    excludePaths:
-        analyseAndScan:
-            - app/Console/Kernel.php (?)
-            - app/Http/Kernel.php (?)
-
-    ignoreErrors:
-        # Eloquent 動態屬性
-        - '#Access to an undefined property App\\Models\\[a-zA-Z]+::\$[a-zA-Z]+#'
-        
-        # Laravel 門面
-        - '#Call to an undefined static method Illuminate\\Support\\Facades\\[a-zA-Z]+::[a-zA-Z]+\(\)#'
-        
-        # Laravel 服務容器
-        - '#Call to an undefined method Illuminate\\Contracts\\Foundation\\Application::[a-zA-Z]+\(\)#'
-
     reportUnmatchedIgnoredErrors: false
 
-    bootstrapFiles:
-        - bootstrap/app.php 
+includes:
+    - phpstan-baseline.neon
+    - phpstan-baseline-20250107.neon
+    - ./vendor/larastan/larastan/extension.neon 

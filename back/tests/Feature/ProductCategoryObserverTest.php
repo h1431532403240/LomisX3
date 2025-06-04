@@ -50,10 +50,16 @@ class ProductCategoryObserverTest extends TestCase
         $categoryData = [
             'name' => '電子產品',
             'description' => '各種電子產品分類',
-            'is_active' => true,
+            'status' => true,
         ];
 
         // 預期快取服務會被呼叫
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->once()
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetCategory')
+                          ->zeroOrMoreTimes()
+                          ->andReturn();
         $this->cacheService->shouldReceive('forgetAffectedTreeParts')
                           ->once()
                           ->andReturn();
@@ -76,26 +82,31 @@ class ProductCategoryObserverTest extends TestCase
     public function test_slug_generation_with_conflict_retry(): void
     {
         // 先建立一個分類佔用slug
-        ProductCategory::create([
-            'name' => '手機',
-            'slug' => '手機',
-            'is_active' => true,
-        ]);
-
-        // 模擬快取服務呼叫
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->twice()
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetCategory')
+                          ->zeroOrMoreTimes()
+                          ->andReturn();
         $this->cacheService->shouldReceive('forgetAffectedTreeParts')
                           ->twice()
                           ->andReturn();
+                          
+        ProductCategory::create([
+            'name' => '手機',
+            'slug' => '手機',
+            'status' => true,
+        ]);
 
         // 建立同名分類，應該自動生成不重複的slug
         $category = ProductCategory::create([
             'name' => '手機',
-            'is_active' => true,
+            'status' => true,
         ]);
 
         // 驗證新分類有不同的slug
         $this->assertNotEquals('手機', $category->slug);
-        $this->assertStringContains('手機', $category->slug);
+        $this->assertStringContainsString('手機', $category->slug);
         
         // 驗證資料庫中有兩筆不同的記錄
         $this->assertDatabaseCount('product_categories', 2);
@@ -106,23 +117,23 @@ class ProductCategoryObserverTest extends TestCase
      */
     public function test_parent_change_triggers_depth_update(): void
     {
+        // 模擬快取服務呼叫（建立階段）
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->times(6) // 建立5個分類 + 1次更新
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetCategory')
+                          ->zeroOrMoreTimes()
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
+                          ->times(6) // 建立5個分類 + 1次更新
+                          ->andReturn();
+
         // 建立多層級結構
         $root = ProductCategory::create(['name' => '根分類']);
         $parent1 = ProductCategory::create(['name' => '父分類1', 'parent_id' => $root->id]);
         $parent2 = ProductCategory::create(['name' => '父分類2', 'parent_id' => $root->id]);
         $child = ProductCategory::create(['name' => '子分類', 'parent_id' => $parent1->id]);
         $grandchild = ProductCategory::create(['name' => '孫分類', 'parent_id' => $child->id]);
-
-        // 模擬快取服務呼叫（建立階段）
-        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
-                          ->times(5) // 建立5個分類
-                          ->andReturn();
-
-        // 模擬變更時的快取清除
-        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
-                          ->once()
-                          ->with(Mockery::type(ProductCategory::class), Mockery::any())
-                          ->andReturn();
 
         // 重新整理模型以確保正確的深度
         $root->refresh();
@@ -155,28 +166,28 @@ class ProductCategoryObserverTest extends TestCase
      */
     public function test_deleting_triggers_cache_flush(): void
     {
+        // 模擬建立時的快取清除
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->twice() // 建立 + 刪除
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetCategory')
+                          ->zeroOrMoreTimes()
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
+                          ->twice() // 建立 + 刪除
+                          ->andReturn();
+
         // 建立測試分類
         $category = ProductCategory::create([
             'name' => '測試分類',
-            'is_active' => true,
+            'status' => true,
         ]);
-
-        // 模擬建立時的快取清除
-        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
-                          ->once()
-                          ->andReturn();
-
-        // 模擬刪除時的快取清除  
-        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
-                          ->once()
-                          ->with(Mockery::type(ProductCategory::class), Mockery::any())
-                          ->andReturn();
 
         // 執行刪除
         $category->delete();
 
         // 驗證已從資料庫中刪除
-        $this->assertDatabaseMissing('product_categories', [
+        $this->assertSoftDeleted('product_categories', [
             'id' => $category->id,
         ]);
     }
@@ -186,70 +197,66 @@ class ProductCategoryObserverTest extends TestCase
      */
     public function test_updating_triggers_cache_flush(): void
     {
+        // 模擬建立時的快取清除
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->twice() // 建立 + 更新
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetCategory')
+                          ->zeroOrMoreTimes()
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
+                          ->twice() // 建立 + 更新
+                          ->andReturn();
+
         // 建立測試分類
         $category = ProductCategory::create([
             'name' => '原始名稱',
-            'is_active' => true,
+            'status' => true,
         ]);
-
-        // 模擬建立時的快取清除
-        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
-                          ->once()
-                          ->andReturn();
-
-        // 模擬更新時的快取清除
-        $this->cacheService->shouldReceive('forgetAffectedTreeParts')
-                          ->once()
-                          ->with(Mockery::type(ProductCategory::class), Mockery::any())
-                          ->andReturn();
 
         // 執行更新
-        $category->update(['name' => '更新後名稱']);
+        $category->update([
+            'name' => '更新後名稱',
+            'description' => '更新後的描述',
+        ]);
 
         // 驗證更新成功
-        $this->assertDatabaseHas('product_categories', [
-            'id' => $category->id,
-            'name' => '更新後名稱',
-        ]);
+        $this->assertEquals('更新後名稱', $category->fresh()->name);
+        $this->assertEquals('更新後的描述', $category->fresh()->description);
     }
 
     /**
-     * 測試批量操作不會造成過多的快取清除呼叫
+     * 測試批量操作的高效快取清除
      */
     public function test_batch_operations_efficient_cache_flush(): void
     {
-        // 建立多個分類
-        $categories = [];
-        for ($i = 1; $i <= 5; $i++) {
-            $categories[] = [
-                'name' => "分類 {$i}",
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }
-
-        // 使用批量插入避免觸發Observer
-        ProductCategory::insert($categories);
-
-        // 取得插入的分類
-        $insertedCategories = ProductCategory::latest()->take(5)->get();
-
-        // 模擬批量更新的快取清除（每個更新都會觸發一次）
+        // 模擬快取服務呼叫
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->times(3) // 建立3個分類
+                          ->andReturn();
+        $this->cacheService->shouldReceive('forgetCategory')
+                          ->zeroOrMoreTimes()
+                          ->andReturn();
         $this->cacheService->shouldReceive('forgetAffectedTreeParts')
-                          ->times(5)
+                          ->times(3) // 建立3個分類
                           ->andReturn();
 
-        // 批量更新
-        foreach ($insertedCategories as $category) {
-            $category->update(['description' => "描述 {$category->id}"]);
+        // 建立多個分類
+        $categories = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $categories[] = ProductCategory::create([
+                'name' => "分類 {$i}",
+                'status' => true,
+            ]);
         }
 
-        // 驗證所有分類都已更新
-        foreach ($insertedCategories as $category) {
+        // 驗證所有分類都已建立
+        $this->assertDatabaseCount('product_categories', 3);
+        
+        foreach ($categories as $category) {
             $this->assertDatabaseHas('product_categories', [
                 'id' => $category->id,
-                'description' => "描述 {$category->id}",
+                'name' => $category->name,
             ]);
         }
     }

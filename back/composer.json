@@ -15,6 +15,7 @@
         "open-telemetry/sdk": "^1.0",
         "php-http/httplug": "^2.4",
         "promphp/prometheus_client_php": "^2.14",
+        "spatie/laravel-activitylog": "^4.10",
         "spatie/laravel-query-builder": "^6.0"
     },
     "require-dev": {

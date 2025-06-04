@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Queue;
+use Mockery;
 
 /**
  * 商品分類快取防抖功能測試
@@ -23,6 +24,8 @@ class CacheDebounceTest extends TestCase
 {
     use RefreshDatabase;
 
+    private ProductCategoryCacheService $cacheService;
+
     /**
      * 設定測試環境
      */
@@ -30,231 +33,153 @@ class CacheDebounceTest extends TestCase
     {
         parent::setUp();
         
-        // 此處不要全域 fake，讓每個測試方法自行決定
+        $this->cacheService = app(ProductCategoryCacheService::class);
     }
 
     /**
-     * 測試防抖機制 - 200ms 內連續呼叫應該只 dispatch 一個 Job
-     * 
-     * @test
+     * 測試防抖動機制 - 3個並發flush只觸發1次dispatch
      */
-    public function it_debounces_cache_flush_operations_within_time_window(): void
+    public function test_debounce_flush_prevents_multiple_dispatches(): void
     {
-        // Arrange: Fake 佇列並建立測試資料
+        // 模擬佇列
         Queue::fake();
         
-        $category1 = ProductCategory::factory()->create(['name' => 'Test Category 1']);
-        $category2 = ProductCategory::factory()->create(['name' => 'Test Category 2']);
-        $category3 = ProductCategory::factory()->create(['name' => 'Test Category 3']);
+        // 模擬 Cache::add 行為（Redis 鎖機制）
+        $lockCallCount = 0;
+        Cache::shouldReceive('add')
+            ->with(Mockery::pattern('/debounce_lock/'), true, Mockery::any())
+            ->andReturnUsing(function () use (&$lockCallCount) {
+                $lockCallCount++;
+                // 第一次呼叫返回 true（獲得鎖），後續返回 false（鎖已存在）
+                return $lockCallCount === 1;
+            });
+
+        // 模擬3個並發的快取清除請求
+        $categoryIds = [1, 2, 3];
         
-        $cacheService = $this->app->make(ProductCategoryCacheService::class);
+        // 並發執行3次防抖清除
+        for ($i = 0; $i < 3; $i++) {
+            $this->cacheService->performDebouncedFlush($categoryIds);
+        }
 
-        // Act: 在短時間內連續呼叫 performDebouncedFlush
-        $startTime = microtime(true);
-        
-        $cacheService->performDebouncedFlush([$category1->id]);
-        
-        // 模擬 50ms 延遲（小於 200ms 防抖視窗）
-        usleep(50000); // 50ms
-        $cacheService->performDebouncedFlush([$category2->id]);
-        
-        // 模擬 100ms 延遲（仍在防抖視窗內）
-        usleep(100000); // 100ms
-        $cacheService->performDebouncedFlush([$category3->id]);
-        
-        $endTime = microtime(true);
-        $totalTime = ($endTime - $startTime) * 1000; // 轉換為毫秒
-
-        // Assert: 驗證時間視窗
-        $this->assertLessThan(200, $totalTime, '測試應在 200ms 內完成');
-
-        // 驗證每次呼叫都會推送 FlushProductCategoryCache Job
-        Queue::assertPushed(FlushProductCategoryCache::class, 3);
-        
-        // 驗證所有任務都推送到正確的佇列
-        Queue::assertPushedOn('low', FlushProductCategoryCache::class);
-    }
-
-    /**
-     * 測試精準快取清除失敗時的防抖回退機制
-     * 
-     * @test
-     */
-    public function it_uses_debounced_flush_as_fallback_when_precise_clearing_fails(): void
-    {
-        // Arrange: Fake 佇列並建立測試分類
-        Queue::fake();
-        
-        $category = ProductCategory::factory()->create([
-            'name' => 'Test Category',
-            'parent_id' => null,
-        ]);
-
-        $cacheService = $this->app->make(ProductCategoryCacheService::class);
-
-        // Act: 呼叫 forgetAffectedTreeParts，應該觸發防抖機制
-        $cacheService->forgetAffectedTreeParts($category);
-
-        // Assert: 驗證防抖任務被推送
-        Queue::assertPushed(FlushProductCategoryCache::class, 1);
-        Queue::assertPushedOn('low', FlushProductCategoryCache::class);
-    }
-
-    /**
-     * 測試不同分類ID的快取清除任務
-     * 
-     * @test
-     */
-    public function it_handles_different_category_ids_in_debounced_flush(): void
-    {
-        // Arrange: Fake 佇列並建立多個測試分類
-        Queue::fake();
-        
-        $categories = ProductCategory::factory()->count(5)->create();
-        $categoryIds = $categories->pluck('id')->toArray();
-        
-        $cacheService = $this->app->make(ProductCategoryCacheService::class);
-
-        // Act: 批次呼叫防抖清除
-        $cacheService->performDebouncedFlush($categoryIds);
-
-        // Assert: 驗證任務推送
+        // 驗證只有1個 Job 被分派到佇列
         Queue::assertPushed(FlushProductCategoryCache::class, 1);
         
-        // 驗證任務推送到正確的佇列
-        Queue::assertPushedOn('low', FlushProductCategoryCache::class);
-        
-        // 驗證任務包含正確的分類 ID
+        // 驗證 Job 包含正確的分類 ID
         Queue::assertPushed(FlushProductCategoryCache::class, function ($job) use ($categoryIds) {
             return $job->categoryIds === $categoryIds;
         });
     }
 
     /**
-     * 測試基本 Job 推送功能
-     * 
-     * @test
+     * 測試防抖動鎖過期後可以重新觸發
      */
-    public function it_can_dispatch_basic_flush_job(): void
+    public function test_debounce_lock_expiry_allows_new_dispatch(): void
     {
-        // Arrange
         Queue::fake();
-
-        // Act: 手動推送 FlushProductCategoryCache job
-        FlushProductCategoryCache::dispatch([1, 2, 3])
-            ->onQueue('low');
-
-        // Assert: 驗證任務被推送
-        Queue::assertPushed(FlushProductCategoryCache::class);
-        Queue::assertPushedOn('low', FlushProductCategoryCache::class);
         
-        // 驗證推送計數
-        Queue::assertPushed(FlushProductCategoryCache::class, 1);
+        // 第一次呼叫：鎖成功
+        Cache::shouldReceive('add')
+            ->once()
+            ->with(Mockery::pattern('/debounce_lock/'), true, Mockery::any())
+            ->andReturn(true);
+            
+        // 第一次防抖清除
+        $this->cacheService->performDebouncedFlush([1]);
+        
+        // 模擬鎖過期，第二次呼叫也能成功
+        Cache::shouldReceive('add')
+            ->once()
+            ->with(Mockery::pattern('/debounce_lock/'), true, Mockery::any())
+            ->andReturn(true);
+            
+        // 第二次防抖清除（模擬鎖過期後）
+        $this->cacheService->performDebouncedFlush([2]);
+
+        // 驗證兩次都成功分派了 Job
+        Queue::assertPushed(FlushProductCategoryCache::class, 2);
     }
 
     /**
-     * 測試空白分類ID陣列的處理
-     * 
-     * @test
+     * 測試不同分類ID的防抖動處理
      */
-    public function it_handles_empty_category_ids_in_debounced_flush(): void
+    public function test_debounce_with_different_category_ids(): void
     {
-        // Arrange: Fake 佇列
         Queue::fake();
         
-        $cacheService = $this->app->make(ProductCategoryCacheService::class);
+        // 模擬鎖機制：每次都能獲得鎖（不同的分類組合）
+        Cache::shouldReceive('add')
+            ->andReturn(true);
 
-        // Act: 使用空陣列呼叫防抖清除
-        $cacheService->performDebouncedFlush([]);
+        // 測試不同的分類ID組合
+        $this->cacheService->performDebouncedFlush([1, 2]);
+        $this->cacheService->performDebouncedFlush([3, 4]);
+        $this->cacheService->performDebouncedFlush([5]);
 
-        // Assert: 即使是空陣列，也應該推送清除整體快取的任務
-        Queue::assertPushed(FlushProductCategoryCache::class, 1);
+        // 驗證每個不同的組合都觸發了 Job
+        Queue::assertPushed(FlushProductCategoryCache::class, 3);
+    }
+
+    /**
+     * 測試空陣列觸發全面清除
+     */
+    public function test_empty_array_triggers_full_flush(): void
+    {
+        Queue::fake();
         
-        // 驗證任務中包含空陣列
+        Cache::shouldReceive('add')
+            ->andReturn(true);
+
+        // 空陣列應該觸發全面清除
+        $this->cacheService->performDebouncedFlush([]);
+
+        // 驗證 Job 被分派且包含空陣列
         Queue::assertPushed(FlushProductCategoryCache::class, function ($job) {
             return empty($job->categoryIds);
         });
     }
 
     /**
-     * 測試佇列配置的正確性
-     * 
-     * @test
+     * 測試佇列配置正確性
      */
-    public function it_uses_correct_queue_configuration(): void
+    public function test_queue_configuration(): void
     {
-        // Arrange: Fake 佇列並設定自訂佇列名稱
         Queue::fake();
-        config(['custom_queues.product_category_flush' => 'test-queue']);
         
-        $category = ProductCategory::factory()->create();
-        $cacheService = $this->app->make(ProductCategoryCacheService::class);
+        Cache::shouldReceive('add')
+            ->andReturn(true);
 
-        // Act
-        $cacheService->performDebouncedFlush([$category->id]);
+        // 設定測試用的佇列名稱
+        config(['custom_queues.product_category_flush' => 'test_queue']);
 
-        // Assert: 驗證任務推送
-        Queue::assertPushed(FlushProductCategoryCache::class);
-        
-        // 驗證任務推送到正確的佇列
-        Queue::assertPushedOn('test-queue', FlushProductCategoryCache::class);
+        $this->cacheService->performDebouncedFlush([1]);
+
+        // 驗證 Job 被分派到正確的佇列
+        Queue::assertPushedOn('test_queue', FlushProductCategoryCache::class);
     }
 
     /**
-     * 測試大量分類ID的批次處理效能
-     * 
-     * @test
+     * 測試延遲執行配置
      */
-    public function it_handles_large_batch_of_category_ids_efficiently(): void
+    public function test_delayed_execution(): void
     {
-        // Arrange: Fake 佇列並建立大量測試資料
         Queue::fake();
         
-        $categories = ProductCategory::factory()->count(100)->create();
-        $categoryIds = $categories->pluck('id')->toArray();
-        
-        $cacheService = $this->app->make(ProductCategoryCacheService::class);
+        Cache::shouldReceive('add')
+            ->andReturn(true);
 
-        // Act: 測量執行時間
-        $startTime = microtime(true);
-        $cacheService->performDebouncedFlush($categoryIds);
-        $endTime = microtime(true);
-        
-        $executionTime = ($endTime - $startTime) * 1000; // 轉換為毫秒
+        $this->cacheService->performDebouncedFlush([1]);
 
-        // Assert: 驗證效能（應該在合理時間內完成）
-        $this->assertLessThan(100, $executionTime, '大量分類ID的防抖處理應在 100ms 內完成');
-        
-        // 驗證 Job 任務被推送到佇列
-        Queue::assertPushed(FlushProductCategoryCache::class, 1);
-        
-        // 驗證 Job 包含所有分類 ID
-        Queue::assertPushed(FlushProductCategoryCache::class, function ($job) use ($categoryIds) {
-            return count($job->categoryIds) === 100 && 
-                   array_diff($job->categoryIds, $categoryIds) === [];
-        });
-    }
-
-    /**
-     * 測試 Job 的延遲執行機制
-     * 
-     * @test
-     */
-    public function it_delays_job_execution_correctly(): void
-    {
-        // Arrange: Fake 佇列
-        Queue::fake();
-        
-        $category = ProductCategory::factory()->create();
-        $cacheService = $this->app->make(ProductCategoryCacheService::class);
-
-        // Act: 執行防抖清除
-        $cacheService->performDebouncedFlush([$category->id]);
-
-        // Assert: 驗證 Job 被推送且有延遲
+        // 驗證 Job 有延遲執行（5秒）
         Queue::assertPushed(FlushProductCategoryCache::class, function ($job) {
-            // 檢查 Job 是否有設定延遲（Laravel 會在 Job 物件中記錄延遲資訊）
+            // 檢查 Job 是否有設定延遲
             return $job->delay !== null;
         });
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 } 

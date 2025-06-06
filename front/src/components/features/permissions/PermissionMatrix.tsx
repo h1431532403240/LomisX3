@@ -35,7 +35,7 @@ import {
   Filter,
   RotateCcw
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { PermissionGuard } from '@/components/common/permission-guard';
 
 /**

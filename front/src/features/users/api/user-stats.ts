@@ -10,7 +10,7 @@
  * @module features/users/api/user-stats
  */
 import { useQuery } from '@tanstack/react-query';
-import apiClient from '@/lib/openapi-client';
+import { openapi } from '@/lib/openapi-client';
 import type { operations } from '@/types/api';
 import { toast } from 'sonner';
 import { userQueryKeys } from './use-users';
@@ -69,7 +69,7 @@ export const useUserStatistics = (
   const queryResult = useQuery({
     queryKey: userStatsQueryKeys.byStore(params?.store_id),
     queryFn: async () => {
-      const { data, error } = await apiClient.GET('/api/users/statistics', { params: { query: params } });
+      const { data, error } = await openapi.GET('/api/users/statistics', { params: { query: params } });
       if (error) {
         throw new Error('Failed to fetch user statistics');
       }

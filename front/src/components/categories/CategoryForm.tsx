@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
 import { useCreateCategory, useUpdateCategory, useCategoryTree } from '@/hooks/use-product-categories';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { components } from '@/types/api';
 
 type ProductCategory = components['schemas']['ProductCategory'];
@@ -55,7 +55,6 @@ interface CategoryFormProps {
 }
 
 export function CategoryForm({ category, onSuccess, onCancel }: CategoryFormProps) {
-  const { toast } = useToast();
   const createCategoryMutation = useCreateCategory();
   const updateCategoryMutation = useUpdateCategory();
   const { data: categoryTree } = useCategoryTree(false); // Fetch all categories for parent selection
@@ -80,19 +79,14 @@ export function CategoryForm({ category, onSuccess, onCancel }: CategoryFormProp
   }, [watchName, category, form]);
   
   const handleSuccess = () => {
-    toast({
-      title: category ? '✅ 更新成功' : '✅ 新增成功',
-      description: `分類 "${form.getValues('name')}" 已成功儲存。`,
-    });
+    // 顯示成功訊息 (Sonner API)
+    toast.success(`分類「${form.getValues('name')}」已成功${category ? '更新' : '建立'}`);
     onSuccess?.();
   };
   
   const handleError = (error: Error) => {
-    toast({
-      title: '❌ 操作失敗',
-      description: error.message || '發生未知錯誤，請稍後重試。',
-      variant: 'destructive',
-    });
+    // 顯示錯誤訊息 (Sonner API)
+    toast.error(error.message || '發生未知錯誤，請稍後重試');
   };
 
   const onSubmit = (data: CategoryFormData) => {

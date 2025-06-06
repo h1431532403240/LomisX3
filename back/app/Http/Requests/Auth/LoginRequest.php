@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\{Cache, Hash, RateLimiter};
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
 use App\Enums\{UserStatus, UserErrorCode};
+use App\Enums\Auth\LoginType;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 /**
  * 登入 Request 驗證
@@ -58,7 +61,7 @@ class LoginRequest extends FormRequest
             'login' => [
                 'required',
                 'string',
-                'max:100'
+                'max:255'
             ],
             
             // 密碼驗證
@@ -105,7 +108,7 @@ class LoginRequest extends FormRequest
     {
         return [
             'login.required' => '請輸入帳號或 Email',
-            'login.max' => '帳號長度不能超過 100 個字元',
+            'login.max' => '帳號長度不能超過 255 個字元',
             
             'password.required' => '請輸入密碼',
             'password.max' => '密碼長度不能超過 255 個字元',
@@ -172,5 +175,40 @@ class LoginRequest extends FormRequest
             'user_agent' => $this->user_agent,
             'device_name' => $this->device_name
         ];
+    }
+
+    /**
+     * 處理失敗的驗證。
+     * 覆寫此方法以確保 API 請求總是回傳 JSON 錯誤，而不是重導向。
+     *
+     * @param  \Illuminate\Contracts\Validation\Validator  $validator
+     * @return void
+     *
+     * @throws \Illuminate\Http\Exceptions\HttpResponseException
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        // 檢查請求是否期望 JSON 回應，如果是，則拋出包含驗證錯誤的 JSON 格式例外。
+        // 這可以防止在 API 路由中發生重導向。
+        if ($this->expectsJson()) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => '輸入的資料無效。',
+                'errors' => $validator->errors(),
+            ], 422));
+        }
+
+        // 對於非 API 請求，保留預設的重導向行為。
+        parent::failedValidation($validator);
+    }
+
+    /**
+     * 根據輸入的 'login' 欄位，確定是信箱還是使用者名稱。
+     */
+    public function getLoginType(): LoginType
+    {
+        return filter_var($this->input('login'), FILTER_VALIDATE_EMAIL)
+            ? LoginType::Email
+            : LoginType::Username;
     }
 }

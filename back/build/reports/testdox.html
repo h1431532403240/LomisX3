@@ -51,78 +51,35 @@
         </style>
     </head>
     <body>
-        <h2>Business Exception (Tests\Unit\BusinessException)</h2>
+        <h2>Authentication (Tests\Feature\Authentication)</h2>
         <ul>
-            <li class="success">Can create exception from error code</li>
-            <li class="success">Can create exception with custom message</li>
-            <li class="success">To array returns correct structure</li>
-            <li class="success">To json returns valid json</li>
-            <li class="success">Different error codes return correct status</li>
+            <li class="defect">Successful login</li>
+            <li class="defect">Login with email</li>
+            <li class="defect">Login with wrong password</li>
+            <li class="defect">Login with nonexistent user</li>
+            <li class="defect">Login with inactive account</li>
+            <li class="defect">Login with locked account</li>
+            <li class="defect">Login with pending account</li>
+            <li class="defect">Login rate limiting</li>
+            <li class="defect">Successful logout</li>
+            <li class="defect">Get current user info</li>
+            <li class="defect">Token refresh</li>
+            <li class="defect">Enable 2fa</li>
+            <li class="defect">Enable 2fa with wrong password</li>
+            <li class="defect">Confirm 2fa</li>
+            <li class="defect">Disable 2fa</li>
+            <li class="defect">2fa challenge</li>
+            <li class="defect">2fa challenge with wrong code</li>
+            <li class="defect">2fa challenge with recovery code</li>
+            <li class="defect">Unauthenticated access to protected route</li>
+            <li class="defect">Invalid token access</li>
+            <li class="defect">Expired token access</li>
+            <li class="defect">Login validation rules</li>
+            <li class="defect">2fa challenge validation rules</li>
         </ul>
-        <h2>Example (Tests\Unit\Example)</h2>
+        <h2>User Management (Tests\Feature\UserManagement)</h2>
         <ul>
-            <li class="success">That true is true</li>
-        </ul>
-        <h2>Flush Product Category Cache Job (Tests\Unit\FlushProductCategoryCacheJob)</h2>
-        <ul>
-            <li class="success">Tree flush job executes successfully</li>
-            <li class="success">Root shards flush job executes successfully</li>
-            <li class="success">Partial flush job executes successfully</li>
-            <li class="success">Prometheus metrics are recorded</li>
-            <li class="success">Job handles failure correctly</li>
-            <li class="success">Prometheus errors do not affect main logic</li>
-            <li class="success">Unique id generation</li>
-            <li class="success">Job tags</li>
-            <li class="success">Failed method logs permanent failure</li>
-        </ul>
-        <h2>Product Category Cache Service (Tests\Unit\ProductCategoryCacheService)</h2>
-        <ul>
-            <li class="success">Get cache info returns correct structure</li>
-            <li class="success">Cache tag is correct</li>
-            <li class="success">Cache key formats</li>
-        </ul>
-        <h2>Product Category Service (Tests\Unit\ProductCategoryService)</h2>
-        <ul>
-            <li class="success">Create category</li>
-            <li class="success">Create category with invalid parent</li>
-            <li class="success">Update category</li>
-            <li class="success">Update nonexistent category</li>
-            <li class="success">Delete category</li>
-            <li class="success">Delete category with children</li>
-            <li class="success">Get tree from cache</li>
-            <li class="success">Batch update status</li>
-            <li class="success">Update sort order</li>
-            <li class="success">Generate unique slug</li>
-            <li class="success">Get breadcrumbs</li>
-        </ul>
-        <h2>Product Category Service Slug (Tests\Unit\ProductCategoryServiceSlug)</h2>
-        <ul>
-            <li class="success">It generates basic slug from name</li>
-            <li class="success">It generates unique slug within three attempts when conflicts exist</li>
-            <li class="success">It generates slug with correct format</li>
-            <li class="success">It correctly identifies slug conflicts</li>
-            <li class="success">It handles slug generation when editing existing category</li>
-            <li class="success">It handles massive slug conflicts efficiently</li>
-            <li class="success">It handles edge cases in slug generation</li>
-            <li class="success">It handles multilingual characters in slug generation</li>
-        </ul>
-        <h2>User Service (Tests\Unit\UserService)</h2>
-        <ul>
-            <li class="success">Create user successfully</li>
-            <li class="success">Create user with duplicate username</li>
-            <li class="success">Create user with duplicate email</li>
-            <li class="success">Create user with weak password</li>
-            <li class="success">Password strength validation</li>
-            <li class="success">Update user successfully</li>
-            <li class="success">Batch status update successfully</li>
-            <li class="success">Batch status update with admin account</li>
-            <li class="success">Reset password successfully</li>
-            <li class="success">Store isolation check</li>
-            <li class="success">Update user get detail failure</li>
-            <li class="success">Cache clearing mechanism</li>
-            <li class="success">Transaction handling</li>
-            <li class="success">Invalid status handling</li>
-            <li class="success">Create user repository error</li>
+            <li class="defect">Unauthenticated access</li>
         </ul>
     </body>
 </html>

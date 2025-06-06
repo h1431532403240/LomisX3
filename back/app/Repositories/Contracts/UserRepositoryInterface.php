@@ -65,6 +65,14 @@ interface UserRepositoryInterface
     public function findByEmail(string $email): ?User;
 
     /**
+     * 根據電子郵件或使用者名稱查找
+     *
+     * @param string $login 登入帳號（使用者名稱或電子郵件）
+     * @return User|null
+     */
+    public function findByEmailOrUsername(string $login): ?User;
+
+    /**
      * 根據使用者名稱和門市查找
      *
      * @param string $username 使用者名稱

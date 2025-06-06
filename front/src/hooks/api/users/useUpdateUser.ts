@@ -4,7 +4,7 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { openapi, safeApiCall } from '@/lib/openapi-client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { components } from '@/types/api';
 
 // 從 API 類型定義中提取更新使用者請求類型
@@ -24,7 +24,6 @@ interface UpdateUserParams {
  */
 export function useUpdateUser() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, data }: UpdateUserParams) => {
@@ -46,19 +45,12 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'detail', variables.id] });
       
-      // 顯示成功訊息
-      toast({
-        title: "更新成功",
-        description: `使用者「${data?.data?.name}」資訊已更新`,
-      });
+      // 顯示成功訊息 (Sonner API)
+      toast.success(`使用者「${data?.data?.name}」資訊已更新`);
     },
     onError: (error: Error) => {
-      // 顯示錯誤訊息
-      toast({
-        title: "更新失敗",
-        description: error.message,
-        variant: "destructive",
-      });
+      // 顯示錯誤訊息 (Sonner API)
+      toast.error(`更新失敗：${error.message}`);
     },
   });
 } 

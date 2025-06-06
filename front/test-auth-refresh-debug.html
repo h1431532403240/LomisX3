@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LomisX3 認證刷新調試工具 V6.3</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .debug-section {
+            border: 1px solid #ddd;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .log-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 LomisX3 認證刷新調試工具 V6.3</h1>
+        <p class="info status">
+            <strong>調試目標：</strong>解決登入後頁面刷新跳轉到登入頁的問題
+        </p>
+
+        <div class="debug-section">
+            <h2>📊 當前認證狀態檢查</h2>
+            <button onclick="checkCurrentState()">檢查當前狀態</button>
+            <button onclick="simulateRefresh()">模擬頁面刷新</button>
+            <button onclick="testAuthFlow()">測試完整認證流程</button>
+            <div id="currentState" class="test-result"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🔧 localStorage 診斷</h2>
+            <button onclick="checkLocalStorage()">檢查 localStorage</button>
+            <button onclick="clearLocalStorage()">清除 localStorage</button>
+            <button onclick="setTestToken()">設置測試 Token</button>
+            <div id="localStorageResult" class="test-result"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>💾 Zustand Persist 診斷</h2>
+            <button onclick="checkZustandState()">檢查 Zustand 狀態</button>
+            <button onclick="clearZustandState()">清除 Zustand 狀態</button>
+            <button onclick="testZustandSync()">測試狀態同步</button>
+            <div id="zustandResult" class="test-result"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>⏱️ 時序測試</h2>
+            <button onclick="testInitializeSequence()">測試初始化順序</button>
+            <button onclick="testRehydrationTiming()">測試 Rehydration 時機</button>
+            <button onclick="testRaceCondition()">測試競態條件</button>
+            <div id="sequenceResult" class="test-result"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>📋 實時日誌</h2>
+            <button onclick="clearLogs()">清除日誌</button>
+            <button onclick="startLogMonitoring()">開始監控</button>
+            <button onclick="stopLogMonitoring()">停止監控</button>
+            <div id="logOutput" class="log-output"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🚀 快速修復建議</h2>
+            <div id="fixSuggestions"></div>
+        </div>
+    </div>
+
+    <script>
+        let logMonitorInterval = null;
+        let originalConsoleLog = console.log;
+        let originalConsoleError = console.error;
+        let originalConsoleWarn = console.warn;
+        let logs = [];
+
+        // 劫持 console 輸出
+        function setupLogging() {
+            console.log = function(...args) {
+                logs.push({type: 'log', time: new Date().toLocaleTimeString(), message: args.join(' ')});
+                originalConsoleLog.apply(console, args);
+                updateLogOutput();
+            };
+            
+            console.error = function(...args) {
+                logs.push({type: 'error', time: new Date().toLocaleTimeString(), message: args.join(' ')});
+                originalConsoleError.apply(console, args);
+                updateLogOutput();
+            };
+            
+            console.warn = function(...args) {
+                logs.push({type: 'warn', time: new Date().toLocaleTimeString(), message: args.join(' ')});
+                originalConsoleWarn.apply(console, args);
+                updateLogOutput();
+            };
+        }
+
+        function updateLogOutput() {
+            const logOutput = document.getElementById('logOutput');
+            const recentLogs = logs.slice(-50); // 只顯示最近 50 條
+            logOutput.textContent = recentLogs.map(log => 
+                `[${log.time}] ${log.type.toUpperCase()}: ${log.message}`
+            ).join('\n');
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('logOutput').textContent = '';
+        }
+
+        function startLogMonitoring() {
+            setupLogging();
+            document.getElementById('logOutput').textContent = '🔄 開始監控 console 輸出...\n';
+            
+            // 定期檢查 localStorage 變化
+            logMonitorInterval = setInterval(() => {
+                const token = localStorage.getItem('auth_token');
+                const authStorage = localStorage.getItem('auth-storage');
+                console.log(`🔍 定期檢查 - Token: ${token ? 'exists' : 'null'}, AuthStorage: ${authStorage ? 'exists' : 'null'}`);
+            }, 5000);
+        }
+
+        function stopLogMonitoring() {
+            if (logMonitorInterval) {
+                clearInterval(logMonitorInterval);
+                logMonitorInterval = null;
+            }
+            console.log('⏹️ 停止監控');
+        }
+
+        function checkCurrentState() {
+            const result = document.getElementById('currentState');
+            const token = localStorage.getItem('auth_token');
+            const authStorage = localStorage.getItem('auth-storage');
+            
+            let authData = null;
+            try {
+                authData = authStorage ? JSON.parse(authStorage) : null;
+            } catch (e) {
+                console.error('解析 auth-storage 失敗:', e);
+            }
+
+            result.innerHTML = `
+                <h3>📊 當前狀態分析</h3>
+                <p><strong>localStorage Token:</strong> ${token ? `存在 (${token.substring(0, 30)}...)` : '❌ 不存在'}</p>
+                <p><strong>Zustand Persist 資料:</strong> ${authData ? '✅ 存在' : '❌ 不存在'}</p>
+                ${authData ? `
+                    <p><strong>用戶:</strong> ${authData.state?.user?.display_name || '未知'}</p>
+                    <p><strong>isAuthenticated:</strong> ${authData.state?.isAuthenticated || false}</p>
+                    <p><strong>Persist Token:</strong> ${authData.state?.token ? `存在 (${authData.state.token.substring(0, 30)}...)` : '❌ 不存在'}</p>
+                    <p><strong>Token 同步:</strong> ${token === authData.state?.token ? '✅ 同步' : '❌ 不同步'}</p>
+                ` : ''}
+                <p><strong>診斷結果:</strong> ${getDiagnosisResult(token, authData)}</p>
+            `;
+        }
+
+        function getDiagnosisResult(token, authData) {
+            if (!token && !authData) {
+                return '<span class="info">🔓 未登入狀態，正常</span>';
+            }
+            if (token && authData?.state?.user && authData?.state?.isAuthenticated) {
+                if (token === authData.state.token) {
+                    return '<span class="success">✅ 認證狀態完整，應該保持登入</span>';
+                } else {
+                    return '<span class="error">❌ Token 不同步，可能導致刷新跳轉</span>';
+                }
+            }
+            if (token && !authData?.state?.user) {
+                return '<span class="warning">⚠️ 有 Token 但無用戶資訊，會導致刷新跳轉</span>';
+            }
+            return '<span class="error">❌ 狀態不一致，需要修復</span>';
+        }
+
+        function simulateRefresh() {
+            console.log('🔄 模擬頁面刷新流程...');
+            
+            // 1. 檢查刷新前狀態
+            const beforeToken = localStorage.getItem('auth_token');
+            const beforeAuth = localStorage.getItem('auth-storage');
+            console.log('📸 刷新前狀態 - Token:', beforeToken ? 'exists' : 'null', 'Auth:', beforeAuth ? 'exists' : 'null');
+            
+            // 2. 模擬頁面刷新後的狀態檢查
+            setTimeout(() => {
+                const afterToken = localStorage.getItem('auth_token');
+                const afterAuth = localStorage.getItem('auth-storage');
+                console.log('📸 刷新後狀態 - Token:', afterToken ? 'exists' : 'null', 'Auth:', afterAuth ? 'exists' : 'null');
+                
+                let authData = null;
+                try {
+                    authData = afterAuth ? JSON.parse(afterAuth) : null;
+                } catch (e) {
+                    console.error('❌ 解析 auth-storage 失敗:', e);
+                }
+                
+                if (afterToken && authData?.state?.user && authData?.state?.isAuthenticated) {
+                    console.log('✅ 模擬結果: 應該保持登入狀態');
+                } else {
+                    console.log('❌ 模擬結果: 會跳轉到登入頁');
+                    console.log('🔧 問題原因: ', 
+                        !afterToken ? 'localStorage Token 丟失' :
+                        !authData?.state?.user ? 'Zustand 用戶資訊丟失' :
+                        !authData?.state?.isAuthenticated ? 'isAuthenticated 為 false' :
+                        '未知原因'
+                    );
+                }
+            }, 100);
+        }
+
+        function checkLocalStorage() {
+            const result = document.getElementById('localStorageResult');
+            const items = {};
+            
+            // 檢查所有相關的 localStorage 項目
+            const keys = ['auth_token', 'auth-storage', 'vite-ui-theme'];
+            keys.forEach(key => {
+                items[key] = localStorage.getItem(key);
+            });
+            
+            result.innerHTML = `
+                <h3>🔍 localStorage 內容</h3>
+                ${Object.entries(items).map(([key, value]) => 
+                    `<p><strong>${key}:</strong> ${value ? 
+                        (key === 'auth_token' ? `${value.substring(0, 50)}...` : 
+                         key === 'auth-storage' ? `${value.length} 字元 (${Object.keys(JSON.parse(value) || {}).join(', ')})` :
+                         value) : 
+                        '❌ 不存在'}</p>`
+                ).join('')}
+            `;
+        }
+
+        function clearLocalStorage() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth-storage');
+            console.log('🧹 已清除 localStorage 認證資料');
+            checkLocalStorage();
+        }
+
+        function setTestToken() {
+            const testToken = 'test_token_' + Date.now();
+            const testAuthData = {
+                state: {
+                    user: { 
+                        id: 1, 
+                        display_name: '測試用戶', 
+                        email: 'test@example.com',
+                        role: 'admin'
+                    },
+                    token: testToken,
+                    isAuthenticated: true,
+                    permissions: ['users.read', 'users.create'],
+                    roles: ['admin']
+                },
+                version: 3
+            };
+            
+            localStorage.setItem('auth_token', testToken);
+            localStorage.setItem('auth-storage', JSON.stringify(testAuthData));
+            console.log('🧪 已設置測試認證資料');
+            checkLocalStorage();
+        }
+
+        function checkZustandState() {
+            const result = document.getElementById('zustandResult');
+            const authStorage = localStorage.getItem('auth-storage');
+            
+            if (!authStorage) {
+                result.innerHTML = '<p class="error">❌ 沒有找到 Zustand persist 資料</p>';
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(authStorage);
+                result.innerHTML = `
+                    <h3>💾 Zustand Persist 狀態</h3>
+                    <p><strong>版本:</strong> ${data.version || '未知'}</p>
+                    <p><strong>用戶:</strong> ${data.state?.user?.display_name || '❌ 無'}</p>
+                    <p><strong>Token:</strong> ${data.state?.token ? `存在 (${data.state.token.substring(0, 30)}...)` : '❌ 無'}</p>
+                    <p><strong>isAuthenticated:</strong> ${data.state?.isAuthenticated || false}</p>
+                    <p><strong>權限數量:</strong> ${data.state?.permissions?.length || 0}</p>
+                    <p><strong>角色:</strong> ${data.state?.roles?.join(', ') || '無'}</p>
+                    <p><strong>完整資料:</strong></p>
+                    <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (e) {
+                result.innerHTML = `<p class="error">❌ 解析 Zustand 資料失敗: ${e.message}</p>`;
+            }
+        }
+
+        function clearZustandState() {
+            localStorage.removeItem('auth-storage');
+            console.log('🧹 已清除 Zustand persist 資料');
+            checkZustandState();
+        }
+
+        function testZustandSync() {
+            console.log('🔄 測試 localStorage 與 Zustand 同步...');
+            
+            const token = localStorage.getItem('auth_token');
+            const authStorage = localStorage.getItem('auth-storage');
+            
+            if (!token || !authStorage) {
+                console.log('⚠️ 測試前需要先有認證資料');
+                return;
+            }
+            
+            try {
+                const authData = JSON.parse(authStorage);
+                const isSync = token === authData.state?.token;
+                
+                console.log('📊 同步檢查結果:');
+                console.log('  localStorage Token:', token ? token.substring(0, 30) + '...' : 'null');
+                console.log('  Zustand Token:', authData.state?.token ? authData.state.token.substring(0, 30) + '...' : 'null');
+                console.log('  是否同步:', isSync ? '✅ 是' : '❌ 否');
+                console.log('  用戶資訊:', authData.state?.user?.display_name || '無');
+                console.log('  認證狀態:', authData.state?.isAuthenticated || false);
+                
+                if (!isSync) {
+                    console.log('🔧 修復建議: Token 不同步，需要在 initialize() 方法中修復');
+                }
+            } catch (e) {
+                console.error('❌ 同步測試失敗:', e);
+            }
+        }
+
+        function testInitializeSequence() {
+            console.log('⏱️ 測試初始化順序...');
+            
+            // 模擬初始化序列
+            const steps = [
+                '1. 應用程式啟動',
+                '2. Zustand persist 恢復',
+                '3. onRehydrateStorage 回調',
+                '4. initialize() 方法執行',
+                '5. ProtectedRoute 檢查',
+                '6. 最終渲染決定'
+            ];
+            
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    console.log(`📋 ${step}`);
+                    if (index === steps.length - 1) {
+                        console.log('✅ 初始化序列測試完成');
+                        document.getElementById('sequenceResult').innerHTML = 
+                            '<p>初始化序列測試已完成，請查看 console 日誌</p>';
+                    }
+                }, index * 500);
+            });
+        }
+
+        function testRehydrationTiming() {
+            console.log('⏰ 測試 Rehydration 時機...');
+            
+            // 檢查當前是否有 persist 資料
+            const authStorage = localStorage.getItem('auth-storage');
+            if (authStorage) {
+                console.log('💾 檢測到 persist 資料，模擬恢復流程...');
+                
+                try {
+                    const data = JSON.parse(authStorage);
+                    console.log('🔄 模擬 onRehydrateStorage 執行');
+                    console.log('  恢復的狀態:', data.state);
+                    console.log('  預期 isLoading 變更: true → false');
+                    
+                    setTimeout(() => {
+                        console.log('⏱️ 模擬初始化延遲完成');
+                        console.log('🛡️ ProtectedRoute 將開始檢查認證狀態');
+                        
+                        const willRedirect = !data.state?.isAuthenticated || !data.state?.user;
+                        console.log('📊 ProtectedRoute 判斷結果:', willRedirect ? '❌ 會跳轉登入頁' : '✅ 保持當前頁面');
+                    }, 1000);
+                    
+                } catch (e) {
+                    console.error('❌ 恢復測試失敗:', e);
+                }
+            } else {
+                console.log('💾 無 persist 資料，跳過恢復測試');
+            }
+        }
+
+        function testRaceCondition() {
+            console.log('🏁 測試競態條件...');
+            
+            // 模擬多個並發的認證檢查
+            const checks = [
+                'ProtectedRoute 認證檢查',
+                'AuthStore initialize()',
+                'Zustand persist 恢復',
+                'localStorage 讀取'
+            ];
+            
+            checks.forEach((check, index) => {
+                setTimeout(() => {
+                    console.log(`🔄 併發執行: ${check}`);
+                    
+                    // 檢查當前狀態
+                    const token = localStorage.getItem('auth_token');
+                    const authStorage = localStorage.getItem('auth-storage');
+                    console.log(`  ${check} 看到的狀態: Token=${token ? 'exists' : 'null'}, Auth=${authStorage ? 'exists' : 'null'}`);
+                    
+                }, Math.random() * 500); // 隨機延遲模擬競態
+            });
+            
+            setTimeout(() => {
+                console.log('🏁 競態條件測試完成');
+                console.log('💡 如果看到狀態不一致，可能存在競態問題');
+            }, 1000);
+        }
+
+        function testAuthFlow() {
+            console.log('🔐 測試完整認證流程...');
+            
+            // 清除現有狀態
+            clearLocalStorage();
+            
+            setTimeout(() => {
+                // 模擬登入
+                console.log('1️⃣ 模擬登入...');
+                setTestToken();
+                
+                setTimeout(() => {
+                    console.log('2️⃣ 檢查登入後狀態...');
+                    checkCurrentState();
+                    
+                    setTimeout(() => {
+                        console.log('3️⃣ 模擬頁面刷新...');
+                        simulateRefresh();
+                    }, 1000);
+                }, 1000);
+            }, 1000);
+        }
+
+        // 自動生成修復建議
+        function generateFixSuggestions() {
+            const token = localStorage.getItem('auth_token');
+            const authStorage = localStorage.getItem('auth-storage');
+            let authData = null;
+            
+            try {
+                authData = authStorage ? JSON.parse(authStorage) : null;
+            } catch (e) {}
+            
+            const suggestions = [];
+            
+            if (!token && !authData) {
+                suggestions.push('✅ 當前狀態正常：未登入狀態');
+            } else if (token && authData?.state?.user && authData?.state?.isAuthenticated) {
+                if (token === authData.state.token) {
+                    suggestions.push('✅ 認證狀態完整，如果仍有問題請檢查 ProtectedRoute 邏輯');
+                } else {
+                    suggestions.push('🔧 修復方案：在 initialize() 方法中同步 localStorage 和 Zustand token');
+                    suggestions.push('```javascript\nif (localToken && state.user) {\n  set({ token: localToken, isAuthenticated: true, isLoading: false });\n}\n```');
+                }
+            } else if (token && !authData?.state?.user) {
+                suggestions.push('🔧 修復方案：清除孤立的 token 或從 API 重新獲取用戶資訊');
+                suggestions.push('```javascript\nif (token && !state.user) {\n  // 選項1: 清除孤立 token\n  localStorage.removeItem("auth_token");\n  // 選項2: 從 API 獲取用戶資訊\n  // await fetchUserInfo(token);\n}\n```');
+            } else {
+                suggestions.push('🔧 修復方案：狀態不一致，建議清除所有認證資料重新登入');
+            }
+            
+            suggestions.push('📋 一般除錯步驟：');
+            suggestions.push('1. 檢查瀏覽器 Console 的認證初始化日誌');
+            suggestions.push('2. 確認 localStorage 和 Zustand persist 同步');
+            suggestions.push('3. 檢查 initialize() 方法的執行時機');
+            suggestions.push('4. 確認 ProtectedRoute 的邏輯判斷');
+            
+            document.getElementById('fixSuggestions').innerHTML = 
+                suggestions.map(s => `<p>${s}</p>`).join('');
+        }
+
+        // 頁面載入時自動檢查
+        window.onload = function() {
+            console.log('🔍 LomisX3 認證刷新調試工具已載入');
+            checkCurrentState();
+            generateFixSuggestions();
+            
+            // 監聽 localStorage 變化
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'auth_token' || e.key === 'auth-storage') {
+                    console.log(`🔄 檢測到 ${e.key} 變化:`, e.oldValue ? '有 → ' : '無 → ', e.newValue ? '有' : '無');
+                    checkCurrentState();
+                    generateFixSuggestions();
+                }
+            });
+        };
+    </script>
+</body>
+</html> 

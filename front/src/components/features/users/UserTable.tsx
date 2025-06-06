@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useGetUsers } from '@/hooks/api/users/useGetUsers';
 import { useUpdateUser } from '@/hooks/api/users/useUpdateUser';
 import { useDeleteUser } from '@/hooks/api/users/useDeleteUser';
@@ -139,7 +139,6 @@ export function UserTable({
   customActions = [],
   onSelectionChange,
 }: UserTableProps) {
-  const { toast } = useToast();
   
   // 搜尋和篩選狀態
   const { searchTerm, debouncedSearchTerm, setSearch } = useDebouncedSearch('', 300);

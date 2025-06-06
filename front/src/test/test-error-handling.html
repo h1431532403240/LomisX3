@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LomisX3 錯誤處理測試</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        input, button { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 8px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            font-size: 16px; 
+        }
+        button { 
+            background: #007cba; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+        }
+        button:hover { background: #005a87; }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            padding: 10px; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            padding: 10px; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 LomisX3 錯誤處理測試</h1>
+        <p>測試各種登入錯誤情況的使用者回饋</p>
+        
+        <div>
+            <label for="email">帳號或信箱:</label>
+            <input type="text" id="email" placeholder="輸入錯誤帳號測試" value="wrong@test.com">
+        </div>
+        
+        <div>
+            <label for="password">密碼:</label>
+            <input type="password" id="password" placeholder="輸入錯誤密碼測試" value="wrongpassword">
+        </div>
+        
+        <button onclick="testLogin()">🚀 測試登入 (預期失敗)</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testLogin() {
+            const resultDiv = document.getElementById('result');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            resultDiv.innerHTML = '<p>⏳ 正在測試...</p>';
+            
+            try {
+                // 1. 獲取 CSRF Cookie
+                console.log('📋 步驟 1: 獲取 CSRF Cookie');
+                const csrfResponse = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!csrfResponse.ok) {
+                    throw new Error(`CSRF 獲取失敗: ${csrfResponse.status}`);
+                }
+                
+                // 2. 獲取 XSRF Token
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) {
+                        return parts.pop().split(';').shift();
+                    }
+                    return null;
+                }
+                
+                const xsrfToken = getCookie('XSRF-TOKEN');
+                if (!xsrfToken) {
+                    throw new Error('無法獲取 XSRF Token');
+                }
+                
+                // 3. 嘗試登入 (預期失敗)
+                console.log('🔐 步驟 2: 嘗試登入');
+                const loginResponse = await fetch('http://localhost:8000/api/auth/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-XSRF-TOKEN': decodeURIComponent(xsrfToken),
+                    },
+                    body: JSON.stringify({
+                        login: email,  // 使用 login 欄位
+                        password: password,
+                        remember: false
+                    })
+                });
+                
+                const responseData = await loginResponse.json();
+                
+                if (!loginResponse.ok) {
+                    // 這是我們期望的 - 顯示錯誤處理
+                    let errorMessage = '未知錯誤';
+                    
+                    if (responseData.message) {
+                        errorMessage = responseData.message;
+                    } else if (responseData.errors) {
+                        errorMessage = Object.values(responseData.errors).flat().join(', ');
+                    }
+                    
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ 登入失敗 (如預期)</h3>
+                            <p><strong>HTTP 狀態:</strong> ${loginResponse.status}</p>
+                            <p><strong>錯誤訊息:</strong> ${errorMessage}</p>
+                            <p><strong>完整回應:</strong></p>
+                            <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto;">${JSON.stringify(responseData, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    console.log('✅ 錯誤處理測試完成:', {
+                        status: loginResponse.status,
+                        message: errorMessage,
+                        fullResponse: responseData
+                    });
+                } else {
+                    // 意外成功了
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ 登入意外成功!</h3>
+                            <p>這個測試帳號可能真的存在系統中</p>
+                            <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto;">${JSON.stringify(responseData, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>💥 測試過程發生錯誤</h3>
+                        <p><strong>錯誤:</strong> ${error.message}</p>
+                        <p>請檢查 Console 查看詳細錯誤資訊</p>
+                    </div>
+                `;
+                console.error('測試錯誤:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

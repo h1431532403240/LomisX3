@@ -148,6 +148,29 @@ class UserRepository implements UserRepositoryInterface
     }
 
     /**
+     * 根據電子郵件或使用者名稱查找使用者
+     * 支援登入時彈性使用 email 或 username
+     *
+     * @param string $login 登入帳號（使用者名稱或電子郵件）
+     * @return User|null
+     */
+    public function findByEmailOrUsername(string $login): ?User
+    {
+        $cacheKey = "user:login:" . md5($login);
+        
+        return Cache::remember($cacheKey, 3600, function () use ($login) {
+            return $this->model
+                ->where(function ($query) use ($login) {
+                    $query->where('email', $login)
+                          ->orWhere('username', $login);
+                })
+                ->whereNull('deleted_at')
+                ->with(['roles', 'permissions', 'store'])
+                ->first();
+        });
+    }
+
+    /**
      * 根據使用者名稱和門市 ID 查詢使用者
      *
      * @param string $username 使用者名稱

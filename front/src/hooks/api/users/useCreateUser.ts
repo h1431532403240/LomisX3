@@ -4,7 +4,7 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { openapi, safeApiCall } from '@/lib/openapi-client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { components } from '@/types/api';
 
 // 從 API 類型定義中提取建立使用者請求類型
@@ -16,7 +16,6 @@ type CreateUserRequest = components['schemas']['CreateUserRequest'];
  */
 export function useCreateUser() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (userData: CreateUserRequest) => {
@@ -36,19 +35,12 @@ export function useCreateUser() {
       // 成功後清除相關查詢快取
       queryClient.invalidateQueries({ queryKey: ['users'] });
       
-      // 顯示成功訊息
-      toast({
-        title: "建立成功",
-        description: `使用者「${data?.data?.name}」已成功建立`,
-      });
+      // 顯示成功訊息 (Sonner API)
+      toast.success(`使用者「${data?.data?.name}」已成功建立`);
     },
     onError: (error: Error) => {
-      // 顯示錯誤訊息
-      toast({
-        title: "建立失敗",
-        description: error.message,
-        variant: "destructive",
-      });
+      // 顯示錯誤訊息 (Sonner API)
+      toast.error(`建立失敗：${error.message}`);
     },
   });
 } 

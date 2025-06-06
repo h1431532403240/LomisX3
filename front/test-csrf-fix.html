@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LomisX3 CSRF 測試工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        .test-section h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+        }
+        .status-item {
+            margin: 10px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #fff;
+            border-radius: 4px;
+        }
+        .error { 
+            border-left-color: #dc3545; 
+            background-color: #f8d7da; 
+            color: #721c24;
+        }
+        .success { 
+            border-left-color: #28a745; 
+            background-color: #d4edda; 
+            color: #155724;
+        }
+        .warning { 
+            border-left-color: #ffc107; 
+            background-color: #fff3cd; 
+            color: #856404;
+        }
+        .info { 
+            border-left-color: #17a2b8; 
+            background-color: #d1ecf1; 
+            color: #0c5460;
+        }
+        button {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,123,255,0.3);
+        }
+        button:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,123,255,0.4);
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .code-block {
+            background: #f1f3f4;
+            border: 1px solid #dadce0;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 LomisX3 CSRF 測試工具</h1>
+            <p>測試 Laravel Sanctum CSRF 保護機制是否正常工作</p>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 測試步驟</h3>
+            <button onclick="testCsrfFlow()">🚀 開始完整 CSRF 流程測試</button>
+            <button onclick="checkCookies()">🍪 檢查 Cookies</button>
+            <button onclick="testLogin()">🔑 測試登入</button>
+            <button onclick="clearResults()">🗑️ 清除結果</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let testResults = [];
+
+        function addResult(message, type = 'info') {
+            testResults.push({ message, type, timestamp: new Date().toLocaleTimeString() });
+            updateResults();
+        }
+
+        function updateResults() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = testResults.map(result => `
+                <div class="status-item ${result.type}">
+                    <strong>[${result.timestamp}]</strong> ${result.message}
+                </div>
+            `).join('');
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        function clearResults() {
+            testResults = [];
+            updateResults();
+        }
+
+        // 檢查當前 Cookies
+        function checkCookies() {
+            addResult('📋 檢查當前 Cookies...', 'info');
+            
+            const cookies = document.cookie;
+            if (cookies) {
+                const cookieList = cookies.split(';').map(c => c.trim());
+                addResult(`找到 ${cookieList.length} 個 cookies:`, 'info');
+                cookieList.forEach(cookie => {
+                    const [name, value] = cookie.split('=');
+                    if (name.includes('XSRF') || name.includes('laravel') || name.includes('session')) {
+                        addResult(`🍪 重要: ${name} = ${value.substring(0, 20)}...`, 'success');
+                    } else {
+                        addResult(`🍪 一般: ${name} = ${value.substring(0, 20)}...`, 'info');
+                    }
+                });
+            } else {
+                addResult('❌ 沒有找到任何 cookies', 'error');
+            }
+        }
+
+        // 獲取 CSRF Cookie
+        async function getCsrfToken() {
+            addResult('🔐 正在獲取 CSRF token...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/sanctum/csrf-cookie`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    addResult('✅ CSRF token 獲取成功', 'success');
+                    
+                    // 檢查是否設置了 XSRF-TOKEN cookie
+                    setTimeout(() => {
+                        const xsrfToken = getCookie('XSRF-TOKEN');
+                        if (xsrfToken) {
+                            addResult(`🔑 XSRF-TOKEN 已設置: ${xsrfToken.substring(0, 20)}...`, 'success');
+                        } else {
+                            addResult('❌ XSRF-TOKEN cookie 未設置', 'error');
+                        }
+                    }, 100);
+                    
+                    return true;
+                } else {
+                    addResult(`❌ CSRF token 獲取失敗: ${response.status} ${response.statusText}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`❌ CSRF token 獲取錯誤: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // 測試登入
+        async function testLogin() {
+            addResult('🔑 開始測試登入...', 'info');
+            
+            const xsrfToken = getCookie('XSRF-TOKEN');
+            if (!xsrfToken) {
+                addResult('⚠️ 沒有 XSRF-TOKEN，先獲取 CSRF token', 'warning');
+                const success = await getCsrfToken();
+                if (!success) return;
+            }
+
+            const loginData = {
+                login: 'admin',
+                password: 'password123',
+                remember: false
+            };
+
+            try {
+                addResult('📤 發送登入請求...', 'info');
+                addResult(`📋 請求資料: ${JSON.stringify(loginData)}`, 'info');
+                
+                const token = getCookie('XSRF-TOKEN');
+                const headers = {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['X-XSRF-TOKEN'] = decodeURIComponent(token);
+                    addResult(`🔐 使用 XSRF token: ${token.substring(0, 20)}...`, 'info');
+                }
+
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: headers,
+                    body: JSON.stringify(loginData),
+                });
+
+                addResult(`📥 收到回應: ${response.status} ${response.statusText}`, 
+                         response.ok ? 'success' : 'error');
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ 登入成功！', 'success');
+                    addResult(`👤 用戶資訊: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    addResult(`❌ 登入失敗: ${errorText}`, 'error');
+                    
+                    if (response.status === 419) {
+                        addResult('🚨 419 錯誤表示 CSRF token 問題', 'error');
+                    }
+                }
+            } catch (error) {
+                addResult(`❌ 登入請求錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        // 完整流程測試
+        async function testCsrfFlow() {
+            addResult('🚀 開始完整 CSRF 流程測試...', 'info');
+            addResult('=' * 50, 'info');
+            
+            // 1. 清除現有 cookies (模擬新訪問)
+            addResult('1️⃣ 檢查初始狀態...', 'info');
+            checkCookies();
+            
+            // 2. 獲取 CSRF token
+            addResult('2️⃣ 獲取 CSRF token...', 'info');
+            const csrfSuccess = await getCsrfToken();
+            if (!csrfSuccess) {
+                addResult('❌ CSRF 流程失敗，停止測試', 'error');
+                return;
+            }
+            
+            // 3. 等待一下讓 cookie 設置
+            addResult('3️⃣ 等待 cookie 設置...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // 4. 再次檢查 cookies
+            addResult('4️⃣ 檢查 cookies 設置...', 'info');
+            checkCookies();
+            
+            // 5. 測試登入
+            addResult('5️⃣ 執行登入測試...', 'info');
+            await testLogin();
+            
+            addResult('🏁 CSRF 流程測試完成', 'info');
+        }
+
+        // 獲取 Cookie 的工具函數
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) {
+                return parts.pop().split(';').shift();
+            }
+            return null;
+        }
+
+        // 頁面載入時的初始化
+        window.addEventListener('load', () => {
+            addResult('🎯 LomisX3 CSRF 測試工具已就緒', 'success');
+            addResult('請點擊上方按鈕開始測試', 'info');
+        });
+    </script>
+</body>
+</html> 

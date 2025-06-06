@@ -20,6 +20,7 @@ enum UserErrorCode: string
     case ACCOUNT_LOCKED = 'ACCOUNT_LOCKED';
     case ACCOUNT_INACTIVE = 'ACCOUNT_INACTIVE';
     case ACCOUNT_PENDING = 'ACCOUNT_PENDING';
+    case ACCOUNT_STATUS_INVALID = 'ACCOUNT_STATUS_INVALID';
     case TWO_FACTOR_REQUIRED = 'TWO_FACTOR_REQUIRED';
     case INVALID_2FA_CODE = 'INVALID_2FA_CODE';
     case TWO_FACTOR_NOT_ENABLED = 'TWO_FACTOR_NOT_ENABLED';
@@ -35,6 +36,7 @@ enum UserErrorCode: string
     case AVATAR_UPLOAD_FAILED = 'AVATAR_UPLOAD_FAILED';
     case EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
     case TOO_MANY_LOGIN_ATTEMPTS = 'TOO_MANY_LOGIN_ATTEMPTS';
+    case TOO_MANY_ATTEMPTS = 'TOO_MANY_ATTEMPTS';
     case INVALID_USER_STATUS = 'INVALID_USER_STATUS';
     case ROLE_SYNC_FAILED = 'ROLE_SYNC_FAILED';
     case PERMISSION_SYNC_FAILED = 'PERMISSION_SYNC_FAILED';
@@ -58,6 +60,7 @@ enum UserErrorCode: string
             self::ACCOUNT_LOCKED => '帳號已被鎖定，請聯繫管理員',
             self::ACCOUNT_INACTIVE => '帳號已停用',
             self::ACCOUNT_PENDING => '帳號待審核中',
+            self::ACCOUNT_STATUS_INVALID => '帳號狀態異常，無法登入',
             self::TWO_FACTOR_REQUIRED => '需要雙因子驗證',
             self::INVALID_2FA_CODE => '雙因子驗證碼錯誤',
             self::TWO_FACTOR_NOT_ENABLED => '尚未啟用雙因子驗證',
@@ -73,6 +76,7 @@ enum UserErrorCode: string
             self::AVATAR_UPLOAD_FAILED => '頭像上傳失敗',
             self::EMAIL_NOT_VERIFIED => '電子郵件尚未驗證',
             self::TOO_MANY_LOGIN_ATTEMPTS => '登入嘗試次數過多，請稍後再試',
+            self::TOO_MANY_ATTEMPTS => '嘗試次數過多，帳號已被暫時鎖定',
             self::INVALID_USER_STATUS => '無效的使用者狀態',
             self::ROLE_SYNC_FAILED => '角色同步失敗',
             self::PERMISSION_SYNC_FAILED => '權限同步失敗',
@@ -110,12 +114,14 @@ enum UserErrorCode: string
             self::ACCOUNT_LOCKED => 423,
             self::ACCOUNT_INACTIVE => 403,
             self::ACCOUNT_PENDING => 202,
+            self::ACCOUNT_STATUS_INVALID => 403,
             
             self::TWO_FACTOR_REQUIRED => 428,
             
             self::TOKEN_EXPIRED => 401,
             
             self::TOO_MANY_LOGIN_ATTEMPTS => 429,
+            self::TOO_MANY_ATTEMPTS => 423,
             
             self::INSUFFICIENT_PERMISSIONS, 
             self::STORE_ACCESS_DENIED,

@@ -1,66 +1,28 @@
-Business Exception (Tests\Unit\BusinessException)
- [x] Can create exception from error code
- [x] Can create exception with custom message
- [x] To array returns correct structure
- [x] To json returns valid json
- [x] Different error codes return correct status
+Authentication (Tests\Feature\Authentication)
+ [ ] Successful login
+ [ ] Login with email
+ [ ] Login with wrong password
+ [ ] Login with nonexistent user
+ [ ] Login with inactive account
+ [ ] Login with locked account
+ [ ] Login with pending account
+ [ ] Login rate limiting
+ [ ] Successful logout
+ [ ] Get current user info
+ [ ] Token refresh
+ [ ] Enable 2fa
+ [ ] Enable 2fa with wrong password
+ [ ] Confirm 2fa
+ [ ] Disable 2fa
+ [ ] 2fa challenge
+ [ ] 2fa challenge with wrong code
+ [ ] 2fa challenge with recovery code
+ [ ] Unauthenticated access to protected route
+ [ ] Invalid token access
+ [ ] Expired token access
+ [ ] Login validation rules
+ [ ] 2fa challenge validation rules
 
-Example (Tests\Unit\Example)
- [x] That true is true
-
-Flush Product Category Cache Job (Tests\Unit\FlushProductCategoryCacheJob)
- [x] Tree flush job executes successfully
- [x] Root shards flush job executes successfully
- [x] Partial flush job executes successfully
- [x] Prometheus metrics are recorded
- [x] Job handles failure correctly
- [x] Prometheus errors do not affect main logic
- [x] Unique id generation
- [x] Job tags
- [x] Failed method logs permanent failure
-
-Product Category Cache Service (Tests\Unit\ProductCategoryCacheService)
- [x] Get cache info returns correct structure
- [x] Cache tag is correct
- [x] Cache key formats
-
-Product Category Service (Tests\Unit\ProductCategoryService)
- [x] Create category
- [x] Create category with invalid parent
- [x] Update category
- [x] Update nonexistent category
- [x] Delete category
- [x] Delete category with children
- [x] Get tree from cache
- [x] Batch update status
- [x] Update sort order
- [x] Generate unique slug
- [x] Get breadcrumbs
-
-Product Category Service Slug (Tests\Unit\ProductCategoryServiceSlug)
- [x] It generates basic slug from name
- [x] It generates unique slug within three attempts when conflicts exist
- [x] It generates slug with correct format
- [x] It correctly identifies slug conflicts
- [x] It handles slug generation when editing existing category
- [x] It handles massive slug conflicts efficiently
- [x] It handles edge cases in slug generation
- [x] It handles multilingual characters in slug generation
-
-User Service (Tests\Unit\UserService)
- [x] Create user successfully
- [x] Create user with duplicate username
- [x] Create user with duplicate email
- [x] Create user with weak password
- [x] Password strength validation
- [x] Update user successfully
- [x] Batch status update successfully
- [x] Batch status update with admin account
- [x] Reset password successfully
- [x] Store isolation check
- [x] Update user get detail failure
- [x] Cache clearing mechanism
- [x] Transaction handling
- [x] Invalid status handling
- [x] Create user repository error
+User Management (Tests\Feature\UserManagement)
+ [ ] Unauthenticated access
 

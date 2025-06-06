@@ -5,7 +5,7 @@ import { Users, Plus, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 import { UserTable } from '@/components/features/users/UserTable';
 import { PermissionGuard } from '@/components/common/permission-guard';
@@ -22,7 +22,6 @@ type User = components['schemas']['User'];
  */
 export function UsersPage() {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   /**
    * 處理新增使用者
@@ -43,10 +42,8 @@ export function UsersPage() {
    * 處理批次操作成功
    */
   const handleBatchSuccess = (action: string, count: number) => {
-    toast({
-      title: '批次操作成功',
-      description: `已成功${action} ${count} 個使用者`,
-    });
+    // 顯示批次操作成功訊息 (Sonner API)
+    toast.success(`已成功${action} ${count} 個使用者`);
   };
 
   return (

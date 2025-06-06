@@ -32,16 +32,22 @@ Route::get('/test', function () {
 /**
  * 認證 & 2FA API 路由
  * 遵循 LomisX3 架構標準的使用者管理模組 V6.2
+ * 🎯 專為 SPA 設計，支援 Sanctum CSRF 流程
  */
 Route::prefix('auth')->name('auth.')->group(function () {
     // 公開認證路由 (不需要認證)
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])
+        ->name('login')
+        ->middleware(['throttle:5,1']); // 登入限流：每分鐘最多 5 次
+        
     Route::post('/2fa/challenge', [AuthController::class, 'twoFactorChallenge'])->name('2fa.challenge');
+    
+    // 登出路由（不需要強制認證，支援冪等性操作）
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     
     // 需要認證的路由
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
-        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
         
         // 2FA 管理

@@ -16,12 +16,13 @@ return [
     */
 
     /**
-     * 狀態化域名配置
-     * 包含 Vite 開發服務器端口 (5173)
+     * 狀態化域名配置 (Laravel Sanctum SPA 認證)
+     * 來自這些域名的請求將使用基於 Cookie 的認證
+     * 包含所有開發和生產環境的域名變體
      */
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
         '%s%s',
-        'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:8000,::1',
+        'localhost:5173,localhost:3000,127.0.0.1:5173,127.0.0.1:3000,localhost,127.0.0.1,::1',
         Sanctum::currentApplicationUrlWithPort(),
         // Sanctum::currentRequestHost(),
     ))),

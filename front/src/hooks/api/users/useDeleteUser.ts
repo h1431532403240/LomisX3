@@ -4,7 +4,7 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { openapi, safeApiCall } from '@/lib/openapi-client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 /**
  * 刪除使用者 Hook
@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
  */
 export function useDeleteUser() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (id: number) => {
@@ -33,19 +32,12 @@ export function useDeleteUser() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.removeQueries({ queryKey: ['users', 'detail', data.id] });
       
-      // 顯示成功訊息
-      toast({
-        title: "刪除成功",
-        description: "使用者已成功刪除",
-      });
+      // 顯示成功訊息 (Sonner API)
+      toast.success('使用者已成功刪除');
     },
     onError: (error: Error) => {
-      // 顯示錯誤訊息
-      toast({
-        title: "刪除失敗",
-        description: error.message,
-        variant: "destructive",
-      });
+      // 顯示錯誤訊息 (Sonner API)
+      toast.error(`刪除失敗：${error.message}`);
     },
   });
 } 

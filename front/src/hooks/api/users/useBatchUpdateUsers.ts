@@ -4,7 +4,7 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { openapi, safeApiCall } from '@/lib/openapi-client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { components } from '@/types/api';
 
 // 從 API 類型定義中提取批次狀態更新請求類型
@@ -16,7 +16,6 @@ type BatchStatusUserRequest = components['schemas']['BatchStatusUserRequest'];
  */
 export function useBatchUpdateUserStatus() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (data: BatchStatusUserRequest) => {
@@ -36,19 +35,12 @@ export function useBatchUpdateUserStatus() {
       // 成功後清除相關查詢快取
       queryClient.invalidateQueries({ queryKey: ['users'] });
       
-      // 顯示成功訊息
-      toast({
-        title: "批次更新成功",
-        description: `已成功更新 ${variables.ids.length} 個使用者的狀態為「${getStatusDisplayName(variables.status)}」`,
-      });
+      // 顯示成功訊息 (Sonner API)
+      toast.success(`已成功更新 ${variables.ids.length} 個使用者的狀態為「${getStatusDisplayName(variables.status)}」`);
     },
     onError: (error: Error) => {
-      // 顯示錯誤訊息
-      toast({
-        title: "批次更新失敗",
-        description: error.message,
-        variant: "destructive",
-      });
+      // 顯示錯誤訊息 (Sonner API)
+      toast.error(`批次更新失敗：${error.message}`);
     },
   });
 }
@@ -58,8 +50,6 @@ export function useBatchUpdateUserStatus() {
  * @returns useMutation 結果
  */
 export function useResetUserPassword() {
-  const { toast } = useToast();
-
   return useMutation({
     mutationFn: async (id: number) => {
       const result = await safeApiCall(() =>
@@ -75,19 +65,12 @@ export function useResetUserPassword() {
       return result.data;
     },
     onSuccess: () => {
-      // 顯示成功訊息
-      toast({
-        title: "重設密碼成功",
-        description: "密碼重設郵件已發送到使用者信箱",
-      });
+      // 顯示成功訊息 (Sonner API)
+      toast.success('密碼重設郵件已發送到使用者信箱');
     },
     onError: (error: Error) => {
-      // 顯示錯誤訊息
-      toast({
-        title: "重設密碼失敗",
-        description: error.message,
-        variant: "destructive",
-      });
+      // 顯示錯誤訊息 (Sonner API)
+      toast.error(`重設密碼失敗：${error.message}`);
     },
   });
 }

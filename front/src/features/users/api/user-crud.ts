@@ -6,7 +6,7 @@
  * @module features/users/api/user-crud
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '@/lib/openapi-client';
+import { openapi } from '@/lib/openapi-client';
 import type { paths, components } from '@/types/api';
 import { toast } from 'sonner';
 import { userQueryKeys } from './use-users';
@@ -59,7 +59,7 @@ type UserResponse = paths['/api/users/{id}']['get']['responses']['200']['content
  * @returns {Promise<PaginatedUsers>} A promise that resolves to the paginated user list.
  */
 const getUsers = async (params: UserQueryParams): Promise<PaginatedUsers> => {
-  const { data, error } = await apiClient.GET('/api/users', { params: { query: params } });
+  const { data, error } = await openapi.GET('/api/users', { params: { query: params } });
   if (error) {
     throw new Error('Failed to fetch users.');
   }
@@ -72,7 +72,7 @@ const getUsers = async (params: UserQueryParams): Promise<PaginatedUsers> => {
  * @returns {Promise<User>} A promise that resolves to the user object.
  */
 const getUser = async (userId: number): Promise<User> => {
-  const { data, error } = await apiClient.GET('/api/users/{id}', {
+  const { data, error } = await openapi.GET('/api/users/{id}', {
     params: { path: { id: userId } },
   });
   if (error || !data?.data) {
@@ -120,7 +120,7 @@ export const useCreateUser = () => {
   const queryClient = useQueryClient();
   return useMutation<UserResponse, Error, CreateUserRequest>({
     mutationFn: async (userData) => {
-      const { data, error } = await apiClient.POST('/api/users', {
+      const { data, error } = await openapi.POST('/api/users', {
         body: userData,
       });
       if (error) {
@@ -150,7 +150,7 @@ export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   return useMutation<UserResponse, Error, { id: number; data: UpdateUserRequest }>({
     mutationFn: async ({ id, data: updateData }) => {
-      const { data, error } = await apiClient.PUT('/api/users/{id}', {
+      const { data, error } = await openapi.PUT('/api/users/{id}', {
         params: { path: { id } },
         body: updateData,
       });
@@ -184,7 +184,7 @@ export const useDeleteUser = () => {
   const queryClient = useQueryClient();
   return useMutation<void, Error, number>({
     mutationFn: async (userId) => {
-      const { error } = await apiClient.DELETE('/api/users/{id}', {
+      const { error } = await openapi.DELETE('/api/users/{id}', {
         params: { path: { id: userId } },
       });
       if (error) {
@@ -211,7 +211,7 @@ export const useBatchUpdateUserStatus = () => {
   const queryClient = useQueryClient();
   return useMutation<components['schemas']['SuccessResponse'], Error, BatchStatusUpdateRequest>({
     mutationFn: async (updateData) => {
-      const { data, error } = await apiClient.PATCH('/api/users/batch/status', {
+      const { data, error } = await openapi.PATCH('/api/users/batch/status', {
         body: updateData,
       });
       if (error) {
@@ -238,7 +238,7 @@ export const useBatchUpdateUserStatus = () => {
 export const useResetPassword = () => {
   return useMutation<components['schemas']['SuccessResponse'], Error, number>({
     mutationFn: async (userId: number) => {
-        const { data, error } = await apiClient.POST('/api/users/{id}/reset-password', {
+        const { data, error } = await openapi.POST('/api/users/{id}/reset-password', {
             params: { path: { id: userId } },
         });
         if (error) {

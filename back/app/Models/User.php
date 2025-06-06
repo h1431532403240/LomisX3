@@ -242,6 +242,18 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
+     * 檢查是否需要雙因子驗證
+     * 用於登入流程中判斷是否需要 2FA 挑戰
+     *
+     * @return bool
+     */
+    public function requiresTwoFactorAuthentication(): bool
+    {
+        // 檢查是否已啟用 2FA
+        return !is_null($this->two_factor_confirmed_at) && !is_null($this->two_factor_secret);
+    }
+
+    /**
      * 狀態標籤屬性
      *
      * @return string

@@ -12,9 +12,11 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Models\User;
 use App\Enums\UserErrorCode;
 use App\Exceptions\BusinessException;
+use App\Traits\HasApiResponse;
 use Illuminate\Http\{JsonResponse, Request};
-use Illuminate\Support\Facades\{Auth, Log, RateLimiter};
+use Illuminate\Support\Facades\{Auth, Hash, Log, RateLimiter};
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * 認證 API 控制器
@@ -36,6 +38,7 @@ use Illuminate\Validation\ValidationException;
  */
 class AuthController extends Controller
 {
+    use HasApiResponse;
     /**
      * 建構函式
      */
@@ -133,91 +136,85 @@ class AuthController extends Controller
      * @param LoginRequest $request
      * @return JsonResponse
      */
-    public function login(LoginRequest $request): JsonResponse
+    public function login(Request $request): JsonResponse
     {
         try {
-            // 取得登入資料
-            $loginData = $request->getLoginData();
-            
-            // 直接實現登入邏輯
-            $result = $this->processLogin($loginData, $request);
-            
-            // 檢查是否需要 2FA
-            if (isset($result['requires_2fa']) && $result['requires_2fa']) {
-                // 記錄 2FA 要求活動
-                activity('2fa_challenge_required')
-                    ->withProperties([
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                        'login_method' => $loginData['login']
-                    ])
-                    ->log('需要雙因子驗證');
+            // 🛡️ 輸入驗證
+            $request->validate([
+                'login' => ['required', 'string'],
+                'password' => ['required', 'string'],
+                'device_name' => ['nullable', 'string', 'max:255'],
+                'remember' => ['boolean'],
+            ]);
+
+            // 🔍 使用 Repository 層查找使用者（符合架構標準）
+            $user = $this->userRepository->findByEmailOrUsername($request->input('login'));
+
+            // ❌ 驗證使用者存在且密碼正確
+            if (!$user || !Hash::check($request->input('password'), $user->password)) {
+                Log::warning('登入失敗：無效憑證', [
+                    'login' => $request->input('login'),
+                    'ip' => $request->ip()
+                ]);
                 
-                return response()->json([
-                    'success' => false,
-                    'message' => $result['message'],
-                    'requires_2fa' => true,
-                    'user_id' => $result['user_id'],
-                    'error_code' => UserErrorCode::TWO_FACTOR_REQUIRED->value
-                ], 428);
+                throw BusinessException::fromErrorCode(UserErrorCode::INVALID_CREDENTIALS);
             }
+
+            // 🔒 使用 Service 層驗證使用者狀態（符合架構標準）
+            $this->userService->validateUserCanLogin($user);
+
+            // 📱 檢查 2FA 需求
+            if ($user->requiresTwoFactorAuthentication()) {
+                return $this->apiSuccess([
+                    'requires_2fa' => true,
+                    'user_id' => $user->id,
+                ], '需要雙因子驗證', 428);
+            }
+
+            // ✅ 建立 Sanctum Token
+            $deviceName = $request->input('device_name', 'unknown-device');
+            $rememberMe = $request->boolean('remember', false);
             
-            // 登入成功
-            $user = $result['user'];
-            
-            // 記錄登入活動
-            activity('user_login')
-                ->causedBy($user)
-                ->withProperties([
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'device_name' => $loginData['device_name'],
-                    'store_id' => $user->store_id
-                ])
-                ->log('使用者登入成功');
-            
-            return response()->json([
-                'success' => true,
-                'message' => '登入成功',
-                'data' => [
-                    'user' => new UserResource($user->load(['roles', 'permissions', 'store'])),
-                    'token' => $result['token'],
-                    'expires_at' => $result['expires_at']->toISOString(),
-                    'permissions' => $user->getAllPermissions()->pluck('name'),
-                    'store' => [
-                        'id' => $user->store_id,
-                        'name' => $user->store->name ?? null
-                    ]
-                ]
-            ]);
-            
+            // 設定 Token 能力（基於角色的細粒度權限）
+            $abilities = $user->getAllPermissions()->pluck('name')->toArray();
+            $token = $user->createToken($deviceName, $abilities);
+
+            // 📝 記錄成功登入
+            $this->userService->recordSuccessfulLogin($user, $request->ip());
+
+            // 🎯 載入完整的使用者關聯資料
+            $user->load(['roles', 'permissions', 'store']);
+
+            // 🔧 使用標準 UserResource 格式化回應（符合架構標準）
+            $userData = new UserResource($user);
+
+            // 🎉 回傳完整的認證資訊
+            return $this->apiSuccess([
+                'user' => $userData,
+                'token' => $token->plainTextToken,
+                'expires_at' => $rememberMe ? 
+                    now()->addDays(30)->toISOString() : 
+                    now()->addHours(8)->toISOString(),
+                'permissions' => $abilities,
+                'store' => $user->store ? [
+                    'id' => $user->store->id,
+                    'name' => $user->store->name,
+                    'code' => $user->store->code,
+                ] : null,
+            ], '登入成功');
+
         } catch (BusinessException $e) {
-            Log::warning('登入業務錯誤', [
-                'error_code' => $e->getCode(),
-                'message' => $e->getMessage(),
-                'login_data' => array_except($request->getLoginData(), ['password']),
-                'ip_address' => $request->ip()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'error_code' => $e->getCode()
-            ], $e->getHttpStatusCode());
-            
-        } catch (\Exception $e) {
+            // 企業級錯誤處理 - 使用正確的 HTTP 狀態碼和錯誤代碼
+            return $this->apiError($e->getMessage(), $e->getHttpStatus(), $e->getErrorCode());
+        } catch (\Throwable $e) {
+            // 記錄未預期錯誤
             Log::error('登入系統錯誤', [
-                'message' => $e->getMessage(),
+                'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'login_data' => array_except($request->getLoginData(), ['password']),
-                'ip_address' => $request->ip()
+                'request' => $request->only(['login', 'device_name'])
             ]);
             
-            return response()->json([
-                'success' => false,
-                'message' => '系統錯誤，請稍後再試',
-                'error_code' => UserErrorCode::SYSTEM_ERROR->value
-            ], 500);
+            return $this->apiError('系統暫時無法處理登入請求，請稍後再試', 500, 'SYSTEM_ERROR');
         }
     }
 
@@ -592,40 +589,77 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
+    /**
+     * 登出
+     * 
+     * 撤銷當前使用者的 Sanctum Token 並記錄登出活動
+     * 
+     * @group 認證管理
+     * 
+     * @response 200 {
+     *   "success": true,
+     *   "message": "登出成功"
+     * }
+     * 
+     * @response 401 {
+     *   "success": false,
+     *   "message": "未授權",
+     *   "error_code": "UNAUTHENTICATED"
+     * }
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function logout(Request $request): JsonResponse
     {
         try {
-            $user = Auth::user();
+            // 🔒 檢查是否有認證的使用者
+            $user = $request->user();
             
-            // 撤銷當前 Token
-            $request->user()->currentAccessToken()->delete();
+            // 如果沒有認證的使用者，直接返回成功（冪等性）
+            if (!$user) {
+                return $this->apiSuccess([], '登出成功');
+            }
             
-            // 記錄登出活動
-            activity('user_logout')
-                ->causedBy($user)
-                ->withProperties([
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent()
-                ])
-                ->log('使用者登出');
+            // 🗝️ 安全撤銷當前 Token
+            $currentToken = $request->user()->currentAccessToken();
+            if ($currentToken) {
+                $currentToken->delete();
+            }
             
-            return response()->json([
-                'success' => true,
-                'message' => '登出成功'
-            ]);
+            // 📝 記錄登出活動（只有在使用者存在時）
+            try {
+                activity('user_logout')
+                    ->causedBy($user)
+                    ->withProperties([
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'token_name' => $currentToken?->name ?? 'unknown'
+                    ])
+                    ->log('使用者登出');
+            } catch (\Exception $logError) {
+                // 活動記錄失敗不應該影響登出流程
+                Log::warning('登出活動記錄失敗', [
+                    'user_id' => $user->id,
+                    'error' => $logError->getMessage()
+                ]);
+            }
+            
+            return $this->apiSuccess([], '登出成功');
             
         } catch (\Exception $e) {
-            Log::error('登出錯誤', [
+            // 📊 記錄錯誤但不影響用戶體驗
+            Log::error('登出系統錯誤', [
                 'message' => $e->getMessage(),
-                'user_id' => Auth::id(),
-                'ip_address' => $request->ip()
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $request->user()?->id,
+                'ip_address' => $request->ip(),
+                'has_token' => !is_null($request->bearerToken())
             ]);
             
-            return response()->json([
-                'success' => false,
-                'message' => '登出失敗',
-                'error_code' => UserErrorCode::LOGOUT_FAILED->value
-            ], 500);
+            // 🎯 即使發生錯誤，也返回成功以保證用戶體驗
+            // 客戶端已經清除了本地認證狀態，後端錯誤不應該影響用戶
+            return $this->apiSuccess([], '登出成功');
         }
     }
 
@@ -801,9 +835,9 @@ class AuthController extends Controller
         
         if (!$user || !password_verify($loginData['password'], $user->password)) {
             throw new BusinessException(
-                message: UserErrorCode::INVALID_CREDENTIALS->message(),
-                code: UserErrorCode::INVALID_CREDENTIALS,
-                httpStatusCode: UserErrorCode::INVALID_CREDENTIALS->httpStatus()
+                UserErrorCode::INVALID_CREDENTIALS->message(),
+                UserErrorCode::INVALID_CREDENTIALS->value,
+                UserErrorCode::INVALID_CREDENTIALS->httpStatus()
             );
         }
 
@@ -864,34 +898,34 @@ class AuthController extends Controller
         switch ($user->status) {
             case 'inactive':
                 throw new BusinessException(
-                    message: UserErrorCode::ACCOUNT_INACTIVE->message(),
-                    code: UserErrorCode::ACCOUNT_INACTIVE,
-                    httpStatusCode: UserErrorCode::ACCOUNT_INACTIVE->httpStatus()
+                    UserErrorCode::ACCOUNT_INACTIVE->message(),
+                    UserErrorCode::ACCOUNT_INACTIVE->value,
+                    UserErrorCode::ACCOUNT_INACTIVE->httpStatus()
                 );
                 
             case 'locked':
                 if ($user->locked_until && $user->locked_until->isFuture()) {
                     throw new BusinessException(
-                        message: UserErrorCode::ACCOUNT_LOCKED->message(),
-                        code: UserErrorCode::ACCOUNT_LOCKED,
-                        httpStatusCode: UserErrorCode::ACCOUNT_LOCKED->httpStatus()
+                        UserErrorCode::ACCOUNT_LOCKED->message(),
+                        UserErrorCode::ACCOUNT_LOCKED->value,
+                        UserErrorCode::ACCOUNT_LOCKED->httpStatus()
                     );
                 }
                 break;
                 
             case 'pending':
                 throw new BusinessException(
-                    message: UserErrorCode::ACCOUNT_PENDING->message(),
-                    code: UserErrorCode::ACCOUNT_PENDING,
-                    httpStatusCode: UserErrorCode::ACCOUNT_PENDING->httpStatus()
+                    UserErrorCode::ACCOUNT_PENDING->message(),
+                    UserErrorCode::ACCOUNT_PENDING->value,
+                    UserErrorCode::ACCOUNT_PENDING->httpStatus()
                 );
         }
 
         if (!$user->email_verified_at) {
             throw new BusinessException(
-                message: UserErrorCode::EMAIL_NOT_VERIFIED->message(),
-                code: UserErrorCode::EMAIL_NOT_VERIFIED,
-                httpStatusCode: UserErrorCode::EMAIL_NOT_VERIFIED->httpStatus()
+                UserErrorCode::EMAIL_NOT_VERIFIED->message(),
+                UserErrorCode::EMAIL_NOT_VERIFIED->value,
+                UserErrorCode::EMAIL_NOT_VERIFIED->httpStatus()
             );
         }
     }

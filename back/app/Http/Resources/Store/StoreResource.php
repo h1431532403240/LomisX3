@@ -39,7 +39,7 @@ class StoreResource extends JsonResource
                 'email' => $this->email,
             ],
             'settings' => $this->when(
-                auth()->user()->can('stores.view_settings'),
+                auth()->user() && auth()->user()->can('stores.view_settings'),
                 $this->settings
             ),
             'audit' => [

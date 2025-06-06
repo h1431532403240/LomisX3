@@ -5,7 +5,6 @@
 import React from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import type { UserRole } from '@/types/user';
-import { usePermissionCheck } from '@/hooks/common/usePermissionCheck';
 
 /**
  * 權限守衛屬性介面
@@ -144,7 +143,7 @@ export function withPermissionGuard<P extends object>(
 
 /**
  * Hook：權限組件檢查（內部使用）
- * 注意：此 hook 專門為 PermissionGuard 組件設計，與通用的 usePermissionCheck 不同
+ * 注意：此 hook 專門為 PermissionGuard 組件設計，提供內部權限檢查邏輯
  */
 export const usePermissionGuardCheck = () => {
   const store = useAuthStore();
@@ -356,36 +355,74 @@ export function ConditionalGuard({
 /**
  * 使用者權限守衛 Hook
  * 提供編程式的權限檢查
+ * V6.6 更新：使用 authStore 的動態權限檢查
  */
 export function usePermissionGuard() {
-  const permissionCheck = usePermissionCheck();
+  const {
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    hasRole,
+    hasAnyRole,
+    canAccessStore,
+    isAdmin,
+    isStoreAdmin,
+    canManageUsers,
+    canViewUsers,
+    canCreateUsers,
+    canUpdateUsers,
+    canDeleteUsers,
+    isAuthenticated,
+    user,
+  } = useAuthStore();
 
   /**
    * 檢查是否有權限存取指定功能
    */
   const canAccess = (feature: string, action: string): boolean => {
-    return permissionCheck.hasPermission(`${feature}.${action}`);
+    return isAuthenticated && hasPermission(`${feature}.${action}`);
   };
 
   /**
    * 檢查多個權限中的任一個
    */
   const canAccessAny = (permissions: string[]): boolean => {
-    return permissions.some(permission => permissionCheck.hasPermission(permission));
+    return isAuthenticated && hasAnyPermission(permissions);
   };
 
   /**
    * 檢查是否擁有所有權限
    */
   const canAccessAll = (permissions: string[]): boolean => {
-    return permissions.every(permission => permissionCheck.hasPermission(permission));
+    return isAuthenticated && hasAllPermissions(permissions);
   };
 
   return {
+    // 編程式權限檢查
     canAccess,
     canAccessAny,
     canAccessAll,
-    ...permissionCheck,
+    
+    // 基礎權限檢查方法 (從 authStore)
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    hasRole,
+    hasAnyRole,
+    canAccessStore,
+    
+    // 特殊權限檢查方法
+    isAdmin,
+    isStoreAdmin,
+    canManageUsers,
+    canViewUsers,
+    canCreateUsers,
+    canUpdateUsers,
+    canDeleteUsers,
+    
+    // 狀態資訊
+    isAuthenticated,
+    currentUser: user,
   };
 }
 

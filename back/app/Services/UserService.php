@@ -10,6 +10,7 @@ use App\Enums\{UserErrorCode, UserStatus};
 use App\Exceptions\BusinessException;
 use Illuminate\Support\{Collection, Facades\DB, Facades\Hash, Facades\Log, Facades\Cache};
 use Illuminate\Pagination\{LengthAwarePaginator, CursorPaginator};
+use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
@@ -741,9 +742,142 @@ class UserService
     }
 
     /**
-     * 在事務中執行操作
+     * 更新使用者登入資訊
      * 
-     * @param callable $callback 回調函式
+     * @param User $user 使用者實例
+     * @param Request $request 請求物件
+     * @return void
+     */
+    public function updateLoginInfo(User $user, Request $request): void
+    {
+        $user->update([
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip(),
+            'login_attempts' => 0, // 成功登入後重置嘗試次數
+        ]);
+        
+        Log::info('用戶登入資訊已更新', [
+            'user_id' => $user->id,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent()
+        ]);
+    }
+
+    /**
+     * 驗證使用者是否可以登入
+     * 檢查使用者狀態、帳號鎖定等條件
+     *
+     * @param User $user 使用者實例
+     * @return void
+     * @throws BusinessException
+     */
+    public function validateUserCanLogin(User $user): void
+    {
+        // 檢查使用者狀態
+        if ($user->status !== UserStatus::ACTIVE) {
+            $statusLabel = match ($user->status) {
+                UserStatus::INACTIVE => '停用',
+                UserStatus::LOCKED => '鎖定',
+                UserStatus::PENDING => '待啟用',
+                default => '未知'
+            };
+            
+            throw new BusinessException(
+                "帳號狀態為「{$statusLabel}」，無法登入",
+                UserErrorCode::ACCOUNT_STATUS_INVALID->value,
+                403
+            );
+        }
+
+        // 檢查帳號是否被鎖定
+        if ($user->locked_until && $user->locked_until->isFuture()) {
+            throw new BusinessException(
+                '帳號已被鎖定，請於 ' . $user->locked_until->format('Y-m-d H:i:s') . ' 後再試',
+                UserErrorCode::ACCOUNT_LOCKED->value,
+                423
+            );
+        }
+
+        // 檢查登入嘗試次數
+        if ($user->login_attempts >= 5) {
+            // 自動鎖定帳號 30 分鐘
+            $user->update([
+                'locked_until' => now()->addMinutes(30)
+            ]);
+            
+            throw new BusinessException(
+                '登入嘗試次數過多，帳號已被鎖定 30 分鐘',
+                UserErrorCode::TOO_MANY_ATTEMPTS->value,
+                423
+            );
+        }
+
+        // 檢查電子郵件是否已驗證（如果需要）
+        if (config('auth.email_verification_required', false) && !$user->hasVerifiedEmail()) {
+            throw new BusinessException(
+                '請先驗證您的電子郵件地址',
+                UserErrorCode::EMAIL_NOT_VERIFIED->value,
+                403
+            );
+        }
+
+        Log::info('使用者登入狀態驗證通過', [
+            'user_id' => $user->id,
+            'username' => $user->username,
+            'status' => $user->status
+        ]);
+    }
+
+    /**
+     * 記錄成功登入
+     * 更新使用者的登入資訊並重置登入嘗試次數
+     *
+     * @param User $user 使用者實例
+     * @param string $ip 登入 IP 地址
+     * @return void
+     */
+    public function recordSuccessfulLogin(User $user, string $ip): void
+    {
+        try {
+            $user->update([
+                'last_login_at' => now(),
+                'last_login_ip' => $ip,
+                'login_attempts' => 0, // 重置登入嘗試次數
+                'locked_until' => null, // 清除鎖定狀態
+            ]);
+
+            // 記錄活動日誌
+            activity()
+                ->causedBy($user)
+                ->performedOn($user)
+                ->withProperties([
+                    'ip' => $ip,
+                    'user_agent' => request()->userAgent(),
+                    'action' => 'login'
+                ])
+                ->log('使用者登入');
+
+            Log::info('成功登入記錄已更新', [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'ip' => $ip,
+                'timestamp' => now()->toISOString()
+            ]);
+
+        } catch (\Exception $e) {
+            // 登入記錄失敗不應該影響登入流程，僅記錄錯誤
+            Log::warning('記錄登入資訊失敗', [
+                'user_id' => $user->id,
+                'ip' => $ip,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 執行事務處理
+     * 
+     * @param callable $callback 回調函數
      * @return mixed
      * @throws BusinessException
      */

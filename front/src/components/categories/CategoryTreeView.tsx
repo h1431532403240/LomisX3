@@ -28,7 +28,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { 
   useUpdateCategory, 
   useDeleteCategory 
@@ -261,7 +261,6 @@ export function CategoryTreeView({
   onAddChild,
   maxExpandDepth: _maxExpandDepth = 2,
 }: CategoryTreeViewProps) {
-  const { toast } = useToast();
   
   // 🎛️ 本地狀態
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
@@ -316,10 +315,8 @@ export function CategoryTreeView({
         data: { status: !category.status }
       });
       
-      toast({
-        title: '狀態更新成功',
-        description: `分類「${category.name}」已${category.status ? '停用' : '啟用'}`,
-      });
+      // 顯示狀態更新成功訊息 (Sonner API)
+      toast.success(`分類「${category.name}」已${category.status ? '停用' : '啟用'}`);
     } catch {
       // 錯誤處理由 mutation 的錯誤處理器統一處理
     }
@@ -332,10 +329,8 @@ export function CategoryTreeView({
     try {
       await deleteCategoryMutation.mutateAsync(category.id);
       
-      toast({
-        title: '刪除成功',
-        description: `分類「${category.name}」已成功刪除`,
-      });
+      // 顯示刪除成功訊息 (Sonner API)
+      toast.success(`分類「${category.name}」已成功刪除`);
     } catch {
       // 錯誤處理由 mutation 的錯誤處理器統一處理
     }

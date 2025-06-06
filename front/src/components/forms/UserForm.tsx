@@ -51,7 +51,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useCreateUser, useUpdateUser } from '@/features/users/api/user-crud';
 import type { 
   User as UserType, 
@@ -209,7 +209,6 @@ export function UserForm({
   onCancel,
   showCard = true,
 }: UserFormProps) {
-  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
@@ -267,10 +266,8 @@ export function UserForm({
         const newUser = response.data;
         
         if (newUser) {
-          toast({
-            title: '建立成功',
-            description: `使用者 ${newUser.name || newUser.username} 已成功建立`,
-          });
+          // 顯示建立成功訊息 (Sonner API)
+          toast.success(`使用者「${newUser.name || newUser.username}」已成功建立`);
           onSuccess?.(newUser);
         }
       } else {
@@ -296,19 +293,14 @@ export function UserForm({
         const updatedUser = response.data;
         
         if (updatedUser) {
-          toast({
-            title: '更新成功',
-            description: `使用者 ${updatedUser.name || updatedUser.username} 已成功更新`,
-          });
+          // 顯示更新成功訊息 (Sonner API)
+          toast.success(`使用者「${updatedUser.name || updatedUser.username}」已成功更新`);
           onSuccess?.(updatedUser);
         }
       }
     } catch (error) {
-      toast({
-        title: mode === 'create' ? '建立失敗' : '更新失敗',
-        description: '請檢查輸入資料並重試',
-        variant: 'destructive',
-      });
+      // 顯示錯誤訊息 (Sonner API)
+      toast.error(mode === 'create' ? '建立失敗：請檢查輸入資料並重試' : '更新失敗：請檢查輸入資料並重試');
     }
   };
 

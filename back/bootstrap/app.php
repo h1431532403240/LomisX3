@@ -19,11 +19,21 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withMiddleware(function (Middleware $middleware) {
         /**
-         * 為 API 路由群組添加 Sanctum middleware
-         * 確保前端請求能正確處理狀態維護
+         * 為 API 路由群組添加中間件
+         * CORS 中間件必須在 Sanctum 中間件之前執行
+         * 
+         * @version 5.1.0 (修復 CORS 順序問題)
          */
         $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \Illuminate\Http\Middleware\HandleCors::class,  // CORS 處理 (必須最先)
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,  // Sanctum SPA 狀態
+        ]);
+
+        /**
+         * 全域中間件，確保所有請求都經過 CORS 檢查
+         */
+        $middleware->append([
+            \Illuminate\Http\Middleware\HandleCors::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

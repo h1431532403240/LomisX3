@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -93,5 +94,28 @@ class Handler extends ExceptionHandler
         }
 
         return parent::render($request, $e);
+    }
+
+    /**
+     * 處理未認證的請求
+     * 重要：防止 API 請求被重導向到登入頁面
+     * 
+     * @param Request $request
+     * @param AuthenticationException $exception
+     * @return JsonResponse|Response
+     */
+    protected function unauthenticated($request, AuthenticationException $exception): JsonResponse|Response
+    {
+        // 如果是 API 請求或期望 JSON 回應，返回 JSON 格式錯誤
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => false,
+                'message' => '未授權存取，請先登入',
+                'error_code' => 'UNAUTHENTICATED'
+            ], 401);
+        }
+
+        // 否則重定向到登入頁面 (為 web 路由保留此行為)
+        return redirect()->guest(route('login'));
     }
 }

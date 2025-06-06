@@ -5,7 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SiteHeader } from '@/components/site-header';
 import { ThemeProvider } from '@/components/theme/theme-provider';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from '@/components/ui/sonner';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import { CategoriesPage } from '@/pages/categories';
 import { UsersPage as ActualUsersPage } from '@/pages/users';
@@ -19,6 +19,7 @@ import LoginPage from '@/pages/auth/LoginPage';
 import { ProtectedRoute } from '@/components/guards/ProtectedRoute';
 import { useAuthStore } from '@/stores/authStore';
 import { useEffect } from 'react';
+import { initializeCsrfToken } from '@/lib/openapi-client';
 import {
   SidebarInset,
   SidebarProvider,
@@ -58,11 +59,6 @@ interface ApiError {
   message?: string;
 }
 
-/**
- * 🚀 LomisX3 前端應用程式主入口
- * 整合 React Query、路由系統和主題系統
- */
-
 // React Query 客戶端配置
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,7 +90,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         <main className="flex flex-1 flex-col gap-4 p-4">
           {children}
         </main>
-        <Toaster />
       </SidebarInset>
     </SidebarProvider>
   );
@@ -102,14 +97,38 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
 /**
  * 應用程式根組件
- * 提供全域上下文和路由管理，整合認證流程
+ * 提供全域上下文和路由管理，整合認證流程和 CSRF 保護
+ * 
+ * @author LomisX3 開發團隊
+ * @version 4.1.0 (CSRF 初始化支援)
  */
 function App() {
   const initialize = useAuthStore((state) => state.initialize);
 
-  // 應用程式啟動時初始化認證狀態
+  // 應用程式啟動時初始化認證狀態和 CSRF 保護
   useEffect(() => {
-    initialize();
+    const initializeApp = async () => {
+      try {
+        console.log('🚀 開始 LomisX3 應用程式初始化...');
+        
+        // 1. 先初始化認證狀態 (異步操作)
+        console.log('1️⃣ 初始化認證狀態...');
+        await initialize();
+        
+        // 2. 等待一個 tick 確保狀態已更新
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        // 3. 初始化 CSRF token (Laravel Sanctum SPA 認證必需)
+        console.log('2️⃣ 初始化 CSRF token...');
+        await initializeCsrfToken();
+        
+        console.log('✅ LomisX3 應用程式初始化完成');
+      } catch (error) {
+        console.error('❌ 應用程式初始化失敗:', error);
+      }
+    };
+
+    initializeApp();
   }, [initialize]);
 
   return (
@@ -182,6 +201,11 @@ function App() {
             } />
           </Routes>
         </Router>
+        
+        {/* 全域 Toast 通知組件 - 支援所有頁面 */}
+        <Toaster />
+        
+
         
         {/* React Query DevTools（僅開發環境） */}
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}

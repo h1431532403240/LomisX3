@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Plus, AlertTriangle } from 'lucide-react';
+import { useFlowStateStore } from '@/stores/flowStateStore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +23,20 @@ type User = components['schemas']['User'];
  */
 export function UsersPage() {
   const navigate = useNavigate();
+  
+  // 高亮狀態管理
+  const [highlightedUserId, setHighlightedUserId] = useState<string | number | null>(null);
+  const consumeHighlight = useFlowStateStore((state) => state.consumeHighlight);
+
+  // 處理高亮狀態消費
+  useEffect(() => {
+    const userId = consumeHighlight('user');
+    if (userId) {
+      setHighlightedUserId(userId);
+      // 3秒後清除高亮狀態
+      setTimeout(() => setHighlightedUserId(null), 3000);
+    }
+  }, [consumeHighlight]);
 
   /**
    * 處理新增使用者
@@ -101,6 +116,7 @@ export function UsersPage() {
               showBatchActions={true}
               showSearch={true}
               showFilters={true}
+              highlightedUserId={highlightedUserId}
               onSelectionChange={handleSelectionChange}
               customActions={[
                 // 可以在這裡添加自訂操作，例如：

@@ -143,6 +143,8 @@ export interface DataTableProps<T = any> {
   searchPlaceholder?: string;
   /** 搜尋回調 */
   onSearch?: (value: string) => void;
+  /** 行樣式函數 */
+  rowClassName?: (record: T, index: number) => string;
 }
 
 /**
@@ -166,6 +168,7 @@ export function DataTable<T extends Record<string, any>>({
   searchable = false,
   searchPlaceholder = '搜尋...',
   onSearch,
+  rowClassName,
 }: DataTableProps<T>) {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [sortField, setSortField] = useState<string | null>(null);
@@ -312,13 +315,14 @@ export function DataTable<T extends Record<string, any>>({
         data.map((record, index) => {
           const key = getRowKey(record, index);
           const isSelected = selectedKeys.includes(key);
+          const customRowClass = rowClassName ? rowClassName(record, index) : '';
           
           return (
             <TableRow 
               key={key}
               className={`${isSelected ? 'bg-muted/50' : ''} ${
                 striped && index % 2 === 1 ? 'bg-muted/25' : ''
-              }`}
+              } ${customRowClass}`}
             >
               {rowSelection && (
                 <TableCell>

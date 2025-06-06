@@ -81,6 +81,8 @@ export interface UserTableProps {
   showSearch?: boolean;
   /** 是否顯示篩選器 */
   showFilters?: boolean;
+  /** 需要高亮的使用者 ID */
+  highlightedUserId?: string | number | null;
   /** 自訂操作項 */
   customActions?: TableAction<User>[];
   /** 選擇變更回調 */
@@ -136,6 +138,7 @@ export function UserTable({
   showBatchActions = true,
   showSearch = true,
   showFilters = true,
+  highlightedUserId = null,
   customActions = [],
   onSelectionChange,
 }: UserTableProps) {
@@ -585,6 +588,11 @@ export function UserTable({
         searchable={showSearch}
         searchPlaceholder="搜尋使用者名稱或 Email..."
         onSearch={handleSearch}
+        rowClassName={(record, index) => {
+          // 檢查是否為需要高亮的使用者
+          const isHighlighted = highlightedUserId && String(record.id) === String(highlightedUserId);
+          return isHighlighted ? 'bg-yellow-100 dark:bg-yellow-900/50 transition-all duration-500' : '';
+        }}
       />
 
       {/* 確認對話框 */}

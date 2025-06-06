@@ -216,7 +216,9 @@ class FlushProductCategoryCache implements ShouldQueue
      */
     public function uniqueId(): string
     {
-        $categoryIdHash = md5(json_encode(sort($this->categoryIds)));
+        $categoryIds = $this->categoryIds;
+        sort($categoryIds);
+        $categoryIdHash = md5(json_encode($categoryIds));
         return sprintf(
             'flush_product_category_cache:%s:%s',
             $categoryIdHash,

@@ -95,7 +95,7 @@ class ProductCategoryObserverTest extends TestCase
 
         // 驗證新分類有不同的slug
         $this->assertNotEquals('手機', $category->slug);
-        $this->assertStringContains('手機', $category->slug);
+        $this->assertStringContainsString('手機', $category->slug);
         
         // 驗證資料庫中有兩筆不同的記錄
         $this->assertDatabaseCount('product_categories', 2);

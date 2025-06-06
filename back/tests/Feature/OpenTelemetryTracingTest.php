@@ -123,7 +123,7 @@ class OpenTelemetryTracingTest extends TestCase
         });
         
         if ($httpSpan) {
-            $this->assertStringContains('HTTP GET', $httpSpan->getName());
+            $this->assertStringContainsString('HTTP GET', $httpSpan->getName());
             $this->assertEquals('laravel-http', $httpSpan->getInstrumentationScope()->getName());
         }
     }

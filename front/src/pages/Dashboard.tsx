@@ -2,7 +2,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, ShoppingCart, Star, ArrowUpRight, ArrowDownRight, BarChart3, Activity } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent,
+  type ChartConfig 
+} from '@/components/ui/chart';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 
 /**
  * Dashboard 統計卡片資料介面
@@ -188,12 +194,20 @@ export const Dashboard: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartContainer
+              config={{
+                營業額: {
+                  label: "營業額",
+                  color: "hsl(var(--chart-1))",
+                },
+              }}
+              className="h-[300px]"
+            >
               <AreaChart data={salesData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -206,24 +220,17 @@ export const Dashboard: React.FC = () => {
                   className="text-muted-foreground"
                   fontSize={12}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 'var(--radius)',
-                    color: 'hsl(var(--card-foreground))'
-                  }}
-                />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 <Area 
                   type="monotone" 
                   dataKey="營業額" 
-                  stroke="hsl(var(--primary))" 
+                  stroke="hsl(var(--chart-1))" 
                   fillOpacity={1} 
                   fill="url(#colorRevenue)"
                   strokeWidth={2}
                 />
               </AreaChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -239,7 +246,15 @@ export const Dashboard: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartContainer
+              config={{
+                銷量: {
+                  label: "銷量",
+                  color: "hsl(var(--chart-2))",
+                },
+              }}
+              className="h-[300px]"
+            >
               <BarChart data={productData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis 
@@ -252,21 +267,14 @@ export const Dashboard: React.FC = () => {
                   className="text-muted-foreground"
                   fontSize={12}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 'var(--radius)',
-                    color: 'hsl(var(--card-foreground))'
-                  }}
-                />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar 
                   dataKey="銷量" 
-                  fill="hsl(var(--primary))"
+                  fill="hsl(var(--chart-2))"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>

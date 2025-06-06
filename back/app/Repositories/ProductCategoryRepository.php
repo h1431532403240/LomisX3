@@ -71,6 +71,14 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface
     }
 
     /**
+     * 根據多個 ID 查找分類
+     */
+    public function findByIds(array $ids): Collection
+    {
+        return $this->model->whereIn('id', $ids)->get();
+    }
+
+    /**
      * 根據 ID 查找啟用的分類
      */
     public function findActiveById(int $id): ?ProductCategory

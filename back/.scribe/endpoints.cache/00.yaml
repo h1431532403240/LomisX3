@@ -73,7 +73,7 @@ endpoints:
     responses:
       -
         status: 200
-        content: '{"message":"API \u904b\u4f5c\u6b63\u5e38","timestamp":"2025-06-04T11:11:52.528906Z"}'
+        content: '{"message":"API \u904b\u4f5c\u6b63\u5e38","timestamp":"2025-06-05T13:05:08.186667Z"}'
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json

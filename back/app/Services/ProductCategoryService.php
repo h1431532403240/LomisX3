@@ -240,7 +240,6 @@ class ProductCategoryService
                         })->toArray()
                     ])
                     ->useLog('product_categories')
-                    ->withBatchUuid($batchUuid)
                     ->log('開始批次更新商品分類狀態');
 
                 $result = $this->repository->batchUpdateStatus($ids, $status);
@@ -262,7 +261,6 @@ class ProductCategoryService
                                     'status_label' => $status ? '啟用' : '停用',
                                 ])
                                 ->useLog('product_categories')
-                                ->withBatchUuid($batchUuid)
                                 ->event('status_changed')
                                 ->log('批次更新狀態');
                         }
@@ -278,7 +276,6 @@ class ProductCategoryService
                             'new_status' => $status,
                         ])
                         ->useLog('product_categories')
-                        ->withBatchUuid($batchUuid)
                         ->log("批次狀態更新完成，成功更新 {$result} 個分類");
                 }
 
@@ -359,7 +356,6 @@ class ProductCategoryService
                         })->toArray()
                     ])
                     ->useLog('product_categories')
-                    ->withBatchUuid($batchUuid)
                     ->log('開始批次刪除商品分類');
 
                 $result = $this->repository->batchDelete($ids);
@@ -378,7 +374,6 @@ class ProductCategoryService
                                 'deletion_reason' => 'batch_operation',
                             ])
                             ->useLog('product_categories')
-                            ->withBatchUuid($batchUuid)
                             ->event('deleted')
                             ->log('批次刪除操作');
                     }
@@ -392,7 +387,6 @@ class ProductCategoryService
                             'success_count' => $result,
                         ])
                         ->useLog('product_categories')
-                        ->withBatchUuid($batchUuid)
                         ->log("批次刪除完成，成功刪除 {$result} 個分類");
                 }
 

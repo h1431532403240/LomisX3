@@ -42,7 +42,7 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/",
+      url: "/dashboard",
       icon: LayoutDashboardIcon,
     },
     {
@@ -53,18 +53,22 @@ const data = {
         {
           title: "商品列表",
           url: "/products",
+          permission: "products.read",
         },
         {
           title: "新增商品",
           url: "/products/new",
+          permission: "products.create",
         },
         {
           title: "商品分類",
           url: "/products/categories",
+          permission: "categories.read",
         },
         {
           title: "庫存管理",
           url: "/products/inventory",
+          permission: "products.inventory",
         },
       ],
     },
@@ -76,18 +80,22 @@ const data = {
         {
           title: "訂單列表",
           url: "/orders",
+          permission: "orders.read",
         },
         {
           title: "待處理訂單",
           url: "/orders/pending",
+          permission: "orders.read",
         },
         {
           title: "已完成訂單",
           url: "/orders/completed",
+          permission: "orders.read",
         },
         {
           title: "退款申請",
           url: "/orders/refunds",
+          permission: "orders.refunds",
         },
       ],
     },
@@ -99,18 +107,22 @@ const data = {
         {
           title: "使用者列表",
           url: "/users",
+          permission: "users.read",
         },
         {
           title: "新增使用者",
-          url: "/users/new",
+          url: "/users/create",
+          permission: "users.create",
         },
         {
           title: "權限管理",
           url: "/users/permissions",
+          permission: "users.permissions",
         },
         {
           title: "角色管理",
-          url: "/users/roles",
+          url: "/roles",
+          permission: "roles.read",
         },
       ],
     },

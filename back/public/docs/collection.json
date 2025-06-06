@@ -10,7 +10,7 @@
     ],
     "info": {
         "name": "LomisX3 \u5546\u54c1\u5206\u985e API \u6587\u6a94",
-        "_postman_id": "09c34ff2-359f-4744-9371-6c79f10cd5e6",
+        "_postman_id": "6ebe8e23-27c8-4bb7-b820-db8826ce2c62",
         "description": "\u5546\u54c1\u5206\u985e\u6a21\u7d44\u7684\u5b8c\u6574 RESTful API \u6587\u6a94\uff0c\u5305\u542b\u5206\u9801\u3001\u7be9\u9078\u3001\u6a39\u72c0\u7d50\u69cb\u7b49\u529f\u80fd",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json"
     },
@@ -572,7 +572,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"ids\":[17],\"status\":false}"
+                            "raw": "{\"ids\":[17],\"status\":true}"
                         },
                         "description": "",
                         "auth": {
@@ -769,7 +769,1071 @@
                                 }
                             ],
                             "code": 200,
-                            "body": "{\"message\":\"API \\u904b\\u4f5c\\u6b63\\u5e38\",\"timestamp\":\"2025-06-04T11:11:52.528906Z\"}",
+                            "body": "{\"message\":\"API \\u904b\\u4f5c\\u6b63\\u5e38\",\"timestamp\":\"2025-06-05T13:05:08.186667Z\"}",
+                            "name": ""
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "\u4f7f\u7528\u8005\u7ba1\u7406",
+            "description": "",
+            "item": [
+                {
+                    "name": "\u4f7f\u7528\u8005\u7d71\u8a08\u8cc7\u6599",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users\/statistics",
+                            "query": [
+                                {
+                                    "key": "store_id",
+                                    "value": "1",
+                                    "description": "\u7279\u5b9a\u9580\u5e02\u7d71\u8a08",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "period",
+                                    "value": "monthly",
+                                    "description": "\u7d71\u8a08\u671f\u9593\uff08daily\/weekly\/monthly\/yearly\uff09",
+                                    "disabled": false
+                                }
+                            ],
+                            "raw": "{{baseUrl}}\/api\/users\/statistics?store_id=1&period=monthly"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u53d6\u5f97\u4f7f\u7528\u8005\u76f8\u95dc\u7684\u7d71\u8a08\u8cc7\u8a0a\uff0c\u5305\u542b\u7e3d\u6578\u3001\u72c0\u614b\u5206\u5e03\u3001\u89d2\u8272\u5206\u5e03\u7b49",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u53d6\u5f97\u7d71\u8a08\u8cc7\u6599\u6210\u529f\",\n  \"data\": {\n    \"overview\": {\n      \"total_users\": 150,\n      \"active_users\": 120,\n      \"inactive_users\": 20,\n      \"locked_users\": 5,\n      \"pending_users\": 5\n    },\n    \"by_store\": [\n      {\n        \"store_id\": 1,\n        \"store_name\": \"\u7e3d\u5e97\",\n        \"user_count\": 80\n      },\n      {\n        \"store_id\": 2,\n        \"store_name\": \"\u5206\u5e97A\",\n        \"user_count\": 45\n      }\n    ],\n    \"by_role\": [\n      {\n        \"role_name\": \"staff\",\n        \"role_display_name\": \"\u54e1\u5de5\",\n        \"user_count\": 100\n      },\n      {\n        \"role_name\": \"manager\",\n        \"role_display_name\": \"\u7ba1\u7406\u54e1\",\n        \"user_count\": 30\n      }\n    ],\n    \"trends\": {\n      \"new_users_this_month\": 15,\n      \"new_users_last_month\": 12,\n      \"growth_rate\": 25.0\n    },\n    \"security\": {\n      \"users_with_2fa\": 75,\n      \"users_without_2fa\": 75,\n      \"unverified_emails\": 25\n    }\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u6b0a\u9650\u4e0d\u8db3\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u6279\u6b21\u66f4\u65b0\u4f7f\u7528\u8005\u72c0\u614b",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users\/batch-status",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/users\/batch-status"
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"user_ids\":[1,2,3],\"status\":null,\"reason\":\"mqeopfuudtdsufvyvddqa\",\"send_notification\":true,\"force\":false}"
+                        },
+                        "description": "\u6279\u6b21\u555f\u7528\u6216\u505c\u7528\u591a\u500b\u4f7f\u7528\u8005\u5e33\u865f",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u6279\u6b21\u66f4\u65b0\u72c0\u614b\u6210\u529f\",\n  \"data\": {\n    \"affected_count\": 3\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u6b0a\u9650\u4e0d\u8db3\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u9a57\u8b49\u5931\u6557\",\n  \"errors\": {\n    \"user_ids\": [\"\u81f3\u5c11\u9078\u64c7\u4e00\u500b\u4f7f\u7528\u8005\"],\n    \"status\": [\"\u72c0\u614b\u503c\u7121\u6548\"]\n  }\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u53d6\u5f97\u4f7f\u7528\u8005\u5217\u8868",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "\u9801\u78bc",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "description": "\u6bcf\u9801\u9805\u76ee\u6578\uff081-100\uff09",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "John",
+                                    "description": "\u641c\u5c0b\u95dc\u9375\u5b57\uff08\u652f\u63f4\u540d\u7a31\u3001\u4f7f\u7528\u8005\u540d\u7a31\u3001\u4fe1\u7bb1\uff09",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "keyword",
+                                    "value": "admin",
+                                    "description": "\u95dc\u9375\u5b57\u641c\u5c0b",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "\u4f7f\u7528\u8005\u72c0\u614b\u7be9\u9078",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "store_id",
+                                    "value": "1",
+                                    "description": "\u9580\u5e02ID\u7be9\u9078",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "role",
+                                    "value": "staff",
+                                    "description": "\u89d2\u8272\u7be9\u9078",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "has_2fa",
+                                    "value": "1",
+                                    "description": "\u662f\u5426\u555f\u7528\u96d9\u56e0\u5b50\u9a57\u8b49",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "email_verified",
+                                    "value": "1",
+                                    "description": "\u4fe1\u7bb1\u662f\u5426\u5df2\u9a57\u8b49",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "created_from",
+                                    "value": "2025-01-01",
+                                    "description": "\u5efa\u7acb\u65e5\u671f\u8d77\u59cb",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "created_to",
+                                    "value": "2025-12-31",
+                                    "description": "\u5efa\u7acb\u65e5\u671f\u7d50\u675f",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "last_login_from",
+                                    "value": "2025-01-01",
+                                    "description": "\u6700\u5f8c\u767b\u5165\u8d77\u59cb\u65e5\u671f",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "last_login_to",
+                                    "value": "2025-12-31",
+                                    "description": "\u6700\u5f8c\u767b\u5165\u7d50\u675f\u65e5\u671f",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "sort",
+                                    "value": "",
+                                    "description": "\u6392\u5e8f\u6b04\u4f4d",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "order",
+                                    "value": "",
+                                    "description": "\u6392\u5e8f\u65b9\u5411\uff08asc\/desc\uff09",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "include",
+                                    "value": "roles%2Cstore",
+                                    "description": "\u5305\u542b\u95dc\u806f\u8cc7\u6599",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "with_count",
+                                    "value": "1",
+                                    "description": "\u662f\u5426\u5305\u542b\u7d71\u8a08\u8a08\u6578",
+                                    "disabled": false
+                                }
+                            ],
+                            "raw": "{{baseUrl}}\/api\/users?page=1&per_page=20&search=John&keyword=admin&status=&store_id=1&role=staff&has_2fa=1&email_verified=1&created_from=2025-01-01&created_to=2025-12-31&last_login_from=2025-01-01&last_login_to=2025-12-31&sort=&order=&include=roles%2Cstore&with_count=1"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"page\":73,\"per_page\":13,\"cursor\":\"consequatur\",\"search\":\"mqeopfuudtdsufvyvddqa\",\"keyword\":\"mniihfqcoynlazghdtqtq\",\"status\":\"locked\",\"store_id\":17,\"role\":\"consequatur\",\"has_2fa\":false,\"email_verified\":true,\"created_from\":\"2025-06-05T13:05:08\",\"created_to\":\"2106-07-05\",\"last_login_from\":\"2025-06-05T13:05:08\",\"last_login_to\":\"2106-07-05\",\"sort\":\"email\",\"order\":\"desc\",\"include\":\"consequatur\",\"with_count\":true}"
+                        },
+                        "description": "\u652f\u63f4\u5206\u9801\u3001\u641c\u5c0b\u3001\u7be9\u9078\u3001\u6392\u5e8f\u7b49\u529f\u80fd\u3002\u5177\u5099\u9580\u5e02\u9694\u96e2\u6a5f\u5236\uff0c\u975e\u7ba1\u7406\u54e1\u50c5\u80fd\u67e5\u770b\u540c\u9580\u5e02\u4f7f\u7528\u8005\u3002",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u53d6\u5f97\u4f7f\u7528\u8005\u5217\u8868\u6210\u529f\",\n  \"data\": {\n    \"data\": [\n      {\n        \"id\": 1,\n        \"username\": \"admin\",\n        \"name\": \"\u7ba1\u7406\u54e1\",\n        \"email\": \"admin@lomis.com\",\n        \"store_id\": 1,\n        \"phone\": \"0912345678\",\n        \"status\": {\n          \"value\": \"active\",\n          \"label\": \"\u555f\u7528\",\n          \"color\": \"success\",\n          \"is_active\": true\n        },\n        \"email_verified_at\": \"2025-01-01T00:00:00.000000Z\",\n        \"is_email_verified\": true,\n        \"two_factor\": {\n          \"enabled\": true,\n          \"confirmed_at\": \"2025-01-01T00:00:00.000000Z\"\n        },\n        \"login_info\": {\n          \"last_login_at\": \"2025-01-07T10:00:00.000000Z\",\n          \"is_locked\": false,\n          \"locked_until\": null\n        },\n        \"roles\": [\n          {\n            \"id\": 1,\n            \"name\": \"admin\",\n            \"display_name\": \"\u7ba1\u7406\u54e1\",\n            \"level\": 100,\n            \"color\": \"primary\"\n          }\n        ],\n        \"avatar\": {\n          \"url\": \"https:\/\/example.com\/avatars\/1.jpg\",\n          \"thumbnail_url\": \"https:\/\/example.com\/avatars\/1-thumb.jpg\",\n          \"has_avatar\": true\n        },\n        \"audit\": {\n          \"created_at\": \"2025-01-01T00:00:00.000000Z\",\n          \"updated_at\": \"2025-01-07T10:00:00.000000Z\"\n        }\n      }\n    ],\n    \"links\": {\n      \"first\": \"http:\/\/localhost\/api\/users?page=1\",\n      \"last\": \"http:\/\/localhost\/api\/users?page=10\",\n      \"prev\": null,\n      \"next\": \"http:\/\/localhost\/api\/users?page=2\"\n    },\n    \"meta\": {\n      \"current_page\": 1,\n      \"from\": 1,\n      \"last_page\": 10,\n      \"per_page\": 20,\n      \"to\": 20,\n      \"total\": 200\n    }\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u6b0a\u9650\u4e0d\u8db3\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u9a57\u8b49\u5931\u6557\",\n  \"errors\": {\n    \"per_page\": [\"\u6bcf\u9801\u6700\u591a\u53ea\u80fd\u986f\u793a 100 \u7b46\u8cc7\u6599\"]\n  }\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u5efa\u7acb\u4f7f\u7528\u8005",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/users"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"username\":\"john_doe\",\"name\":\"\u7d04\u7ff0\",\"email\":\"john@example.com\",\"password\":\"SecurePass123!\",\"password_confirmation\":\"SecurePass123!\",\"store_id\":1,\"phone\":\"0912345678\",\"roles\":[\"staff\",\"manager\"],\"permissions\":[\"consequatur\"],\"enable_2fa\":true,\"send_welcome_email\":true}"
+                        },
+                        "description": "\u5efa\u7acb\u65b0\u7684\u4f7f\u7528\u8005\u5e33\u865f\u3002\u652f\u63f4\u81ea\u52d5\u5bc6\u78bc\u751f\u6210\u3001\u89d2\u8272\u6307\u6d3e\u3001\u9580\u5e02\u9694\u96e2\u7b49\u529f\u80fd\u3002",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u5efa\u7acb\u4f7f\u7528\u8005\u6210\u529f\",\n  \"data\": {\n    \"id\": 25,\n    \"username\": \"john_doe\",\n    \"name\": \"\u7d04\u7ff0\",\n    \"email\": \"john@example.com\",\n    \"phone\": \"0912345678\",\n    \"store_id\": 1,\n    \"status\": {\n      \"value\": \"active\",\n      \"label\": \"\u555f\u7528\",\n      \"color\": \"success\",\n      \"is_active\": true\n    },\n    \"email_verified_at\": null,\n    \"is_email_verified\": false,\n    \"two_factor\": {\n      \"enabled\": false,\n      \"confirmed_at\": null\n    },\n    \"roles\": [\n      {\n        \"id\": 3,\n        \"name\": \"staff\",\n        \"display_name\": \"\u54e1\u5de5\",\n        \"level\": 40,\n        \"color\": \"info\"\n      }\n    ],\n    \"avatar\": {\n      \"url\": null,\n      \"thumbnail_url\": null,\n      \"has_avatar\": false\n    },\n    \"audit\": {\n      \"created_at\": \"2025-01-07T10:30:00.000000Z\",\n      \"updated_at\": \"2025-01-07T10:30:00.000000Z\"\n    }\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 400,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u5efa\u7acb\u4f7f\u7528\u8005\u5931\u6557\uff1a\u89d2\u8272\u6b0a\u9650\u4e0d\u8db3\",\n  \"error_code\": \"USER_CREATE_FAILED\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u9a57\u8b49\u5931\u6557\",\n  \"errors\": {\n    \"username\": [\"\u4f7f\u7528\u8005\u540d\u7a31\u5df2\u88ab\u4f7f\u7528\"],\n    \"email\": [\"\u96fb\u5b50\u4fe1\u7bb1\u5df2\u88ab\u4f7f\u7528\"],\n    \"password\": [\"\u5bc6\u78bc\u5f37\u5ea6\u4e0d\u8db3\"]\n  }\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u986f\u793a\u4f7f\u7528\u8005\u8a73\u60c5",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users\/:id",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/users\/:id",
+                            "variable": [
+                                {
+                                    "id": "id",
+                                    "key": "id",
+                                    "value": "17",
+                                    "description": "The ID of the user."
+                                },
+                                {
+                                    "id": "user",
+                                    "key": "user",
+                                    "value": "1",
+                                    "description": "\u4f7f\u7528\u8005ID"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u53d6\u5f97\u55ae\u4e00\u4f7f\u7528\u8005\u7684\u8a73\u7d30\u8cc7\u8a0a\uff0c\u5305\u542b\u89d2\u8272\u3001\u6b0a\u9650\u3001\u9580\u5e02\u3001\u982d\u50cf\u3001\u767b\u5165\u6b77\u53f2\u7b49\u5b8c\u6574\u8cc7\u6599",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u53d6\u5f97\u4f7f\u7528\u8005\u8a73\u60c5\u6210\u529f\",\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"admin\",\n    \"name\": \"\u7ba1\u7406\u54e1\",\n    \"email\": \"admin@lomis.com\",\n    \"store_id\": 1,\n    \"store\": {\n      \"id\": 1,\n      \"name\": \"\u7e3d\u5e97\",\n      \"code\": \"STORE001\"\n    },\n    \"phone\": \"0912345678\",\n    \"status\": {\n      \"value\": \"active\",\n      \"label\": \"\u555f\u7528\",\n      \"color\": \"success\",\n      \"is_active\": true\n    },\n    \"email_verified_at\": \"2025-01-01T00:00:00.000000Z\",\n    \"is_email_verified\": true,\n    \"two_factor\": {\n      \"enabled\": true,\n      \"confirmed_at\": \"2025-01-01T00:00:00.000000Z\"\n    },\n    \"login_info\": {\n      \"last_login_at\": \"2025-01-07T10:00:00.000000Z\",\n      \"last_login_ip\": \"192.168.1.100\",\n      \"login_attempts\": 0,\n      \"is_locked\": false,\n      \"locked_until\": null\n    },\n    \"roles\": [\n      {\n        \"id\": 1,\n        \"name\": \"admin\",\n        \"display_name\": \"\u7ba1\u7406\u54e1\",\n        \"level\": 100,\n        \"color\": \"primary\"\n      }\n    ],\n    \"permissions\": [\"users.view\", \"users.create\", \"users.update\"],\n    \"avatar\": {\n      \"url\": \"https:\/\/example.com\/avatars\/1.jpg\",\n      \"thumbnail_url\": \"https:\/\/example.com\/avatars\/1-thumb.jpg\",\n      \"has_avatar\": true\n    },\n    \"statistics\": {\n      \"media_count\": 5,\n      \"tokens_count\": 3,\n      \"activities_count\": 150,\n      \"created_users_count\": 25\n    },\n    \"audit\": {\n      \"created_at\": \"2025-01-01T00:00:00.000000Z\",\n      \"updated_at\": \"2025-01-07T10:00:00.000000Z\",\n      \"created_by\": {\n        \"id\": 1,\n        \"name\": \"\u7cfb\u7d71\u7ba1\u7406\u54e1\"\n      }\n    },\n    \"actions\": {\n      \"can_update\": true,\n      \"can_delete\": false,\n      \"can_reset_password\": true,\n      \"can_toggle_2fa\": true\n    }\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u6b0a\u9650\u4e0d\u8db3\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u4f7f\u7528\u8005\u4e0d\u5b58\u5728\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u522a\u9664\u4f7f\u7528\u8005",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users\/:id",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/users\/:id",
+                            "variable": [
+                                {
+                                    "id": "id",
+                                    "key": "id",
+                                    "value": "17",
+                                    "description": "The ID of the user."
+                                },
+                                {
+                                    "id": "user",
+                                    "key": "user",
+                                    "value": "1",
+                                    "description": "\u4f7f\u7528\u8005ID"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u8edf\u522a\u9664\u4f7f\u7528\u8005\u5e33\u865f\u3002\u522a\u9664\u5f8c\u4f7f\u7528\u8005\u7121\u6cd5\u767b\u5165\uff0c\u4f46\u8cc7\u6599\u4fdd\u7559\u4ee5\u4f9b\u5be9\u8a08\u3002",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u522a\u9664\u4f7f\u7528\u8005\u6210\u529f\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u6b0a\u9650\u4e0d\u8db3\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u4f7f\u7528\u8005\u4e0d\u5b58\u5728\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u7121\u6cd5\u522a\u9664\u81ea\u5df1\u7684\u5e33\u865f\",\n  \"error_code\": \"USER_DELETE_FAILED\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u91cd\u8a2d\u5bc6\u78bc",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users\/:user_id\/reset-password",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/users\/:user_id\/reset-password",
+                            "variable": [
+                                {
+                                    "id": "user_id",
+                                    "key": "user_id",
+                                    "value": "17",
+                                    "description": "The ID of the user."
+                                },
+                                {
+                                    "id": "user",
+                                    "key": "user",
+                                    "value": "1",
+                                    "description": "\u4f7f\u7528\u8005ID"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"password\":\"NewPassword123!\",\"password_confirmation\":\"NewPassword123!\",\"auto_generate\":true,\"send_email\":true,\"force_change\":true}"
+                        },
+                        "description": "\u7ba1\u7406\u54e1\u91cd\u8a2d\u4f7f\u7528\u8005\u5bc6\u78bc\uff0c\u53ef\u9078\u64c7\u81ea\u52d5\u751f\u6210\u6216\u6307\u5b9a\u5bc6\u78bc",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u5bc6\u78bc\u91cd\u8a2d\u6210\u529f\",\n  \"data\": {\n    \"password_sent_to_email\": true,\n    \"temporary_password\": \"TempPass123!\",\n    \"force_change_required\": true\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u6b0a\u9650\u4e0d\u8db3\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u4f7f\u7528\u8005\u4e0d\u5b58\u5728\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u4e0d\u80fd\u91cd\u8a2d\u81ea\u5df1\u7684\u5bc6\u78bc\",\n  \"error_code\": \"PASSWORD_RESET_FAILED\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u4f7f\u7528\u8005\u6d3b\u52d5\u8a18\u9304",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users\/:user_id\/activities",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "\u9801\u78bc",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "description": "\u6bcf\u9801\u9805\u76ee\u6578",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "log_name",
+                                    "value": "user_login",
+                                    "description": "\u6d3b\u52d5\u985e\u578b\u7be9\u9078",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "from_date",
+                                    "value": "2025-01-01",
+                                    "description": "\u958b\u59cb\u65e5\u671f",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "to_date",
+                                    "value": "2025-01-31",
+                                    "description": "\u7d50\u675f\u65e5\u671f",
+                                    "disabled": false
+                                }
+                            ],
+                            "raw": "{{baseUrl}}\/api\/users\/:user_id\/activities?page=1&per_page=20&log_name=user_login&from_date=2025-01-01&to_date=2025-01-31",
+                            "variable": [
+                                {
+                                    "id": "user_id",
+                                    "key": "user_id",
+                                    "value": "17",
+                                    "description": "The ID of the user."
+                                },
+                                {
+                                    "id": "user",
+                                    "key": "user",
+                                    "value": "1",
+                                    "description": "\u4f7f\u7528\u8005ID"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u53d6\u5f97\u4f7f\u7528\u8005\u7684\u64cd\u4f5c\u6d3b\u52d5\u8a18\u9304\uff0c\u652f\u63f4\u5206\u9801\u548c\u7be9\u9078",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u53d6\u5f97\u6d3b\u52d5\u8a18\u9304\u6210\u529f\",\n  \"data\": {\n    \"data\": [\n      {\n        \"id\": 1,\n        \"log_name\": \"user_login\",\n        \"description\": \"\u4f7f\u7528\u8005\u767b\u5165\u6210\u529f\",\n        \"properties\": {\n          \"ip_address\": \"192.168.1.100\",\n          \"user_agent\": \"Mozilla\/5.0...\",\n          \"device_name\": \"Chrome on Windows\"\n        },\n        \"created_at\": \"2025-01-07T10:00:00.000000Z\"\n      },\n      {\n        \"id\": 2,\n        \"log_name\": \"user_update\",\n        \"description\": \"\u4f7f\u7528\u8005\u8cc7\u6599\u66f4\u65b0\",\n        \"properties\": {\n          \"updated_fields\": [\"name\", \"phone\"],\n          \"old_values\": {\"name\": \"\u820a\u540d\u7a31\"},\n          \"new_values\": {\"name\": \"\u65b0\u540d\u7a31\"}\n        },\n        \"created_at\": \"2025-01-07T09:30:00.000000Z\"\n      }\n    ],\n    \"links\": {\n      \"first\": \"http:\/\/localhost\/api\/users\/1\/activities?page=1\",\n      \"last\": \"http:\/\/localhost\/api\/users\/1\/activities?page=5\",\n      \"prev\": null,\n      \"next\": \"http:\/\/localhost\/api\/users\/1\/activities?page=2\"\n    },\n    \"meta\": {\n      \"current_page\": 1,\n      \"from\": 1,\n      \"last_page\": 5,\n      \"per_page\": 20,\n      \"to\": 20,\n      \"total\": 100\n    }\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u6b0a\u9650\u4e0d\u8db3\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u4f7f\u7528\u8005\u4e0d\u5b58\u5728\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u522a\u9664\u4f7f\u7528\u8005\u982d\u50cf",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/users\/:user_id\/avatar",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/users\/:user_id\/avatar",
+                            "variable": [
+                                {
+                                    "id": "user_id",
+                                    "key": "user_id",
+                                    "value": "17",
+                                    "description": "The ID of the user."
+                                },
+                                {
+                                    "id": "user",
+                                    "key": "user",
+                                    "value": "1",
+                                    "description": "\u4f7f\u7528\u8005ID"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u79fb\u9664\u4f7f\u7528\u8005\u7684\u982d\u50cf\u5716\u7247",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u982d\u50cf\u522a\u9664\u6210\u529f\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u6b0a\u9650\u4e0d\u8db3\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u4f7f\u7528\u8005\u4e0d\u5b58\u5728\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u4f7f\u7528\u8005\u6c92\u6709\u8a2d\u5b9a\u982d\u50cf\",\n  \"error_code\": \"AVATAR_DELETE_FAILED\"\n}",
+                            "name": ""
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "\u8a8d\u8b49\u7ba1\u7406",
+            "description": "",
+            "item": [
+                {
+                    "name": "\u4f7f\u7528\u8005\u767b\u5165",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/auth\/login",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/auth\/login"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"login\":\"admin@lomis.com\",\"password\":\"SecurePass123!\",\"remember\":true,\"two_factor_code\":\"qcoynl\",\"recovery_code\":\"azghdtqtqx\",\"device_name\":\"Chrome on Windows\",\"store_code\":\"STORE001\"}"
+                        },
+                        "description": "\u8655\u7406\u4f7f\u7528\u8005\u767b\u5165\u9a57\u8b49\uff0c\u652f\u63f4\u4f7f\u7528\u8005\u540d\u7a31\u6216\u4fe1\u7bb1\u767b\u5165\u3002\u5177\u5099\u7bc0\u6d41\u4fdd\u8b77\u3001\u9580\u5e02\u9694\u96e2\u30012FA\u6aa2\u67e5\u7b49\u5b89\u5168\u6a5f\u5236\u3002",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u767b\u5165\u6210\u529f\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"username\": \"admin\",\n      \"name\": \"\u7ba1\u7406\u54e1\",\n      \"email\": \"admin@lomis.com\",\n      \"store_id\": 1,\n      \"status\": {\n        \"value\": \"active\",\n        \"label\": \"\u555f\u7528\",\n        \"color\": \"success\",\n        \"is_active\": true\n      },\n      \"roles\": [\n        {\n          \"id\": 1,\n          \"name\": \"admin\",\n          \"display_name\": \"\u7ba1\u7406\u54e1\",\n          \"level\": 100,\n          \"color\": \"primary\"\n        }\n      ],\n      \"avatar\": {\n        \"url\": \"https:\/\/example.com\/avatars\/1.jpg\",\n        \"thumbnail_url\": \"https:\/\/example.com\/avatars\/1-thumb.jpg\",\n        \"has_avatar\": true\n      }\n    },\n    \"token\": \"1|abcdef123456...\",\n    \"expires_at\": \"2025-01-08T10:00:00.000000Z\",\n    \"permissions\": [\"users.view\", \"users.create\", \"users.update\"],\n    \"store\": {\n      \"id\": 1,\n      \"name\": \"\u7e3d\u5e97\"\n    }\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u767b\u5165\u5931\u6557\uff1a\u5e33\u865f\u6216\u5bc6\u78bc\u932f\u8aa4\",\n  \"error_code\": \"INVALID_CREDENTIALS\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 423,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u5e33\u865f\u5df2\u88ab\u9396\u5b9a\",\n  \"error_code\": \"ACCOUNT_LOCKED\",\n  \"locked_until\": \"2025-01-07T11:00:00.000000Z\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 428,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u9700\u8981\u96d9\u56e0\u5b50\u9a57\u8b49\",\n  \"requires_2fa\": true,\n  \"user_id\": 1,\n  \"error_code\": \"TWO_FACTOR_REQUIRED\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 429,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u767b\u5165\u5617\u8a66\u904e\u65bc\u983b\u7e41\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66\",\n  \"error_code\": \"TOO_MANY_ATTEMPTS\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "2FA \u6311\u6230\u9a57\u8b49",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/auth\/2fa\/challenge",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/auth\/2fa\/challenge"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"user_id\":1,\"code\":\"123456\",\"recovery_code\":\"abc123defg\",\"device_name\":\"Chrome on Windows\"}"
+                        },
+                        "description": "\u8655\u7406\u96d9\u56e0\u5b50\u9a57\u8b49\u4ee3\u78bc\u9a57\u8b49\uff0c\u652f\u63f4 TOTP \u4ee3\u78bc\u548c\u6062\u5fa9\u4ee3\u78bc\u5169\u7a2e\u9a57\u8b49\u65b9\u5f0f",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u96d9\u56e0\u5b50\u9a57\u8b49\u6210\u529f\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"username\": \"admin\",\n      \"name\": \"\u7ba1\u7406\u54e1\",\n      \"email\": \"admin@lomis.com\",\n      \"store_id\": 1,\n      \"roles\": [\n        {\n          \"id\": 1,\n          \"name\": \"admin\",\n          \"display_name\": \"\u7ba1\u7406\u54e1\"\n        }\n      ]\n    },\n    \"token\": \"2|xyz789...\",\n    \"expires_at\": \"2025-01-08T10:00:00.000000Z\",\n    \"permissions\": [\"users.view\", \"users.create\"],\n    \"store\": {\n      \"id\": 1,\n      \"name\": \"\u7e3d\u5e97\"\n    }\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u4f7f\u7528\u8005\u4e0d\u5b58\u5728\",\n  \"error_code\": \"USER_NOT_FOUND\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u9a57\u8b49\u4ee3\u78bc\u932f\u8aa4\",\n  \"error_code\": \"INVALID_2FA_CODE\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 429,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u9a57\u8b49\u5617\u8a66\u904e\u65bc\u983b\u7e41\",\n  \"error_code\": \"TOO_MANY_ATTEMPTS\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u53d6\u5f97\u7576\u524d\u4f7f\u7528\u8005\u8cc7\u8a0a",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/auth\/me",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/auth\/me"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u53d6\u5f97\u7576\u524d\u8a8d\u8b49\u4f7f\u7528\u8005\u7684\u8a73\u7d30\u8cc7\u8a0a",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u53d6\u5f97\u4f7f\u7528\u8005\u8cc7\u8a0a\u6210\u529f\",\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"admin\",\n    \"name\": \"\u7ba1\u7406\u54e1\",\n    \"email\": \"admin@lomis.com\",\n    \"store_id\": 1,\n    \"store\": {\n      \"id\": 1,\n      \"name\": \"\u7e3d\u5e97\",\n      \"code\": \"STORE001\"\n    },\n    \"phone\": \"0912345678\",\n    \"status\": {\n      \"value\": \"active\",\n      \"label\": \"\u555f\u7528\",\n      \"color\": \"success\",\n      \"is_active\": true\n    },\n    \"email_verified_at\": \"2025-01-01T00:00:00.000000Z\",\n    \"is_email_verified\": true,\n    \"two_factor\": {\n      \"enabled\": true,\n      \"confirmed_at\": \"2025-01-01T00:00:00.000000Z\"\n    },\n    \"login_info\": {\n      \"last_login_at\": \"2025-01-07T10:00:00.000000Z\",\n      \"last_login_ip\": \"192.168.1.100\"\n    },\n    \"roles\": [\n      {\n        \"id\": 1,\n        \"name\": \"admin\",\n        \"display_name\": \"\u7ba1\u7406\u54e1\",\n        \"level\": 100,\n        \"color\": \"primary\"\n      }\n    ],\n    \"permissions\": [\"users.view\", \"users.create\", \"users.update\"],\n    \"avatar\": {\n      \"url\": \"https:\/\/example.com\/avatars\/1.jpg\",\n      \"thumbnail_url\": \"https:\/\/example.com\/avatars\/1-thumb.jpg\",\n      \"has_avatar\": true\n    }\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u672a\u6388\u6b0a\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u4f7f\u7528\u8005\u767b\u51fa",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/auth\/logout",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/auth\/logout"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u767b\u51fa\u7576\u524d\u4f7f\u7528\u8005\uff0c\u64a4\u92b7\u7576\u524d\u7684 API Token",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u767b\u51fa\u6210\u529f\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u672a\u6388\u6b0a\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u5237\u65b0 Token",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/auth\/refresh",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/auth\/refresh"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u5237\u65b0\u7576\u524d\u7684 API Token\uff0c\u5ef6\u9577\u6709\u6548\u671f\u9650",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Token \u5237\u65b0\u6210\u529f\",\n  \"data\": {\n    \"token\": \"3|newtoken123...\",\n    \"expires_at\": \"2025-01-08T10:00:00.000000Z\"\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u672a\u6388\u6b0a\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u555f\u7528\u96d9\u56e0\u5b50\u9a57\u8b49",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/auth\/2fa\/enable",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/auth\/2fa\/enable"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "\u70ba\u4f7f\u7528\u8005\u5e33\u865f\u555f\u75282FA\u529f\u80fd\uff0c\u751f\u6210QR Code\u4f9b\u9a57\u8b49\u5668\u61c9\u7528\u7a0b\u5f0f\u6383\u63cf",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"2FA \u5df2\u555f\u7528\uff0c\u8acb\u6383\u63cf QR Code\",\n  \"data\": {\n    \"qr_code\": \"data:image\/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+...\",\n    \"secret\": \"ABCDEFGHIJKLMNOP\",\n    \"recovery_codes\": [\n      \"abc123defg\",\n      \"hij456klmn\",\n      \"opq789rstu\"\n    ],\n    \"manual_entry_key\": \"ABCD EFGH IJKL MNOP\"\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u672a\u6388\u6b0a\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u96d9\u56e0\u5b50\u9a57\u8b49\u5df2\u555f\u7528\",\n  \"error_code\": \"2FA_ALREADY_ENABLED\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u78ba\u8a8d\u96d9\u56e0\u5b50\u9a57\u8b49",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/auth\/2fa\/confirm",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/auth\/2fa\/confirm"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"code\":\"123456\"}"
+                        },
+                        "description": "\u4f7f\u7528\u9a57\u8b49\u5668\u61c9\u7528\u7a0b\u5f0f\u7522\u751f\u7684\u4ee3\u78bc\u78ba\u8a8d2FA\u8a2d\u5b9a",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u96d9\u56e0\u5b50\u9a57\u8b49\u78ba\u8a8d\u6210\u529f\",\n  \"data\": {\n    \"confirmed_at\": \"2025-01-07T10:00:00.000000Z\",\n    \"recovery_codes\": [\n      \"abc123defg\",\n      \"hij456klmn\",\n      \"opq789rstu\"\n    ]\n  }\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 400,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u96d9\u56e0\u5b50\u9a57\u8b49\u5c1a\u672a\u555f\u7528\",\n  \"error_code\": \"2FA_NOT_ENABLED\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u9a57\u8b49\u78bc\u932f\u8aa4\",\n  \"error_code\": \"INVALID_2FA_CODE\"\n}",
+                            "name": ""
+                        }
+                    ]
+                },
+                {
+                    "name": "\u505c\u7528\u96d9\u56e0\u5b50\u9a57\u8b49",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/auth\/2fa\/disable",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/auth\/2fa\/disable"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"password\":\"CurrentPassword123!\"}"
+                        },
+                        "description": "\u95dc\u9589\u4f7f\u7528\u8005\u76842FA\u529f\u80fd\uff0c\u9700\u8981\u5bc6\u78bc\u78ba\u8a8d",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"\u96d9\u56e0\u5b50\u9a57\u8b49\u5df2\u505c\u7528\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 400,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u96d9\u56e0\u5b50\u9a57\u8b49\u5c1a\u672a\u555f\u7528\",\n  \"error_code\": \"2FA_NOT_ENABLED\"\n}",
+                            "name": ""
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"success\": false,\n  \"message\": \"\u5bc6\u78bc\u932f\u8aa4\",\n  \"error_code\": \"INVALID_PASSWORD\"\n}",
                             "name": ""
                         }
                     ]

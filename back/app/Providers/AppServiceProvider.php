@@ -4,8 +4,11 @@ namespace App\Providers;
 
 use App\Models\ProductCategory;
 use App\Observers\ProductCategoryObserver;
+use App\Listeners\UserRoleEventListener;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
 use Prometheus\CollectorRegistry;
+use Spatie\Permission\Events\{RoleAssigned, RoleRemoved, PermissionAssigned, PermissionRemoved};
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +27,12 @@ class AppServiceProvider extends ServiceProvider
     {
         // 註冊商品分類觀察者
         ProductCategory::observe(ProductCategoryObserver::class);
+        
+        // 註冊使用者角色權限事件監聽器
+        Event::listen(RoleAssigned::class, [UserRoleEventListener::class, 'handleRoleAssigned']);
+        Event::listen(RoleRemoved::class, [UserRoleEventListener::class, 'handleRoleRemoved']);
+        Event::listen(PermissionAssigned::class, [UserRoleEventListener::class, 'handlePermissionAssigned']);
+        Event::listen(PermissionRemoved::class, [UserRoleEventListener::class, 'handlePermissionRemoved']);
         
         // 在測試環境中禁用 Prometheus
         if (app()->runningUnitTests()) {

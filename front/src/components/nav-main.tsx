@@ -1,5 +1,6 @@
 import { ChevronRight, type LucideIcon } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
+import { PermissionGuard } from "@/components/common/permission-guard"
 
 import {
   Collapsible,
@@ -33,6 +34,7 @@ export function NavMain({
     items?: {
       title: string
       url: string
+      permission?: string
     }[]
   }[]
 }) {
@@ -69,14 +71,27 @@ export function NavMain({
                         <SidebarMenuSub>
                           {item.items.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton 
-                                asChild
-                                isActive={location.pathname === subItem.url}
-                              >
-                                <Link to={subItem.url}>
-                                  <span>{subItem.title}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
+                              {subItem.permission ? (
+                                <PermissionGuard permission={subItem.permission}>
+                                  <SidebarMenuSubButton 
+                                    asChild
+                                    isActive={location.pathname === subItem.url}
+                                  >
+                                    <Link to={subItem.url}>
+                                      <span>{subItem.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </PermissionGuard>
+                              ) : (
+                                <SidebarMenuSubButton 
+                                  asChild
+                                  isActive={location.pathname === subItem.url}
+                                >
+                                  <Link to={subItem.url}>
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              )}
                             </SidebarMenuSubItem>
                           ))}
                         </SidebarMenuSub>

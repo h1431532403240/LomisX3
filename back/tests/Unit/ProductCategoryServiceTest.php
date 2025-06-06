@@ -330,6 +330,19 @@ class ProductCategoryServiceTest extends TestCase
         // 準備測試資料
         $ids = [1, 2, 3];
         $status = true;
+        
+        // 建立測試分類集合
+        $categories = new Collection([
+            new ProductCategory(['id' => 1, 'name' => '分類1', 'status' => false]),
+            new ProductCategory(['id' => 2, 'name' => '分類2', 'status' => false]),
+            new ProductCategory(['id' => 3, 'name' => '分類3', 'status' => false]),
+        ]);
+
+        // 設定期望 - 驗證分類是否存在
+        $this->repository->shouldReceive('findByIds')
+                        ->once()
+                        ->with($ids)
+                        ->andReturn($categories);
 
         // 設定期望 - 批次更新狀態
         $this->repository->shouldReceive('batchUpdateStatus')

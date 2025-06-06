@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\ProductCategoryController;
+use App\Http\Controllers\Api\{ProductCategoryController, AuthController, UserController};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +27,57 @@ Route::get('/test', function () {
         'message' => 'API 運作正常',
         'timestamp' => now(),
     ]);
+});
+
+/**
+ * 認證 & 2FA API 路由
+ * 遵循 LomisX3 架構標準的使用者管理模組 V6.2
+ */
+Route::prefix('auth')->name('auth.')->group(function () {
+    // 公開認證路由 (不需要認證)
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/2fa/challenge', [AuthController::class, 'twoFactorChallenge'])->name('2fa.challenge');
+    
+    // 需要認證的路由
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/me', [AuthController::class, 'me'])->name('me');
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+        Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
+        
+        // 2FA 管理
+        Route::post('/2fa/enable', [AuthController::class, 'enable2FA'])->name('2fa.enable');
+        Route::post('/2fa/confirm', [AuthController::class, 'confirm2FA'])->name('2fa.confirm');
+        Route::post('/2fa/disable', [AuthController::class, 'disable2FA'])->name('2fa.disable');
+    });
+});
+
+/**
+ * 使用者管理 API 路由
+ * 支援門市隔離、權限控制、批次操作
+ */
+Route::prefix('users')->name('users.')->middleware(['auth:sanctum'])->group(function () {
+    // 統計資訊 (必須在 {user} 路由之前)
+    Route::get('/statistics', [UserController::class, 'statistics'])->name('statistics');
+    
+    // 批次操作路由
+    Route::patch('/batch-status', [UserController::class, 'batchStatus'])->name('batch-status');
+    
+    // 基礎 CRUD 路由
+    Route::get('/', [UserController::class, 'index'])->name('index');
+    Route::post('/', [UserController::class, 'store'])->name('store');
+    Route::get('/{user}', [UserController::class, 'show'])->name('show');
+    Route::put('/{user}', [UserController::class, 'update'])->name('update');
+    Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
+    
+    // 密碼管理
+    Route::patch('/{user}/reset-password', [UserController::class, 'resetPassword'])->name('reset-password');
+    
+    // 活動日誌
+    Route::get('/{user}/activities', [UserController::class, 'activities'])->name('activities');
+    
+    // 頭像管理
+    Route::post('/{user}/avatar', [UserController::class, 'uploadAvatar'])->name('upload-avatar');
+    Route::delete('/{user}/avatar', [UserController::class, 'deleteAvatar'])->name('delete-avatar');
 });
 
 /**
@@ -81,11 +132,6 @@ Route::prefix('product-categories')->name('product-categories.')->group(function
 //     // 訂單相關路由
 // });
 
-// 使用者管理路由（未來開發）
-// Route::prefix('users')->group(function () {
-//     // 使用者相關路由
-// });
-
 /**
  * 未來可以在這裡添加更多 API 路由
  * 例如：
@@ -93,4 +139,4 @@ Route::prefix('product-categories')->name('product-categories.')->group(function
  * Route::group(['middleware' => 'auth:sanctum'], function () {
  *     // 受保護的路由
  * });
- */
+ */ 

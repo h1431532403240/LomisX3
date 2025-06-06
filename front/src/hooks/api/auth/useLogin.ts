@@ -17,6 +17,7 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 import { openapi, safeApiCall } from '@/lib/openapi-client';
 import type { User, Store } from '@/types/user';
@@ -75,6 +76,7 @@ interface ApiUser {
   first_name: string | null;
   last_name: string | null;
   full_name: string;
+  name: string;  // API 實際回應中的顯示名稱欄位
   display_name: string;
   role: string;
   status: {
@@ -83,7 +85,7 @@ interface ApiUser {
   };
   store_id: number;
   permissions: string[];
-  roles: UserRoleInfo[];
+  roles: UserRoleInfo[] | string[]; // 支援兩種格式：物件陣列或字串陣列
   store: ApiStore;
   profile: {
     avatar_url?: string;
@@ -129,6 +131,19 @@ interface LoginResponse {
  * 轉換 API User 為前端 User 型別
  */
 function convertApiUserToUser(apiUser: ApiUser): User {
+  // 檢查必要欄位
+  if (!apiUser) {
+    throw new Error('無法轉換空的用戶資料');
+  }
+
+  if (!apiUser.id) {
+    throw new Error('用戶資料缺少 ID 欄位');
+  }
+
+  if (!apiUser.store) {
+    throw new Error('用戶資料缺少門市資訊');
+  }
+
   // 轉換 API Store 為前端 Store 型別
   const store: Store = {
     id: apiUser.store.id,
@@ -139,16 +154,52 @@ function convertApiUserToUser(apiUser: ApiUser): User {
     updated_at: new Date().toISOString()
   };
 
-  return {
+  // 📝 角色資料處理 - 支援兩種格式：字串陣列或物件陣列
+  let extractedRole: string | undefined;
+  let extractedRoles: string[] = [];
+  let rolePermissions: string[] = [];
+
+  if (Array.isArray(apiUser.roles)) {
+    // 檢查是字串陣列還是物件陣列
+    if (apiUser.roles.length > 0) {
+      if (typeof apiUser.roles[0] === 'string') {
+        // 字串陣列格式：['admin', 'manager']
+        extractedRoles = apiUser.roles as string[];
+        extractedRole = extractedRoles[0]; // 使用第一個角色作為主要角色
+      } else if (typeof apiUser.roles[0] === 'object') {
+        // 物件陣列格式：[{name: 'admin', permissions: [...]}]
+        const objectRoles = apiUser.roles as UserRoleInfo[];
+        extractedRoles = objectRoles.map(role => role.name);
+        extractedRole = extractedRoles[0];
+        // 合併所有角色的權限
+        rolePermissions = objectRoles.flatMap(role => role.permissions || []);
+      }
+    }
+  }
+
+  // 如果還是沒有角色，嘗試從 apiUser.role 取得
+  if (!extractedRole && apiUser.role) {
+    extractedRole = apiUser.role;
+    extractedRoles = [apiUser.role];
+  }
+
+
+
+  // 構建最終的 User 物件
+  const result: User = {
     id: apiUser.id,
     email: apiUser.email,
     username: apiUser.username,
     first_name: apiUser.first_name,
     last_name: apiUser.last_name,
     full_name: apiUser.full_name,
-    display_name: apiUser.display_name,
-    role: apiUser.role as any, // 簡化型別轉換
-    permissions: apiUser.permissions,
+    display_name: apiUser.name || apiUser.display_name || apiUser.full_name || apiUser.username,
+    role: extractedRole as any, // 使用提取的主要角色
+    roles: extractedRoles, // 使用提取的角色陣列
+    permissions: Array.from(new Set([
+      ...(apiUser.permissions || []),
+      ...rolePermissions // 使用預處理的角色權限
+    ])), // 智能合併權限：來自使用者直接權限和角色權限
     status: apiUser.status.value as any, // 簡化型別轉換
     email_verified_at: apiUser.email_verified_at,
     two_factor_enabled: apiUser.two_factor_enabled,
@@ -164,6 +215,8 @@ function convertApiUserToUser(apiUser: ApiUser): User {
     created_by: apiUser.created_by,
     updated_by: apiUser.updated_by
   };
+
+  return result;
 }
 
 /**
@@ -171,15 +224,12 @@ function convertApiUserToUser(apiUser: ApiUser): User {
  * 自動處理 CSRF token 和錯誤重試
  */
 async function loginApiCall(request: BackendLoginRequest): Promise<LoginResponse> {
-  console.log('🔐 [loginApiCall] 使用 openapi 客戶端進行登入...');
-  
   return await safeApiCall(async () => {
     const response = await openapi.POST('/api/auth/login', {
       body: request as any  // 暫時使用 any 解決型別不匹配問題
     });
 
     if (response.error) {
-      console.error('❌ [loginApiCall] API 錯誤:', response.error);
       throw new Error(response.error.message || '登入失敗');
     }
 
@@ -187,7 +237,6 @@ async function loginApiCall(request: BackendLoginRequest): Promise<LoginResponse
       throw new Error('API 回應缺少資料');
     }
 
-    console.log('✅ [loginApiCall] API 成功');
     return response.data as LoginResponse;
   });
 }
@@ -222,7 +271,7 @@ async function loginApiCall(request: BackendLoginRequest): Promise<LoginResponse
  */
 export const useLogin = () => {
   const navigate = useNavigate();
-  const { setUser, setToken, setPermissions, setRoles, logout } = useAuthStore();
+  const { logout } = useAuthStore();
 
   return useMutation({
     /**
@@ -233,35 +282,18 @@ export const useLogin = () => {
      */
     mutationFn: async (credentials: LoginCredentials): Promise<LoginResponse> => {
       try {
-        console.log('🔐 開始登入流程', { 
-          email: credentials.email,
-          remember: credentials.remember || false
-        });
-
-        // 將前端格式轉換為後端期望的格式 (實際的後端格式)
+        // 將前端格式轉換為後端期望的格式
         const backendRequest: BackendLoginRequest = {
           login: credentials.email,     // 後端使用 login 欄位接收 email
           password: credentials.password,
           remember: credentials.remember || false
         };
 
-        console.log('🔄 轉換後的登入資料', { login: backendRequest.login });
-
         // 呼叫後端登入 API
         const result = await loginApiCall(backendRequest);
 
-        console.log('✅ 登入 API 成功', {
-          user_id: result.data?.user?.id,
-          username: result.data?.user?.username,
-          roles_count: result.data?.user?.roles?.length || 0,
-          permissions_count: result.data?.user?.permissions?.length || 0,
-          store_id: result.data?.user?.store_id
-        });
-
         return result;
       } catch (error) {
-        console.error('❌ 登入過程發生錯誤', error);
-        
         // 處理不同類型的錯誤
         if (error instanceof Error) {
           throw error;
@@ -278,61 +310,39 @@ export const useLogin = () => {
      * @param variables 原始登入參數
      */
     onSuccess: (response: LoginResponse, variables: LoginCredentials) => {
-      try {
-        console.log('🎉 登入成功，開始更新 AuthStore');
+      if (response && response.data) {
+        const { user: apiUser, token } = response.data;
 
-        const { token, user: apiUser } = response.data;
+        if (apiUser && token) {
+          // 轉換 API User 為前端 User 格式
+          const convertedUser = convertApiUserToUser(apiUser);
 
-        // 轉換 API User 為前端 User 型別
-        const user = convertApiUserToUser(apiUser);
+          // 檢查轉換後的 user 是否有效
+          if (convertedUser) {
+            // 更新認證狀態
+            useAuthStore.getState().login(convertedUser, token);
 
-        // 儲存 Token 到 localStorage（用於 API 認證）
-        localStorage.setItem('auth_token', token);
-        console.log('💾 Token 已儲存到 localStorage');
+            // 顯示歡迎訊息
+            toast.success(`歡迎回來，${convertedUser.display_name || convertedUser.username}！`);
 
-        // 更新 AuthStore 狀態
-        setToken(token);
-        setUser(user);
-        
-        // 設置角色資訊（轉換為字串陣列）
-        if (apiUser.roles && Array.isArray(apiUser.roles)) {
-          const roleNames = apiUser.roles.map(role => role.name);
-          setRoles(roleNames);
+            // 自動導航到儀表板
+            const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
+            navigate(redirectTo, { replace: true });
+
+          } else {
+            logout();
+            localStorage.removeItem('auth_token');
+            throw new Error('用戶資料轉換失敗，請重新登入');
+          }
+        } else {
+          logout();
+          localStorage.removeItem('auth_token');
+          throw new Error('登入成功但回應資料不完整，請重新登入');
         }
-
-        // 設置權限資訊（合併所有角色的權限）
-        const allPermissions = Array.from(new Set([
-          ...(apiUser.permissions || []),
-          ...(apiUser.roles?.flatMap(role => role.permissions || []) || [])
-        ]));
-        setPermissions(allPermissions);
-
-        console.log('✅ AuthStore 更新完成', {
-          user_id: user.id,
-          username: user.username,
-          roles: apiUser.roles?.map(r => r.name) || [],
-          permissions_count: allPermissions.length,
-          store_id: user.store_id,
-          store_name: user.store?.name || 'Unknown'
-        });
-
-        // 成功提示
-        console.log(`🎊 歡迎回來，${user.display_name}！`);
-
-        // 自動導航到儀表板
-        const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
-        console.log('🧭 準備導航到', redirectTo);
-        
-        navigate(redirectTo, { replace: true });
-
-      } catch (error) {
-        console.error('❌ 登入成功後處理失敗', error);
-        
-        // 清理可能的錯誤狀態
+      } else {
         logout();
         localStorage.removeItem('auth_token');
-        
-        throw new Error('登入成功但狀態更新失敗，請重新登入');
+        throw new Error('登入成功但 API 回應格式不正確，請重新登入');
       }
     },
 
@@ -343,12 +353,6 @@ export const useLogin = () => {
      * @param variables 原始登入參數
      */
     onError: (error: Error, variables: LoginCredentials) => {
-      console.error('❌ 登入失敗', {
-        error: error.message,
-        email: variables.email,
-        timestamp: new Date().toISOString()
-      });
-
       // 清理認證狀態
       logout();
       localStorage.removeItem('auth_token');
@@ -365,18 +369,9 @@ export const useLogin = () => {
       } else if (error.message.includes('network') || error.message.includes('fetch')) {
         userMessage = '網路連線異常，請檢查您的網路設定';
       }
-
-      console.log('🚨 顯示錯誤訊息給使用者', userMessage);
       
-      // 這裡整合 Toast 通知系統
-      // toast.error(userMessage);
-    },
-
-    /**
-     * 請求完成後的清理（無論成功或失敗）
-     */
-    onSettled: () => {
-      console.log('🏁 登入請求完成');
+      // 顯示錯誤訊息
+      toast.error(userMessage);
     }
   });
 }; 

@@ -44,11 +44,13 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: LayoutDashboardIcon,
+      permission: "dashboard.view",
     },
     {
       title: "商品管理",
       url: "/products",
       icon: ShoppingBagIcon,
+      permission: "products.read",
       items: [
         {
           title: "商品列表",
@@ -76,6 +78,7 @@ const data = {
       title: "訂單管理",
       url: "/orders",
       icon: ShoppingCartIcon,
+      permission: "orders.read",
       items: [
         {
           title: "訂單列表",
@@ -103,6 +106,7 @@ const data = {
       title: "使用者管理",
       url: "/users",
       icon: UsersIcon,
+      permission: "users.read",
       items: [
         {
           title: "使用者列表",

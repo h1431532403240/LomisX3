@@ -20,6 +20,7 @@ import { ProtectedRoute } from '@/components/guards/ProtectedRoute';
 import { useAuthStore } from '@/stores/authStore';
 import { useEffect } from 'react';
 import { initializeCsrfToken } from '@/lib/openapi-client';
+
 import {
   SidebarInset,
   SidebarProvider,
@@ -109,20 +110,14 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        console.log('🚀 開始 LomisX3 應用程式初始化...');
-        
         // 1. 先初始化認證狀態 (異步操作)
-        console.log('1️⃣ 初始化認證狀態...');
         await initialize();
         
         // 2. 等待一個 tick 確保狀態已更新
         await new Promise(resolve => setTimeout(resolve, 0));
         
         // 3. 初始化 CSRF token (Laravel Sanctum SPA 認證必需)
-        console.log('2️⃣ 初始化 CSRF token...');
         await initializeCsrfToken();
-        
-        console.log('✅ LomisX3 應用程式初始化完成');
       } catch (error) {
         console.error('❌ 應用程式初始化失敗:', error);
       }

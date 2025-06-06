@@ -80,21 +80,9 @@ class UserResource extends JsonResource
             ],
             
             // 角色與權限
-            'roles' => $this->whenLoaded('roles', function () {
-                return $this->roles->map(function ($role) {
-                    return [
-                        'id' => $role->id,
-                        'name' => $role->name,
-                        'display_name' => $role->display_name ?? $role->name,
-                        'level' => $this->getRoleLevel($role->name),
-                        'color' => $this->getRoleColor($role->name)
-                    ];
-                });
-            }),
+            'roles' => $this->getRoleNames(),
             
-            'permissions' => $this->whenLoaded('permissions', function () {
-                return $this->permissions->pluck('name');
-            }),
+            'permissions' => $this->getAllPermissions()->pluck('name'),
             
             'all_permissions' => $this->when(
                 $request->has('include_all_permissions'),

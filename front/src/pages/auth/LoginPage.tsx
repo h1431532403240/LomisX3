@@ -132,36 +132,22 @@ export default function LoginPage() {
    * 使用真實的 API 調用替代模擬資料
    */
   const handleLogin = async (data: LoginFormData) => {
-    console.log('🔥 [LoginPage] handleLogin 被調用:', data);
-    
     try {
-      console.log('🔥 [LoginPage] 開始調用 loginMutation.mutateAsync');
       const result = await loginMutation.mutateAsync(data);
-      console.log('🔥 [LoginPage] loginMutation 回傳結果:', result);
       
-      // 檢查是否需要雙因子驗證
-      if (result?.data?.requires_2fa) {
-        console.log('🔥 [LoginPage] 需要雙因子驗證');
-        setShowTwoFactor(true);
-        
-        toast.info("請輸入您的驗證碼以完成登入");
-        return;
-      }
+      // 檢查是否需要雙因子驗證 (如果後端支援)
+      // if (result?.data?.requires_2fa) {
+      //   setShowTwoFactor(true);
+      //   toast.info("請輸入您的驗證碼以完成登入");
+      //   return;
+      // }
 
       // ✅ 登入成功！useLogin Hook 的 onSuccess 已自動處理以下操作：
       // - 更新 AuthStore (setUser, setToken, setPermissions, setRoles)
       // - 儲存 token 到 localStorage
       // - 自動導航到目標頁面
       // LoginPage 無需重複處理，只需處理特殊情況
-      
-      console.log('🔥 [LoginPage] 登入成功，useLogin Hook 已自動處理所有後續邏輯');
     } catch (error) {
-      console.error('🔥 [LoginPage] handleLogin catch 錯誤:', {
-        error,
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      
       // 錯誤訊息已由 useLogin Hook 的 onError 處理，此處無需重複顯示 Toast
       // 只記錄錯誤以供調試使用
     }

@@ -55,6 +55,7 @@ export interface User {
   
   // 角色和權限
   role: UserRole;
+  roles: string[]; // 使用者所擁有的所有角色名稱
   permissions: string[];
   
   // 狀態資訊

@@ -19,22 +19,25 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withMiddleware(function (Middleware $middleware) {
         /**
-         * 為 API 路由群組添加中間件
-         * CORS 中間件必須在 Sanctum 中間件之前執行
+         * 全域中間件配置 - Bearer Token 認證模式
+         * CORS 處理必須在所有其他中間件之前執行
+         * 已移除 Sanctum SPA 中間件，使用純 Bearer Token 認證
          * 
-         * @version 5.1.0 (修復 CORS 順序問題)
+         * @version 6.0.0 (Bearer Token 認證模式 - 移除 CSRF 依賴)
          */
-        $middleware->api(prepend: [
-            \Illuminate\Http\Middleware\HandleCors::class,  // CORS 處理 (必須最先)
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,  // Sanctum SPA 狀態
-        ]);
-
-        /**
-         * 全域中間件，確保所有請求都經過 CORS 檢查
-         */
-        $middleware->append([
+        $middleware->group('web', [
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
+        
+        $middleware->group('api', [
+            \Illuminate\Http\Middleware\HandleCors::class,  // API 專用 CORS 處理
+            // 已移除 EnsureFrontendRequestsAreStateful，使用純 Bearer Token 認證
+        ]);
+        
+        /**
+         * 全域中間件，確保所有請求都有 CORS 支援
+         */
+        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

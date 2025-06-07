@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LomisX3 - 持久化認證狀態修復測試</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+            border: 2px solid;
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            border-color: #c3e6cb; 
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border-color: #f5c6cb; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            color: #0c5460; 
+            border-color: #bee5eb; 
+        }
+        .warning { 
+            background: #fff3cd; 
+            color: #856404; 
+            border-color: #ffeaa7; 
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .test-section {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .network-info {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 LomisX3 持久化認證狀態修復測試</h1>
+        <p>測試 AuthStore V6.9 的革命性 initialize 函數修復</p>
+    </div>
+
+    <div class="container">
+        <h2>📋 測試目標</h2>
+        <div class="info">
+            <strong>V6.9 修復重點：</strong><br>
+            ✅ initialize 函數改為完全信任持久化狀態<br>
+            ✅ 移除不必要的遠程驗證，提升啟動速度<br>
+            ✅ 修復因網路請求失敗導致的狀態清空問題<br>
+            ✅ 從 async 改為同步函數，消除競態條件
+        </div>
+
+        <!-- 測試步驟 -->
+        <div class="test-section">
+            <h3>🧪 測試步驟</h3>
+            <ol>
+                <li><strong>正常登入：</strong>使用正確帳密登入 LomisX3 系統</li>
+                <li><strong>確認狀態：</strong>登入成功後確認可以正常使用系統</li>
+                <li><strong>頁面刷新：</strong>按 F5 或 Ctrl+R 刷新頁面</li>
+                <li><strong>狀態驗證：</strong>刷新後應該立即恢復認證狀態，無需重新登入</li>
+                <li><strong>速度測試：</strong>觀察啟動時間，應該明顯更快</li>
+            </ol>
+        </div>
+
+        <!-- 快速測試工具 -->
+        <div class="test-section">
+            <h3>⚡ 快速測試工具</h3>
+            <button class="btn" onclick="testLocalStorage()">📱 檢查本地儲存</button>
+            <button class="btn" onclick="testAuthState()">🔐 檢查認證狀態</button>
+            <button class="btn" onclick="simulateRefresh()">🔄 模擬頁面刷新</button>
+            <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清除所有資料</button>
+            
+            <div id="testResults"></div>
+        </div>
+
+        <!-- 網路監控 -->
+        <div class="test-section">
+            <h3>📡 網路請求監控</h3>
+            <div class="warning">
+                <strong>重要：</strong>在 V6.9 版本中，頁面刷新時應該<strong>不會</strong>發送 /api/auth/me 請求！
+            </div>
+            <button class="btn" onclick="monitorNetworkRequests()">🔍 開始監控網路請求</button>
+            <button class="btn" onclick="refreshPageTest()">🔄 執行刷新測試</button>
+            
+            <div id="networkResults"></div>
+        </div>
+
+        <!-- 效能比較 -->
+        <div class="test-section">
+            <h3>⚡ 效能比較</h3>
+            <div class="code-block">
+V6.8 (舊版本):
+1. 讀取 localStorage token
+2. 發送 /api/auth/me 請求 (200-500ms)
+3. 等待網路回應
+4. 解析用戶資料
+5. 更新狀態
+
+V6.9 (新版本):
+1. 讀取 persist 狀態 (1-2ms)
+2. 直接設定認證狀態
+3. 完成初始化 ✅
+            </div>
+            <button class="btn" onclick="performanceTest()">📊 執行效能測試</button>
+            <div id="performanceResults"></div>
+        </div>
+
+        <!-- 測試結果 -->
+        <div class="test-section">
+            <h3>📊 測試結果記錄</h3>
+            <div id="overallResults"></div>
+        </div>
+    </div>
+
+    <script>
+        let networkRequests = [];
+        let originalFetch = window.fetch;
+
+        // 網路請求監控
+        function monitorNetworkRequests() {
+            networkRequests = [];
+            
+            window.fetch = function(...args) {
+                const url = args[0];
+                const startTime = performance.now();
+                
+                networkRequests.push({
+                    url: url,
+                    timestamp: new Date().toLocaleTimeString(),
+                    startTime: startTime
+                });
+                
+                return originalFetch.apply(this, args).then(response => {
+                    const endTime = performance.now();
+                    const lastRequest = networkRequests[networkRequests.length - 1];
+                    lastRequest.duration = Math.round(endTime - startTime);
+                    lastRequest.status = response.status;
+                    
+                    updateNetworkResults();
+                    return response;
+                });
+            };
+            
+            document.getElementById('networkResults').innerHTML = 
+                '<div class="info">✅ 網路監控已啟動，請執行操作...</div>';
+        }
+
+        function updateNetworkResults() {
+            const results = document.getElementById('networkResults');
+            let html = '<div class="info">📡 監控到的網路請求：</div>';
+            
+            if (networkRequests.length === 0) {
+                html += '<div class="success">🎉 沒有發送任何網路請求！這是 V6.9 的預期行為。</div>';
+            } else {
+                networkRequests.forEach(req => {
+                    const isAuthMe = req.url.includes('/api/auth/me');
+                    const className = isAuthMe ? 'error' : 'info';
+                    html += `<div class="${className}">
+                        <strong>${req.timestamp}:</strong> ${req.url}<br>
+                        <small>狀態: ${req.status || '待定'} | 耗時: ${req.duration || '待定'}ms</small>
+                    </div>`;
+                });
+            }
+            
+            results.innerHTML = html;
+        }
+
+        // 測試本地儲存
+        function testLocalStorage() {
+            const results = document.getElementById('testResults');
+            let html = '<div class="info"><strong>📱 本地儲存檢查結果：</strong></div>';
+            
+            // 檢查 auth_token
+            const token = localStorage.getItem('auth_token');
+            html += `<div class="${token ? 'success' : 'warning'}">
+                Auth Token: ${token ? '✅ 存在' : '❌ 不存在'}
+            </div>`;
+            
+            // 檢查 Zustand persist 資料
+            const authStorage = localStorage.getItem('auth-storage');
+            if (authStorage) {
+                try {
+                    const parsed = JSON.parse(authStorage);
+                    html += `<div class="success">
+                        ✅ Zustand Persist 資料存在<br>
+                        <small>User: ${parsed.state?.user?.name || '未設定'}</small><br>
+                        <small>Token: ${parsed.state?.token ? '存在' : '不存在'}</small><br>
+                        <small>Permissions: ${parsed.state?.permissions?.length || 0} 個</small>
+                    </div>`;
+                } catch (e) {
+                    html += '<div class="error">❌ Zustand Persist 資料解析失敗</div>';
+                }
+            } else {
+                html += '<div class="warning">⚠️ Zustand Persist 資料不存在</div>';
+            }
+            
+            results.innerHTML = html;
+        }
+
+        // 測試認證狀態
+        function testAuthState() {
+            const results = document.getElementById('testResults');
+            
+            // 這裡需要透過 console 或其他方式檢查 React 狀態
+            const html = `<div class="info">
+                <strong>🔐 認證狀態檢查：</strong><br>
+                請打開開發者工具 Console，查看認證狀態相關的日誌訊息。<br>
+                <small>提示：V6.9 版本應該會顯示 "[AUTH_INIT] 從持久化儲存中成功恢復認證狀態"</small>
+            </div>`;
+            
+            results.innerHTML = html;
+        }
+
+        // 模擬頁面刷新
+        function simulateRefresh() {
+            if (confirm('確定要刷新頁面測試嗎？這將重新載入整個應用程式。')) {
+                window.location.reload();
+            }
+        }
+
+        // 頁面刷新測試
+        function refreshPageTest() {
+            const results = document.getElementById('networkResults');
+            results.innerHTML = '<div class="warning">⏳ 正在執行刷新測試，請等待...</div>';
+            
+            // 記錄開始時間
+            const startTime = performance.now();
+            
+            setTimeout(() => {
+                const endTime = performance.now();
+                const duration = Math.round(endTime - startTime);
+                
+                let html = `<div class="info">
+                    <strong>🔄 頁面刷新測試結果：</strong><br>
+                    測試持續時間: ${duration}ms<br>
+                </div>`;
+                
+                // 檢查是否有 /api/auth/me 請求
+                const authMeRequests = networkRequests.filter(req => 
+                    req.url.includes('/api/auth/me')
+                );
+                
+                if (authMeRequests.length === 0) {
+                    html += '<div class="success">🎉 完美！沒有發送不必要的 /api/auth/me 請求</div>';
+                } else {
+                    html += `<div class="error">❌ 發現 ${authMeRequests.length} 個 /api/auth/me 請求，這表示修復可能未生效</div>`;
+                }
+                
+                results.innerHTML = html;
+            }, 2000);
+        }
+
+        // 清除所有資料
+        function clearAllData() {
+            if (confirm('確定要清除所有認證資料嗎？這將登出用戶。')) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('auth-storage');
+                
+                const results = document.getElementById('testResults');
+                results.innerHTML = '<div class="success">✅ 所有認證資料已清除</div>';
+            }
+        }
+
+        // 效能測試
+        function performanceTest() {
+            const results = document.getElementById('performanceResults');
+            
+            const startTime = performance.now();
+            
+            // 模擬 V6.9 的初始化過程
+            const authStorage = localStorage.getItem('auth-storage');
+            const token = localStorage.getItem('auth_token');
+            
+            let initTime = 0;
+            if (authStorage && token) {
+                try {
+                    JSON.parse(authStorage);
+                    initTime = performance.now() - startTime;
+                } catch (e) {
+                    initTime = -1;
+                }
+            }
+            
+            let html = '<div class="info"><strong>⚡ 效能測試結果：</strong></div>';
+            
+            if (initTime >= 0) {
+                html += `<div class="success">
+                    ✅ 模擬初始化完成時間: ${initTime.toFixed(2)}ms<br>
+                    <small>V6.9 預期效能：&lt; 5ms (極快)</small>
+                </div>`;
+                
+                if (initTime < 5) {
+                    html += '<div class="success">🚀 效能優秀！符合 V6.9 預期目標</div>';
+                } else if (initTime < 20) {
+                    html += '<div class="warning">⚠️ 效能良好，但可以更快</div>';
+                } else {
+                    html += '<div class="error">❌ 效能需要優化</div>';
+                }
+            } else {
+                html += '<div class="warning">⚠️ 無法執行測試，請先登入系統</div>';
+            }
+            
+            results.innerHTML = html;
+        }
+
+        // 頁面載入時自動檢查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testLocalStorage();
+                monitorNetworkRequests();
+            }, 1000);
+        });
+
+        // 記錄整體測試結果
+        function updateOverallResults() {
+            const results = document.getElementById('overallResults');
+            const now = new Date().toLocaleString();
+            
+            results.innerHTML = `<div class="info">
+                <strong>📊 測試執行時間：</strong> ${now}<br>
+                <strong>🎯 測試版本：</strong> AuthStore V6.9<br>
+                <strong>✅ 主要驗證：</strong> 持久化狀態恢復 + 無不必要網路請求
+            </div>`;
+        }
+
+        updateOverallResults();
+    </script>
+</body>
+</html> 

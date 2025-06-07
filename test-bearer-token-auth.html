@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LomisX3 Bearer Token 認證測試</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border-left: 4px solid #4299e1;
+            background: #f7fafc;
+            border-radius: 5px;
+        }
+        button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #3182ce;
+        }
+        button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+        .success {
+            color: #38a169;
+            background: #f0fff4;
+            border-left-color: #38a169;
+        }
+        .error {
+            color: #e53e3e;
+            background: #fffafa;
+            border-left-color: #e53e3e;
+        }
+        .info {
+            color: #3182ce;
+            background: #f7fafc;
+            border-left-color: #3182ce;
+        }
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .token-display {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-online { background: #38a169; }
+        .status-offline { background: #e53e3e; }
+        .status-unknown { background: #a0aec0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔑 LomisX3 Bearer Token 認證測試</h1>
+            <p>測試前端完全採用 Bearer Token 認證模式的效果</p>
+        </div>
+
+        <div class="section">
+            <h3>📋 測試狀態</h3>
+            <p><span class="status-indicator status-unknown" id="authStatus"></span><span id="authStatusText">準備中...</span></p>
+            <p><strong>前端 URL:</strong> <span id="frontendUrl">http://localhost:5173</span></p>
+            <p><strong>後端 API:</strong> <span id="backendUrl">http://localhost:8000</span></p>
+        </div>
+
+        <div class="section">
+            <h3>🔐 Bearer Token 測試</h3>
+            <button onclick="testLogin()">1. 測試登入 (獲取 Bearer Token)</button>
+            <button onclick="testMeEndpoint()">2. 測試 /me 端點 (Bearer Token 認證)</button>
+            <button onclick="testInvalidToken()">3. 測試無效 Token</button>
+            <button onclick="clearToken()">4. 清除 Token</button>
+            <br><br>
+            <label>Token 狀態:</label>
+            <div class="token-display" id="tokenDisplay">無 Token</div>
+        </div>
+
+        <div class="section">
+            <h3>📊 測試結果</h3>
+            <div id="results"></div>
+        </div>
+
+        <div class="section">
+            <h3>🔍 Network 請求日誌</h3>
+            <pre id="networkLog"></pre>
+        </div>
+    </div>
+
+    <script>
+        let logData = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+            logData.push(entry);
+            
+            // 更新 UI
+            updateNetworkLog();
+            addResult(message, type);
+            
+            // Console 記錄
+            console.log(entry);
+        }
+
+        function updateNetworkLog() {
+            document.getElementById('networkLog').textContent = logData.slice(-10).join('\n');
+        }
+
+        function addResult(message, type) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `section ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+            
+            // 保持最新 5 條結果
+            while (results.children.length > 5) {
+                results.removeChild(results.firstChild);
+            }
+        }
+
+        function updateTokenDisplay() {
+            const token = localStorage.getItem('auth_token');
+            const display = document.getElementById('tokenDisplay');
+            if (token) {
+                // 顯示 Token 的前 20 和後 10 個字符
+                const preview = token.length > 30 ? 
+                    `${token.substring(0, 20)}...${token.substring(token.length - 10)}` : 
+                    token;
+                display.textContent = `✅ Token: ${preview}`;
+                display.className = 'token-display success';
+            } else {
+                display.textContent = '❌ 無 Token';
+                display.className = 'token-display error';
+            }
+        }
+
+        function updateAuthStatus() {
+            const token = localStorage.getItem('auth_token');
+            const statusEl = document.getElementById('authStatus');
+            const textEl = document.getElementById('authStatusText');
+            
+            if (token) {
+                statusEl.className = 'status-indicator status-online';
+                textEl.textContent = 'Bearer Token 已設置';
+            } else {
+                statusEl.className = 'status-indicator status-offline';
+                textEl.textContent = 'Bearer Token 未設置';
+            }
+        }
+
+        async function testLogin() {
+            log('🔐 開始測試登入...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@lomis.dev',
+                        password: 'password123',
+                        remember_me: false
+                    })
+                });
+
+                log(`📥 登入響應: ${response.status} ${response.statusText}`, 'info');
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data.token) {
+                        localStorage.setItem('auth_token', data.data.token);
+                        log('✅ 登入成功！Bearer Token 已保存到 localStorage', 'success');
+                        log(`👤 用戶: ${data.data.user.name} (${data.data.user.role})`, 'success');
+                        updateTokenDisplay();
+                        updateAuthStatus();
+                    } else {
+                        log('❌ 登入失敗：API 回應格式錯誤', 'error');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    log(`❌ 登入失敗: ${errorData.message || '未知錯誤'}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 登入請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMeEndpoint() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                log('⚠️ 請先登入獲取 Bearer Token', 'error');
+                return;
+            }
+
+            log('📡 測試 /me 端點 (Bearer Token 認證)...', 'info');
+
+            try {
+                const response = await fetch('http://localhost:8000/api/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                    }
+                });
+
+                log(`📥 /me 響應: ${response.status} ${response.statusText}`, 'info');
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        log('✅ Bearer Token 認證成功！', 'success');
+                        log(`👤 用戶資訊: ${data.data.user.name} (${data.data.user.role})`, 'success');
+                        log(`🏪 門市: ${data.data.store?.name || 'N/A'}`, 'info');
+                        log(`🔑 權限數量: ${data.data.permissions?.length || 0}`, 'info');
+                    } else {
+                        log('❌ /me 端點回應格式錯誤', 'error');
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    log(`❌ Bearer Token 認證失敗: ${errorData.message || response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ /me 請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        async function testInvalidToken() {
+            log('🔒 測試無效 Bearer Token...', 'info');
+
+            try {
+                const response = await fetch('http://localhost:8000/api/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer invalid_token_12345',
+                        'Accept': 'application/json',
+                    }
+                });
+
+                log(`📥 無效 Token 響應: ${response.status} ${response.statusText}`, 'info');
+
+                if (response.status === 401) {
+                    const data = await response.json();
+                    log('✅ 無效 Token 正確返回 401 JSON 錯誤', 'success');
+                    log(`📄 錯誤訊息: ${data.message}`, 'info');
+                } else {
+                    log(`⚠️ 無效 Token 返回非預期狀態: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 無效 Token 測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function clearToken() {
+            localStorage.removeItem('auth_token');
+            log('🗑️ Bearer Token 已清除', 'info');
+            updateTokenDisplay();
+            updateAuthStatus();
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Bearer Token 認證測試頁面已載入', 'info');
+            updateTokenDisplay();
+            updateAuthStatus();
+        });
+    </script>
+</body>
+</html> 

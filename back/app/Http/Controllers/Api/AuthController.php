@@ -48,7 +48,8 @@ class AuthController extends Controller
         private readonly TwoFactorService $twoFactorService
     ) {
         // 認證中介軟體設定
-        $this->middleware('auth:sanctum')->except(['login', 'twoFactorChallenge']);
+        // 注意：logout 和 me 方法將在路由層級處理認證，不在此處強制要求
+        $this->middleware('auth:sanctum')->except(['login', 'twoFactorChallenge', 'logout', 'me']);
         $this->middleware('throttle:5,1')->only(['login', 'twoFactorChallenge']);
     }
 
@@ -726,28 +727,76 @@ class AuthController extends Controller
      * 
      * @return JsonResponse
      */
-    public function me(): JsonResponse
+    /**
+     * 獲取當前認證使用者資訊
+     * 
+     * 處理未認證情況，返回 JSON 錯誤而非重定向（符合 SPA 設計原則）
+     * 
+     * @group 認證管理
+     * 
+     * @response 200 {
+     *   "success": true,
+     *   "message": "取得使用者資訊成功",
+     *   "data": {
+     *     "id": 1,
+     *     "username": "admin",
+     *     "name": "管理員",
+     *     "email": "admin@lomis.com",
+     *     "roles": ["admin"],
+     *     "permissions": ["users.view", "users.create"]
+     *   }
+     * }
+     * 
+     * @response 401 {
+     *   "success": false,
+     *   "message": "Unauthenticated.",
+     *   "error_code": "UNAUTHENTICATED",
+     *   "errors": null
+     * }
+     * 
+     * @return JsonResponse
+     */
+    public function me(Request $request): JsonResponse
     {
         try {
-            $user = Auth::user();
-            $user->load(['roles', 'permissions', 'store']);
+            $user = $request->user();
             
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '未認證',
+                    'error' => [
+                        'code' => 'UNAUTHENTICATED',
+                        'message' => '請先登入'
+                    ]
+                ], 401);
+            }
+
+            // 載入必要的關聯
+            $user->load(['store']);
+
             return response()->json([
                 'success' => true,
-                'message' => '取得使用者資訊成功',
-                'data' => new UserResource($user)
+                'data' => [
+                    'user' => $user,
+                    'store' => $user->store,
+                    'permissions' => $user->getAllPermissions()->pluck('name'),
+                    'roles' => $user->getRoleNames()
+                ]
             ]);
-            
         } catch (\Exception $e) {
-            Log::error('取得使用者資訊錯誤', [
-                'message' => $e->getMessage(),
-                'user_id' => Auth::id()
+            \Log::error('獲取用戶資訊失敗', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
-                'message' => '取得使用者資訊失敗',
-                'error_code' => UserErrorCode::USER_INFO_FAILED->value
+                'message' => '獲取用戶資訊失敗',
+                'error' => [
+                    'code' => 'FETCH_USER_ERROR',
+                    'message' => $e->getMessage()
+                ]
             ], 500);
         }
     }

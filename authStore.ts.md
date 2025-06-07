@@ -2,13 +2,6 @@
  * 認證狀態管理 Store
  * 使用 Zustand 實現輕量級狀態管理
  * 
- * V6.9 版本更新：
- * - 🚀 革命性改進：initialize 函數改為完全信任持久化狀態
- * - ⚡ 移除不必要的遠程驗證，大幅提升應用啟動速度
- * - 🛡️ 修復因網路請求失敗導致的狀態清空問題
- * - 🎯 職責分離：initialize 專責本地狀態恢復，fetchUserInfo 專責遠程更新
- * - 📋 從 async 改為同步函數，消除競態條件
- * 
  * V6.8 版本更新：
  * - 🚀 簡化 roles 和 permissions 資料來源處理
  * - 🔒 直接從 user 物件中獲取 roles 字串陣列
@@ -39,7 +32,7 @@ interface AuthState {
   setRoles: (roles: string[]) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
-  initialize: () => void;
+  initialize: () => Promise<void>;
   login: (user: User, token: string) => void;
   fetchUserInfo: () => Promise<void>;
   
@@ -98,6 +91,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: !!(token && user),
           isLoading: false,
         });
+        console.log('👤 使用者資訊已設置:', user.display_name);
+        console.log('🔒 認證狀態:', !!(token && user));
       },
 
       setToken: (token: string) => {
@@ -109,8 +104,9 @@ export const useAuthStore = create<AuthState>()(
         // 同步到 localStorage 供 API 中間件使用
         try {
           localStorage.setItem('auth_token', token);
+          console.log('🔧 Token 已設置到 localStorage:', token.substring(0, 20) + '...');
         } catch (error) {
-          // 靜默處理 localStorage 錯誤
+          console.error('❌ localStorage 設置失敗:', error);
         }
       },
 
@@ -121,6 +117,7 @@ export const useAuthStore = create<AuthState>()(
         set({ roles }),
 
       setLoading: (isLoading: boolean) => {
+        console.log('⏳ 設置載入狀態:', isLoading);
         set({ isLoading });
       },
 
@@ -139,8 +136,9 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           localStorage.removeItem('auth_token');
+          console.log('🔓 使用者已登出，所有狀態已清除');
         } catch (error) {
-          // 靜默處理登出錯誤
+          console.error('❌ 登出過程發生錯誤:', error);
           // 即使發生錯誤也要清除狀態
           set({
             user: null,
@@ -155,16 +153,22 @@ export const useAuthStore = create<AuthState>()(
 
       /**
        * 獲取用戶資訊
+       * 臨時 DEBUG 版本：詳細追蹤執行流程
        */
-      fetchUserInfo: async (): Promise<void> => {
+      fetchUserInfo: async () => {
+        console.log('   a. [FETCH_USER] `fetchUserInfo` 開始執行。');
         try {
+          console.log('   b. [FETCH_USER] 準備向 /api/auth/me 發起 API 請求...');
           const result = await safeApiCall(() => openapi.GET('/api/auth/me' as any, {}));
+
+          console.log('   c. [FETCH_USER] API 請求完成，收到的 result:', result);
 
           if (result && result.data) {
             const user = result.data.user || result.data;
-            const permissions = result.data.permissions || user.permissions || [];
-            const roles = result.data.roles || user.roles || [];
+            const permissions = user.permissions || [];
+            const roles = user.roles || [];
 
+            console.log('   d. [FETCH_USER] 成功解析數據，準備更新 store。', { user, permissions, roles });
             set({
               user,
               token: get().token, // 保持現有 token
@@ -172,51 +176,59 @@ export const useAuthStore = create<AuthState>()(
               roles,
               isAuthenticated: true,
             });
+            console.log('   ✅ [FETCH_USER] Store 更新完畢！');
           } else {
             throw new Error('API 回應中缺少有效的 data 物件。');
           }
         } catch (error) {
+          console.error('   ❌ [FETCH_USER] 捕獲到錯誤，將其拋出給調用者（initialize）。', error);
           get().logout(); // 在這裡先執行登出清理
           throw error; // 向上拋出錯誤
         }
       },
 
       /**
-       * 初始化認證狀態 - V6.9 健壯版本
-       * 完全信任 persist 中間件恢復的狀態，移除不必要的遠程驗證
+       * 初始化認證狀態
+       * 臨時 DEBUG 版本：詳細追蹤執行流程
        */
-      initialize: () => {
-        // 這個函數現在可以是同步的，因為它只信任本地恢復的狀態
+      initialize: async () => {
+        console.log('1️⃣ [AUTH_INIT] `initialize` 開始執行。');
         set({ isLoading: true });
+        const token = localStorage.getItem('auth_token'); // 直接從 localStorage 讀取最原始的 token
 
-        // 獲取由 persist 中間件恢復的狀態
-        const { user, token } = get();
+        if (!token) {
+          console.log('2️⃣ [AUTH_INIT] 未找到 token，流程結束。');
+          set({ isLoading: false, isAuthenticated: false });
+          return;
+        }
 
-        // 核心邏輯：如果從 localStorage 成功恢復了 user 和 token，
-        // 我們就直接認為使用者已登入。不再需要去遠程驗證！
-        if (user && token) {
-          console.log("✅ [AUTH_INIT] 從持久化儲存中成功恢復認證狀態。");
-          set({ 
-            isAuthenticated: true,
-            isLoading: false 
-          });
-        } else {
-          // 只有當本地沒有有效狀態時，才認為未登入
-          console.log("📝 [AUTH_INIT] 未在持久化儲存中找到有效狀態。");
-          set({ 
-            isAuthenticated: false,
-            isLoading: false 
-          });
+        console.log(`3️⃣ [AUTH_INIT] 發現 token，準備調用 fetchUserInfo。Token: ${token.substring(0, 10)}...`);
+        try {
+          await get().fetchUserInfo();
+          console.log('✅ [AUTH_INIT] `fetchUserInfo` 成功返回。');
+        } catch (error) {
+          console.error('❌ [AUTH_INIT] `fetchUserInfo` 拋出錯誤，流程終止。', error);
+        } finally {
+          // 無論成功或失敗，都確保關閉 loading 狀態
+          console.log('🏁 [AUTH_INIT] `initialize` 流程結束，設置 isLoading 為 false。');
+          set({ isLoading: false });
         }
       },
 
       /**
        * 登入方法
-       * 直接從 user 物件中獲取 roles 和 permissions
+       * V6.8 重構：直接從 user 物件中獲取 roles 和 permissions
        */
       login: (user: User, token: string) => {
         try {
-          // 一次性同步所有狀態，包含從 login API 獲取的權限
+          console.log('🔐 開始登入流程 - 使用者:', user.display_name);
+          console.log('🔐 權限資料:', {
+            roles: user.roles || [user.role],
+            permissions_count: (user.permissions || []).length,
+            permissions: (user.permissions || []).slice(0, 5) // 顯示前 5 個權限
+          });
+          
+          // 🚀 V6.7 關鍵更新：一次性同步所有狀態，包含從 login API 獲取的權限
           set({
             user,
             token,
@@ -228,8 +240,14 @@ export const useAuthStore = create<AuthState>()(
           
           // 同步到 localStorage
           localStorage.setItem('auth_token', token);
+          console.log('✅ 登入成功，狀態已同步:', user.display_name);
+          console.log('  - Token 已存入 localStorage');
+          console.log('  - 狀態已存入 Zustand persist');
+          console.log('  - 權限已同步:', (user.permissions || []).length, '個權限');
+          console.log('  - 角色已同步:', (user.roles || [user.role]).length, '個角色');
           
         } catch (error) {
+          console.error('❌ 登入狀態設置失敗:', error);
           throw error; // 重新拋出錯誤讓調用方處理
         }
       },
@@ -363,14 +381,21 @@ export const useAuthStore = create<AuthState>()(
         // 🔒 注意：不持久化 isAuthenticated，由 initialize() 重新計算
       }),
       version: 7, // 🔧 升級版本號至 V6.7
-      // 狀態恢復後的安全檢查
+      // V6.7 安全加固：狀態恢復後的安全檢查
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          // 靜默處理恢復錯誤
+          console.error('❌ Zustand persist 恢復失敗:', error);
           return;
         }
         
-        // 狀態恢復成功，但不需要額外日誌
+        if (state) {
+          console.log('💾 Zustand persist 狀態已載入:');
+          console.log('  - user:', state.user ? state.user.display_name : 'undefined');
+          console.log('  - token:', state.token ? state.token.substring(0, 20) + '...' : 'null');
+          console.log('  - permissions:', state.permissions?.length || 0);
+          console.log('  - roles:', state.roles?.length || 0);
+          console.log('🔄 準備進行認證狀態初始化...');
+        }
       },
     }
   )
@@ -413,7 +438,13 @@ class AuthUtils {
     // 例如: 14|lnVyGoBId6o2ViqYeJMuJDHhexLEHCCPW7RP4DcL
     const sanctumPattern = /^\d+\|[a-zA-Z0-9]+$/;
     
-    return sanctumPattern.test(token);
+    if (sanctumPattern.test(token)) {
+      console.log('✅ Token 格式有效: Laravel Sanctum Personal Access Token');
+      return true;
+    }
+    
+    console.log('❌ Token 格式無效: 不符合 Laravel Sanctum 格式');
+    return false;
   }
 
   /**

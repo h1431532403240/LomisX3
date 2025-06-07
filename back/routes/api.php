@@ -45,8 +45,12 @@ Route::prefix('auth')->name('auth.')->group(function () {
     // 登出路由（不需要強制認證，支援冪等性操作）
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     
+    // ✅ /me 端點重新移回認證區域，需要 Bearer Token
+    // 注意：此端點必須使用 auth:sanctum 中間件來正確處理 Bearer Token
+    
     // 需要認證的路由
     Route::middleware('auth:sanctum')->group(function () {
+        // 用戶資訊端點（重要：必須在 auth:sanctum 保護下才能正確處理 Bearer Token）
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
         

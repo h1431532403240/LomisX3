@@ -18,8 +18,8 @@ import ProfilePage from '@/pages/profile/ProfilePage';
 import LoginPage from '@/pages/auth/LoginPage';
 import { ProtectedRoute } from '@/components/guards/ProtectedRoute';
 import { useAuthStore } from '@/stores/authStore';
+import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { useEffect } from 'react';
-import { initializeCsrfToken } from '@/lib/openapi-client';
 
 import {
   SidebarInset,
@@ -98,34 +98,47 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
 /**
  * 應用程式根組件
- * 提供全域上下文和路由管理，整合認證流程和 CSRF 保護
+ * 提供全域上下文和路由管理，整合 Bearer Token 認證流程
  * 
  * @author LomisX3 開發團隊
- * @version 4.1.0 (CSRF 初始化支援)
+ * @version 4.5.0 (Bearer Token 認證模式 + 同步初始化優化)
  */
 function App() {
-  const initialize = useAuthStore((state) => state.initialize);
+  const { initialize, isLoading } = useAuthStore();
 
-  // 應用程式啟動時初始化認證狀態和 CSRF 保護
+  // 應用程式啟動時初始化認證狀態
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // 1. 先初始化認證狀態 (異步操作)
-        await initialize();
-        
-        // 2. 等待一個 tick 確保狀態已更新
-        await new Promise(resolve => setTimeout(resolve, 0));
-        
-        // 3. 初始化 CSRF token (Laravel Sanctum SPA 認證必需)
-        await initializeCsrfToken();
-      } catch (error) {
-        console.error('❌ 應用程式初始化失敗:', error);
-      }
-    };
-
-    initializeApp();
+    try {
+      // 初始化認證狀態 (Bearer Token 模式 - 現在是同步的)
+      initialize();
+      console.log('✅ Bearer Token 認證系統初始化完成');
+    } catch (error) {
+      console.error('❌ 應用程式初始化失敗:', error);
+    }
   }, [initialize]);
 
+  // ✅ 關鍵修改：在認證初始化期間顯示載入畫面
+  if (isLoading) {
+    return (
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+        storageKey="vite-ui-theme"
+      >
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+          <LoadingSpinner 
+            size="xl" 
+            text="正在初始化認證系統..." 
+            className="text-center"
+          />
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  // 只有在認證初始化完成後，才渲染應用的主要內容
   return (
     <ThemeProvider
       attribute="class"

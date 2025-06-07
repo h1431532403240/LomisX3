@@ -98,7 +98,9 @@ class Handler extends ExceptionHandler
 
     /**
      * 處理未認證的請求
-     * 重要：防止 API 請求被重導向到登入頁面
+     * 
+     * 重要：防止 API 請求被重導向到登入頁面，避免 CORS 錯誤
+     * 符合 SPA 設計原則，API 請求應該返回 JSON 錯誤而非重定向
      * 
      * @param Request $request
      * @param AuthenticationException $exception
@@ -106,16 +108,18 @@ class Handler extends ExceptionHandler
      */
     protected function unauthenticated($request, AuthenticationException $exception): JsonResponse|Response
     {
-        // 如果是 API 請求或期望 JSON 回應，返回 JSON 格式錯誤
+        // 檢查請求是否期望 JSON 回應 (通常 API 請求都是)
         if ($request->expectsJson() || $request->is('api/*')) {
+            // 返回一個符合我們架構手冊規範的 401 JSON 錯誤
             return response()->json([
                 'success' => false,
-                'message' => '未授權存取，請先登入',
-                'error_code' => 'UNAUTHENTICATED'
+                'message' => 'Unauthenticated.',
+                'error_code' => 'UNAUTHENTICATED',
+                'errors' => null
             ], 401);
         }
 
-        // 否則重定向到登入頁面 (為 web 路由保留此行為)
-        return redirect()->guest(route('login'));
+        // 對於非 API 的網頁請求，保留原始的重定向行為
+        return redirect()->guest($exception->redirectTo() ?? route('login'));
     }
 }

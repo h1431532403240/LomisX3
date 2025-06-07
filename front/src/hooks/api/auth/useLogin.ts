@@ -7,7 +7,7 @@
  * ⚡ 特色功能：
  * - 🔒 完整錯誤處理和重試機制
  * - 📊 詳細的登入流程日誌
- * - 🔄 自動 CSRF 處理
+ * - 🔑 自動 Bearer Token 處理
  * - 🚀 型別安全的 API 呼叫
  * - 👤 完整的使用者權限同步
  * 
@@ -220,8 +220,8 @@ function convertApiUserToUser(apiUser: ApiUser): User {
 }
 
 /**
- * API 呼叫（使用 openapi 客戶端和 CSRF 保護）
- * 自動處理 CSRF token 和錯誤重試
+         * API 呼叫（使用 openapi 客戶端和 Bearer Token 認證）
+        * 自動處理 Bearer Token 和錯誤重試
  */
 async function loginApiCall(request: BackendLoginRequest): Promise<LoginResponse> {
   return await safeApiCall(async () => {

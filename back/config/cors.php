@@ -17,8 +17,9 @@ return [
 
     /**
      * 指定哪些路徑允許跨域請求
+     * 純 Bearer Token 模式只需要 API 路徑
      */
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*'],
 
     /**
      * 允許的 HTTP 方法
@@ -52,8 +53,8 @@ return [
     'max_age' => 0,
 
     /**
-     * 支援認證 Cookie (Laravel Sanctum SPA 認證必需)
-     * 對於 Sanctum 認證，這個必須是 true
+     * 支援認證 Credentials
+     * 純 Bearer Token 模式不依賴 Cookie，但保持 true 以支援其他認證標頭
      */
     'supports_credentials' => true,
 

@@ -25,8 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-const SIDEBAR_COOKIE_NAME = "sidebar_state"
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+const SIDEBAR_STORAGE_KEY = "sidebar_state"
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
@@ -53,6 +52,31 @@ function useSidebar() {
   return context
 }
 
+/**
+ * 從 localStorage 讀取 Sidebar 狀態
+ * 純 Bearer Token 模式：使用 localStorage 而非 Cookie
+ */
+function getSidebarStateFromStorage(): boolean {
+  try {
+    const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY)
+    return stored ? JSON.parse(stored) : true // 預設為展開
+  } catch {
+    return true // 預設為展開
+  }
+}
+
+/**
+ * 將 Sidebar 狀態保存到 localStorage
+ * 純 Bearer Token 模式：使用 localStorage 而非 Cookie
+ */
+function setSidebarStateToStorage(open: boolean): void {
+  try {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(open))
+  } catch {
+    // 靜默處理 localStorage 錯誤
+  }
+}
+
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -63,7 +87,7 @@ const SidebarProvider = React.forwardRef<
 >(
   (
     {
-      defaultOpen = true,
+      defaultOpen,
       open: openProp,
       onOpenChange: setOpenProp,
       className,
@@ -76,9 +100,14 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    // This is the internal state of the sidebar.
-    // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    // 初始化時從 localStorage 讀取狀態，如果沒有則使用 defaultOpen
+    const [_open, _setOpen] = React.useState(() => {
+      if (defaultOpen !== undefined) {
+        return defaultOpen
+      }
+      return getSidebarStateFromStorage()
+    })
+
     const open = openProp ?? _open
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -89,8 +118,8 @@ const SidebarProvider = React.forwardRef<
           _setOpen(openState)
         }
 
-        // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        // 保存狀態到 localStorage（純 Bearer Token 模式）
+        setSidebarStateToStorage(openState)
       },
       [setOpenProp, open]
     )

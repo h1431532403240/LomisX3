@@ -730,7 +730,7 @@ class AuthController extends Controller
     /**
      * 獲取當前認證使用者資訊
      * 
-     * 處理未認證情況，返回 JSON 錯誤而非重定向（符合 SPA 設計原則）
+     * 處理未認證情況，返回 JSON 錯誤而非重定向（符合純 Bearer Token API 設計原則）
      * 
      * @group 認證管理
      * 

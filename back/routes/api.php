@@ -5,9 +5,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /**
- * API 路由文件
+ * API 路由文件 (Pure Bearer Token 模式)
  * 這些路由會自動套用 'api' middleware 群組
- * 並且會包含 Sanctum 的 EnsureFrontendRequestsAreStateful middleware
+ * 採用純 Bearer Token 認證，不使用 Session 或 Cookie
  */
 
 /**
@@ -32,7 +32,7 @@ Route::get('/test', function () {
 /**
  * 認證 & 2FA API 路由
  * 遵循 LomisX3 架構標準的使用者管理模組 V6.2
- * 🎯 專為 SPA 設計，支援 Sanctum CSRF 流程
+ * 🎯 純 Bearer Token 模式，所有認證都使用 Authorization 標頭
  */
 Route::prefix('auth')->name('auth.')->group(function () {
     // 公開認證路由 (不需要認證)

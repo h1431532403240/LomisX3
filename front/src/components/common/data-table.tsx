@@ -1,8 +1,9 @@
 /**
- * 數據表格組件
+ * 數據表格組件 (V2.0 企業級重構 - 完全受控模式)
  * 提供完整的表格展示、排序、篩選、分頁功能
+ * 徹底解決 "setState in render" 問題，實現完全受控的組件設計
  */
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -106,44 +107,39 @@ export interface PaginationConfig {
 }
 
 /**
- * 數據表格屬性
+ * 數據表格屬性 (V2.0 - 完全受控模式)
  */
 export interface DataTableProps<T = any> {
-  /** 表格資料 */
+  // --- 核心資料 ---
   data: T[];
-  /** 欄位定義 */
   columns: DataTableColumn<T>[];
-  /** 表格操作 */
   actions?: TableAction<T>[];
-  /** 是否顯示選擇框 */
-  rowSelection?: boolean;
-  /** 選中項變化回調 */
-  onSelectionChange?: (selectedKeys: string[], selectedRows: T[]) => void;
-  /** 行唯一鍵 */
-  rowKey?: keyof T | ((record: T) => string);
-  /** 是否顯示分頁 */
-  pagination?: PaginationConfig | false;
-  /** 是否載入中 */
+
+  // --- 狀態控制 (由父組件傳入) ---
   loading?: boolean;
-  /** 空資料提示 */
-  emptyText?: string;
-  /** 表格尺寸 */
-  size?: 'default' | 'sm' | 'lg';
-  /** 是否顯示邊框 */
-  bordered?: boolean;
-  /** 是否顯示斑馬紋 */
-  striped?: boolean;
-  /** 表格標題 */
+  pagination?: PaginationConfig | false;
+  rowKey?: keyof T | ((record: T) => string);
+  
+  // ✅ 排序狀態 (受控)
+  sortState?: { field: string | null; order: 'asc' | 'desc' };
+  // ✅ 選擇狀態 (受控)
+  selectionState?: { selectedKeys: string[] };
+  // ✅ 搜尋狀態 (受控)
+  searchState?: { value: string };
+
+  // --- 事件回調 (通知父組件更新) ---
+  // ✅ 排序變更回調
+  onSortChange?: (field: string, order: 'asc' | 'desc') => void;
+  // ✅ 選擇變更回調
+  onSelectionChange?: (newSelectedKeys: string[], selectedRows: T[]) => void;
+  // ✅ 搜尋變更回調
+  onSearchChange?: (newValue: string) => void;
+
+  // --- UI 顯示與配置 ---
   title?: string;
-  /** 工具列 */
   toolbar?: React.ReactNode;
-  /** 搜尋功能 */
-  searchable?: boolean;
-  /** 搜尋佔位符 */
+  emptyText?: string;
   searchPlaceholder?: string;
-  /** 搜尋回調 */
-  onSearch?: (value: string) => void;
-  /** 行樣式函數 */
   rowClassName?: (record: T, index: number) => string;
 }
 
@@ -154,27 +150,34 @@ export function DataTable<T extends Record<string, any>>({
   data,
   columns,
   actions = [],
-  rowSelection = false,
-  onSelectionChange,
-  rowKey = 'id',
-  pagination = false,
   loading = false,
-  emptyText = '暫無資料',
-  size = 'default',
-  bordered = false,
-  striped = false,
+  pagination = false,
+  rowKey = 'id',
+  sortState,
+  selectionState,
+  searchState,
+  onSortChange,
+  onSelectionChange,
+  onSearchChange,
   title,
   toolbar,
-  searchable = false,
+  emptyText = '暫無資料',
   searchPlaceholder = '搜尋...',
-  onSearch,
   rowClassName,
 }: DataTableProps<T>) {
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-  const [sortField, setSortField] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [searchValue, setSearchValue] = useState('');
-  const [columnFilters, setColumnFilters] = useState<Record<string, any>>({});
+  // 🚫 移除所有內部狀態 - 完全受控模式
+  // const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  // const [sortField, setSortField] = useState<string | null>(null);
+  // const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  // const [searchValue, setSearchValue] = useState('');
+  // const [columnFilters, setColumnFilters] = useState<Record<string, any>>({});
+
+  // ✅ 從 props 取得狀態值 (完全受控)
+  const selectedKeys = selectionState?.selectedKeys || [];
+  const sortField = sortState?.field || null;
+  const sortOrder = sortState?.order || 'asc';
+  const searchValue = searchState?.value || '';
+  const hasRowSelection = Boolean(selectionState); // 根據是否傳入 selectionState 來判斷是否顯示選擇框
 
   /**
    * 獲取行唯一鍵
@@ -187,39 +190,41 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   /**
-   * 處理排序
+   * 處理排序 - 通知父組件
    */
   const handleSort = (column: DataTableColumn<T>) => {
-    if (!column.sortable) return;
+    if (!column.sortable || !onSortChange) return;
 
     const field = column.dataIndex as string || column.key;
     
     if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      onSortChange(field, newOrder);
     } else {
-      setSortField(field);
-      setSortOrder('asc');
+      onSortChange(field, 'asc');
     }
   };
 
   /**
-   * 處理選擇
+   * 處理全選 - 通知父組件
    */
   const handleSelectAll = (checked: boolean) => {
+    if (!onSelectionChange) return;
+
     if (checked) {
       const allKeys = data.map((record, index) => getRowKey(record, index));
-      setSelectedKeys(allKeys);
-      onSelectionChange?.(allKeys, data);
+      onSelectionChange(allKeys, data);
     } else {
-      setSelectedKeys([]);
-      onSelectionChange?.([], []);
+      onSelectionChange([], []);
     }
   };
 
   /**
-   * 處理單行選擇
+   * 處理單行選擇 - 通知父組件
    */
   const handleSelectRow = (record: T, index: number, checked: boolean) => {
+    if (!onSelectionChange) return;
+
     const key = getRowKey(record, index);
     let newSelectedKeys: string[];
     
@@ -229,19 +234,17 @@ export function DataTable<T extends Record<string, any>>({
       newSelectedKeys = selectedKeys.filter(k => k !== key);
     }
     
-    setSelectedKeys(newSelectedKeys);
     const selectedRows = data.filter((_, idx) => 
       newSelectedKeys.includes(getRowKey(_, idx))
     );
-    onSelectionChange?.(newSelectedKeys, selectedRows);
+    onSelectionChange(newSelectedKeys, selectedRows);
   };
 
   /**
-   * 處理搜尋
+   * 處理搜尋 - 通知父組件
    */
   const handleSearch = (value: string) => {
-    setSearchValue(value);
-    onSearch?.(value);
+    onSearchChange?.(value);
   };
 
   /**
@@ -250,7 +253,7 @@ export function DataTable<T extends Record<string, any>>({
   const renderTableHeader = () => (
     <TableHeader>
       <TableRow>
-        {rowSelection && (
+        {hasRowSelection && (
           <TableHead className="w-12">
             <Checkbox
               checked={selectedKeys.length === data.length && data.length > 0}
@@ -305,7 +308,7 @@ export function DataTable<T extends Record<string, any>>({
       {data.length === 0 ? (
         <TableRow>
           <TableCell 
-            colSpan={columns.length + (rowSelection ? 1 : 0) + (actions.length > 0 ? 1 : 0)}
+            colSpan={columns.length + (hasRowSelection ? 1 : 0) + (actions.length > 0 ? 1 : 0)}
             className="text-center py-8 text-muted-foreground"
           >
             {emptyText}
@@ -320,11 +323,9 @@ export function DataTable<T extends Record<string, any>>({
           return (
             <TableRow 
               key={key}
-              className={`${isSelected ? 'bg-muted/50' : ''} ${
-                striped && index % 2 === 1 ? 'bg-muted/25' : ''
-              } ${customRowClass}`}
+              className={`${isSelected ? 'bg-muted/50' : ''} ${customRowClass}`}
             >
-              {rowSelection && (
+              {hasRowSelection && (
                 <TableCell>
                   <Checkbox
                     checked={isSelected}
@@ -465,13 +466,13 @@ export function DataTable<T extends Record<string, any>>({
   return (
     <div className="space-y-4">
       {/* 標題和工具列 */}
-      {(title || toolbar || searchable) && (
+      {(title || toolbar || searchState) && (
         <div className="flex items-center justify-between">
           <div>
             {title && <h2 className="text-lg font-semibold">{title}</h2>}
           </div>
           <div className="flex items-center space-x-2">
-            {searchable && (
+            {searchState && (
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -488,14 +489,13 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       {/* 選中項提示 */}
-      {rowSelection && selectedKeys.length > 0 && (
+      {hasRowSelection && selectedKeys.length > 0 && (
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
           <span>已選中 {selectedKeys.length} 項</span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              setSelectedKeys([]);
               onSelectionChange?.([], []);
             }}
           >
@@ -506,7 +506,7 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       {/* 表格 */}
-      <div className={`rounded-md border ${bordered ? 'border-border' : 'border-transparent'}`}>
+      <div className="rounded-md border">
         <Table>
           {renderTableHeader()}
           {renderTableBody()}

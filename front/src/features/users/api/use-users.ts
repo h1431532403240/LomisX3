@@ -9,7 +9,7 @@
  * - 快取策略
  */
 
-import type { operations } from "@/types/api";
+import type { paths } from "@/types/api";
 
 /**
  * @description Query keys for user-related data.
@@ -19,7 +19,7 @@ import type { operations } from "@/types/api";
 export const userQueryKeys = {
   all: ['users'] as const,
   lists: () => [...userQueryKeys.all, 'list'] as const,
-  list: (params: operations['listUsers']['parameters']['query']) => [...userQueryKeys.lists(), params] as const,
+  list: (params: paths['/api/users']['get']['parameters']['query']) => [...userQueryKeys.lists(), params] as const,
   details: () => [...userQueryKeys.all, 'detail'] as const,
   detail: (id: number) => [...userQueryKeys.details(), id] as const,
 };

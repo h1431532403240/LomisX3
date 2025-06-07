@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ProductCategoryController, AuthController, UserController};
+use App\Http\Controllers\Api\{ProductCategoryController, AuthController, UserController, SystemController};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -121,6 +121,18 @@ Route::prefix('product-categories')->name('product-categories.')->group(function
 
     Route::get('/statistics', [ProductCategoryController::class, 'statistics'])
         ->name('statistics');
+});
+
+/**
+ * 系統配置 API 路由
+ * 提供枚舉值和本地化文本，實現配置驅動UI
+ */
+Route::prefix('system')->name('system.')->group(function () {
+    // 系統配置端點 (公開存取，前端應用啟動時使用)
+    Route::get('/configs', [SystemController::class, 'getConfigs'])->name('configs');
+    
+    // 特定枚舉配置端點
+    Route::get('/enums/{type}', [SystemController::class, 'getEnumConfig'])->name('enum-config');
 });
 
 /**

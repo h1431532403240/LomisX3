@@ -42,36 +42,6 @@ endpoints:
         exampleWasSpecified: true
         nullable: false
         custom: []
-      remember:
-        name: remember
-        description: 記住我（延長Token有效期）
-        required: false
-        example: true
-        type: boolean
-        enumValues: []
-        exampleWasSpecified: true
-        nullable: true
-        custom: []
-      two_factor_code:
-        name: two_factor_code
-        description: 'Must match the regex /^[0-9]+$/. Must be 6 characters.'
-        required: false
-        example: qcoynl
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: true
-        custom: []
-      recovery_code:
-        name: recovery_code
-        description: 'Must be 10 characters.'
-        required: false
-        example: azghdtqtqx
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: true
-        custom: []
       device_name:
         name: device_name
         description: 裝置名稱（用於Token識別）
@@ -80,7 +50,17 @@ endpoints:
         type: string
         enumValues: []
         exampleWasSpecified: true
-        nullable: true
+        nullable: false
+        custom: []
+      remember:
+        name: remember
+        description: 記住我（延長Token有效期）
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
         custom: []
       store_code:
         name: store_code
@@ -95,10 +75,8 @@ endpoints:
     cleanBodyParameters:
       login: admin@lomis.com
       password: SecurePass123!
-      remember: true
-      two_factor_code: qcoynl
-      recovery_code: azghdtqtqx
       device_name: 'Chrome on Windows'
+      remember: true
       store_code: STORE001
     fileParameters: []
     responses:
@@ -343,100 +321,6 @@ endpoints:
     custom: []
   -
     httpMethods:
-      - GET
-    uri: api/auth/me
-    metadata:
-      groupName: 認證管理
-      groupDescription: ''
-      subgroup: ''
-      subgroupDescription: ''
-      title: 取得當前使用者資訊
-      description: 取得當前認證使用者的詳細資訊
-      authenticated: false
-      custom: []
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters: []
-    cleanUrlParameters: []
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters: []
-    cleanBodyParameters: []
-    fileParameters: []
-    responses:
-      -
-        status: 200
-        content: |-
-          {
-            "success": true,
-            "message": "取得使用者資訊成功",
-            "data": {
-              "id": 1,
-              "username": "admin",
-              "name": "管理員",
-              "email": "admin@lomis.com",
-              "store_id": 1,
-              "store": {
-                "id": 1,
-                "name": "總店",
-                "code": "STORE001"
-              },
-              "phone": "0912345678",
-              "status": {
-                "value": "active",
-                "label": "啟用",
-                "color": "success",
-                "is_active": true
-              },
-              "email_verified_at": "2025-01-01T00:00:00.000000Z",
-              "is_email_verified": true,
-              "two_factor": {
-                "enabled": true,
-                "confirmed_at": "2025-01-01T00:00:00.000000Z"
-              },
-              "login_info": {
-                "last_login_at": "2025-01-07T10:00:00.000000Z",
-                "last_login_ip": "192.168.1.100"
-              },
-              "roles": [
-                {
-                  "id": 1,
-                  "name": "admin",
-                  "display_name": "管理員",
-                  "level": 100,
-                  "color": "primary"
-                }
-              ],
-              "permissions": ["users.view", "users.create", "users.update"],
-              "avatar": {
-                "url": "https://example.com/avatars/1.jpg",
-                "thumbnail_url": "https://example.com/avatars/1-thumb.jpg",
-                "has_avatar": true
-              }
-            }
-          }
-        headers: []
-        description: ''
-        custom: []
-      -
-        status: 401
-        content: |-
-          {
-            "success": false,
-            "message": "未授權"
-          }
-        headers: []
-        description: ''
-        custom: []
-    responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-    custom: []
-  -
-    httpMethods:
       - POST
     uri: api/auth/logout
     metadata:
@@ -444,8 +328,8 @@ endpoints:
       groupDescription: ''
       subgroup: ''
       subgroupDescription: ''
-      title: 使用者登出
-      description: '登出當前使用者，撤銷當前的 API Token'
+      title: 登出
+      description: '撤銷當前使用者的 Sanctum Token 並記錄登出活動'
       authenticated: false
       custom: []
     headers:
@@ -474,7 +358,68 @@ endpoints:
         content: |-
           {
             "success": false,
-            "message": "未授權"
+            "message": "未授權",
+            "error_code": "UNAUTHENTICATED"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - GET
+    uri: api/auth/me
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 獲取當前認證使用者資訊
+      description: '處理未認證情況，返回 JSON 錯誤而非重定向（符合純 Bearer Token API 設計原則）'
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "取得使用者資訊成功",
+            "data": {
+              "id": 1,
+              "username": "admin",
+              "name": "管理員",
+              "email": "admin@lomis.com",
+              "roles": ["admin"],
+              "permissions": ["users.view", "users.create"]
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 401
+        content: |-
+          {
+            "success": false,
+            "message": "Unauthenticated.",
+            "error_code": "UNAUTHENTICATED",
+            "errors": null
           }
         headers: []
         description: ''

@@ -35,8 +35,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          access-control-allow-origin: 'http://localhost:5173'
-          access-control-allow-credentials: 'true'
+          vary: Origin
         description: null
         custom: []
     responseFields: []
@@ -73,12 +72,11 @@ endpoints:
     responses:
       -
         status: 200
-        content: '{"message":"API \u904b\u4f5c\u6b63\u5e38","timestamp":"2025-06-05T13:05:08.186667Z"}'
+        content: '{"message":"API \u904b\u4f5c\u6b63\u5e38","timestamp":"2025-06-07T14:07:53.170244Z"}'
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          access-control-allow-origin: 'http://localhost:5173'
-          access-control-allow-credentials: 'true'
+          vary: Origin
         description: null
         custom: []
     responseFields: []

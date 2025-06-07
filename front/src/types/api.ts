@@ -4,162 +4,6 @@
  */
 
 export interface paths {
-    "/api/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 使用者登入 */
-        post: operations["loginUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 使用者登出 */
-        post: operations["logoutUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 取得當前登入的使用者資訊 */
-        get: operations["getCurrentUser"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/2fa/challenge": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 二階段驗證 (2FA) */
-        post: operations["twoFactorChallenge"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 取得使用者列表 (分頁) */
-        get: operations["listUsers"];
-        put?: never;
-        /** 建立新使用者 */
-        post: operations["createUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 取得單一使用者詳細資訊 */
-        get: operations["getUserById"];
-        /** 更新使用者資訊 */
-        put: operations["updateUser"];
-        post?: never;
-        /** 刪除使用者 */
-        delete: operations["deleteUser"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/batch/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 批次更新使用者狀態 */
-        patch: operations["batchUpdateUserStatus"];
-        trace?: never;
-    };
-    "/api/users/{id}/reset-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 重設使用者密碼 */
-        post: operations["resetUserPassword"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/statistics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 取得使用者統計數據 */
-        get: operations["getUserStatistics"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/product-categories": {
         parameters: {
             query?: never;
@@ -167,12 +11,665 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 取得商品分類列表 (分頁) */
-        get: operations["listProductCategories"];
+        /**
+         * 取得分類清單
+         * @description 支援分頁、篩選、搜尋等功能。可通過查詢參數控制返回結果。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description 搜尋關鍵字（支援名稱、描述）
+                     * @example 電子產品
+                     */
+                    search?: string;
+                    /**
+                     * @description 分類狀態篩選
+                     * @example true
+                     */
+                    status?: boolean;
+                    /**
+                     * @description 父分類ID篩選
+                     * @example 1
+                     */
+                    parent_id?: number;
+                    /**
+                     * @description 分類深度篩選
+                     * @example 2
+                     */
+                    depth?: number;
+                    /**
+                     * @description 是否包含子分類
+                     * @example true
+                     */
+                    with_children?: boolean;
+                    /**
+                     * @description 最大深度限制
+                     * @example 3
+                     */
+                    max_depth?: number;
+                    /**
+                     * @description 是否包含已刪除項目
+                     * @example false
+                     */
+                    with_trashed?: boolean;
+                    /**
+                     * @description 每頁項目數（1-100）
+                     * @example 20
+                     */
+                    per_page?: number;
+                    /**
+                     * @description 頁碼
+                     * @example 1
+                     */
+                    page?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example [
+                             *       {
+                             *         "id": 1,
+                             *         "name": "電子產品",
+                             *         "slug": "electronics",
+                             *         "parent_id": null,
+                             *         "position": 1,
+                             *         "status": true,
+                             *         "depth": 0,
+                             *         "description": "各類電子產品分類",
+                             *         "meta_title": "電子產品 | LomisX3",
+                             *         "meta_description": "電子產品相關商品分類",
+                             *         "path": "/1/",
+                             *         "has_children": true,
+                             *         "full_path": "電子產品",
+                             *         "children_count": 5,
+                             *         "created_at": "2025-01-07T10:00:00.000000Z",
+                             *         "updated_at": "2025-01-07T10:00:00.000000Z"
+                             *       }
+                             *     ] */
+                            data?: {
+                                /** @example 1 */
+                                id?: number;
+                                /** @example 電子產品 */
+                                name?: string;
+                                /** @example electronics */
+                                slug?: string;
+                                /** @example null */
+                                parent_id?: string;
+                                /** @example 1 */
+                                position?: number;
+                                /** @example true */
+                                status?: boolean;
+                                /** @example 0 */
+                                depth?: number;
+                                /** @example 各類電子產品分類 */
+                                description?: string;
+                                /** @example 電子產品 | LomisX3 */
+                                meta_title?: string;
+                                /** @example 電子產品相關商品分類 */
+                                meta_description?: string;
+                                /** @example /1/ */
+                                path?: string;
+                                /** @example true */
+                                has_children?: boolean;
+                                /** @example 電子產品 */
+                                full_path?: string;
+                                /** @example 5 */
+                                children_count?: number;
+                                /** @example 2025-01-07T10:00:00.000000Z */
+                                created_at?: string;
+                                /** @example 2025-01-07T10:00:00.000000Z */
+                                updated_at?: string;
+                            }[];
+                            links?: {
+                                /** @example http://localhost/api/product-categories?page=1 */
+                                first?: string;
+                                /** @example http://localhost/api/product-categories?page=10 */
+                                last?: string;
+                                /** @example null */
+                                prev?: string;
+                                /** @example http://localhost/api/product-categories?page=2 */
+                                next?: string;
+                            };
+                            meta?: {
+                                /** @example 1 */
+                                current_page?: number;
+                                /** @example 1 */
+                                from?: number;
+                                /** @example 10 */
+                                last_page?: number;
+                                /** @example 20 */
+                                per_page?: number;
+                                /** @example 20 */
+                                to?: number;
+                                /** @example 200 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 驗證失敗 */
+                            message?: string;
+                            errors?: {
+                                /** @example [
+                                 *       "每頁項目數不能超過100"
+                                 *     ] */
+                                per_page?: string[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
-        /** 建立新商品分類 */
-        post: operations["createProductCategory"];
+        /**
+         * 儲存新分類
+         * @description 創建新的商品分類。系統將自動計算層級深度、生成唯一slug，並觸發快取更新。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 分類名稱（2-100字元）
+                         * @example 智慧型手機
+                         */
+                        name: string;
+                        /**
+                         * @description 自訂URL別名（可選，系統會自動生成）
+                         * @example smartphones
+                         */
+                        slug?: string | null;
+                        /**
+                         * @description 父分類ID（可選）
+                         * @example 1
+                         */
+                        parent_id?: number | null;
+                        /**
+                         * @description 排序位置（可選，預設自動計算）
+                         * @example 10
+                         */
+                        position?: number | null;
+                        /**
+                         * @description 啟用狀態（預設true）
+                         * @example true
+                         */
+                        status?: boolean | null;
+                        /**
+                         * @description 分類描述（可選）
+                         * @example 各種品牌的智慧型手機
+                         */
+                        description?: string | null;
+                        /**
+                         * @description SEO標題（可選，預設使用分類名稱）
+                         * @example 智慧型手機 | LomisX3
+                         */
+                        meta_title?: string | null;
+                        /**
+                         * @description SEO描述（可選）
+                         * @example 提供各大品牌智慧型手機，包含最新機型與優惠價格
+                         */
+                        meta_description?: string | null;
+                    };
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 分類建立成功 */
+                            message?: string;
+                            data?: {
+                                /** @example 15 */
+                                id?: number;
+                                /** @example 智慧型手機 */
+                                name?: string;
+                                /** @example smartphones */
+                                slug?: string;
+                                /** @example 1 */
+                                parent_id?: number;
+                                /** @example 10 */
+                                position?: number;
+                                /** @example true */
+                                status?: boolean;
+                                /** @example 1 */
+                                depth?: number;
+                                /** @example 各種品牌的智慧型手機 */
+                                description?: string;
+                                /** @example 智慧型手機 | LomisX3 */
+                                meta_title?: string;
+                                /** @example 提供各大品牌智慧型手機，包含最新機型與優惠價格 */
+                                meta_description?: string;
+                                /** @example /1/15/ */
+                                path?: string;
+                                /** @example false */
+                                has_children?: boolean;
+                                /** @example 電子產品 > 智慧型手機 */
+                                full_path?: string;
+                                /** @example 0 */
+                                children_count?: number;
+                                /** @example 2025-01-07T10:30:00.000000Z */
+                                created_at?: string;
+                                /** @example 2025-01-07T10:30:00.000000Z */
+                                updated_at?: string;
+                            };
+                        };
+                    };
+                };
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 分類建立失敗：超過最大層級限制 */
+                            message?: string;
+                            /** @example MAX_DEPTH_EXCEEDED */
+                            code?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 分類建立失敗：名稱已存在 */
+                            message?: string;
+                            /** @example CATEGORY_CREATE_FAILED */
+                            code?: string;
+                            errors?: {
+                                /** @example [
+                                 *       "分類名稱已存在"
+                                 *     ] */
+                                name?: string[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description The ID of the product category.
+                 * @example 1
+                 */
+                id: number;
+                /**
+                 * @description 分類ID
+                 * @example 1
+                 */
+                productCategory: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * 顯示指定分類
+         * @description 取得單一商品分類的詳細資訊，包含父分類和子分類資料。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the product category.
+                     * @example 1
+                     */
+                    id: number;
+                    /**
+                     * @description 分類ID
+                     * @example 1
+                     */
+                    productCategory: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                /** @example 1 */
+                                id?: number;
+                                /** @example 電子產品 */
+                                name?: string;
+                                /** @example electronics */
+                                slug?: string;
+                                /** @example null */
+                                parent_id?: string;
+                                /** @example 1 */
+                                position?: number;
+                                /** @example true */
+                                status?: boolean;
+                                /** @example 0 */
+                                depth?: number;
+                                /** @example 各類電子產品分類 */
+                                description?: string;
+                                /** @example 電子產品 | LomisX3 */
+                                meta_title?: string;
+                                /** @example 電子產品相關商品分類 */
+                                meta_description?: string;
+                                /** @example /1/ */
+                                path?: string;
+                                /** @example true */
+                                has_children?: boolean;
+                                /** @example 電子產品 */
+                                full_path?: string;
+                                /** @example 5 */
+                                children_count?: number;
+                                /** @example null */
+                                parent?: string;
+                                /** @example [
+                                 *       {
+                                 *         "id": 2,
+                                 *         "name": "智慧型手機",
+                                 *         "slug": "smartphones",
+                                 *         "parent_id": 1,
+                                 *         "status": true,
+                                 *         "depth": 1
+                                 *       }
+                                 *     ] */
+                                children?: {
+                                    /** @example 2 */
+                                    id?: number;
+                                    /** @example 智慧型手機 */
+                                    name?: string;
+                                    /** @example smartphones */
+                                    slug?: string;
+                                    /** @example 1 */
+                                    parent_id?: number;
+                                    /** @example true */
+                                    status?: boolean;
+                                    /** @example 1 */
+                                    depth?: number;
+                                }[];
+                                /** @example 2025-01-07T10:00:00.000000Z */
+                                created_at?: string;
+                                /** @example 2025-01-07T10:00:00.000000Z */
+                                updated_at?: string;
+                            };
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 分類不存在 */
+                            message?: string;
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * 更新指定分類
+         * @description 更新商品分類資訊。變更父分類時會自動重新計算層級結構和快取。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the product category.
+                     * @example 1
+                     */
+                    id: number;
+                    /**
+                     * @description 分類ID
+                     * @example 1
+                     */
+                    productCategory: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 分類名稱（2-100字元）
+                         * @example 更新的分類名稱
+                         */
+                        name?: string;
+                        /**
+                         * @description 自訂URL別名
+                         * @example updated-slug
+                         */
+                        slug?: string | null;
+                        /**
+                         * @description 父分類ID（設為null表示設為根分類）
+                         * @example 2
+                         */
+                        parent_id?: number | null;
+                        /**
+                         * @description 排序位置
+                         * @example 15
+                         */
+                        position?: number | null;
+                        /**
+                         * @description 啟用狀態
+                         * @example false
+                         */
+                        status?: boolean | null;
+                        /**
+                         * @description 分類描述
+                         * @example 更新的分類描述
+                         */
+                        description?: string | null;
+                        /**
+                         * @description SEO標題
+                         * @example 更新的SEO標題
+                         */
+                        meta_title?: string | null;
+                        /**
+                         * @description SEO描述
+                         * @example 更新的SEO描述
+                         */
+                        meta_description?: string | null;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 分類更新成功 */
+                            message?: string;
+                            data?: {
+                                /** @example 1 */
+                                id?: number;
+                                /** @example 更新的分類名稱 */
+                                name?: string;
+                                /** @example updated-slug */
+                                slug?: string;
+                                /** @example 2 */
+                                parent_id?: number;
+                                /** @example 15 */
+                                position?: number;
+                                /** @example false */
+                                status?: boolean;
+                                /** @example 1 */
+                                depth?: number;
+                                /** @example 更新的分類描述 */
+                                description?: string;
+                                /** @example 更新的SEO標題 */
+                                meta_title?: string;
+                                /** @example 更新的SEO描述 */
+                                meta_description?: string;
+                                /** @example /2/1/ */
+                                path?: string;
+                                /** @example true */
+                                has_children?: boolean;
+                                /** @example 父分類 > 更新的分類名稱 */
+                                full_path?: string;
+                                /** @example 3 */
+                                children_count?: number;
+                                /** @example 2025-01-07T10:00:00.000000Z */
+                                created_at?: string;
+                                /** @example 2025-01-07T11:00:00.000000Z */
+                                updated_at?: string;
+                            };
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 分類不存在 */
+                            message?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 分類更新失敗：會造成循環引用 */
+                            message?: string;
+                            /** @example CATEGORY_UPDATE_FAILED */
+                            code?: string;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * 刪除指定分類
+         * @description 軟刪除商品分類。只能刪除沒有子分類的分類，刪除後會觸發快取更新。
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the product category.
+                     * @example 1
+                     */
+                    id: number;
+                    /**
+                     * @description 分類ID
+                     * @example 1
+                     */
+                    productCategory: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 分類刪除成功 */
+                            message?: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 分類不存在 */
+                            message?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 分類刪除失敗：該分類包含子分類 */
+                            message?: string;
+                            /** @example CATEGORY_DELETE_FAILED */
+                            code?: string;
+                        };
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -185,8 +682,139 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 取得完整的商品分類樹狀結構 */
-        get: operations["getProductCategoryTree"];
+        /**
+         * 取得樹狀結構
+         * @description 獲取完整的分類樹狀結構，支援快取優化，適用於選單展示和層級瀏覽。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description 僅顯示啟用的分類（預設true）
+                     * @example true
+                     */
+                    only_active?: boolean;
+                    /**
+                     * @description 最大顯示深度
+                     * @example 3
+                     */
+                    max_depth?: number;
+                    /**
+                     * @description 指定根分類ID（顯示特定子樹）
+                     * @example 1
+                     */
+                    root_id?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example [
+                             *       {
+                             *         "id": 1,
+                             *         "name": "電子產品",
+                             *         "slug": "electronics",
+                             *         "parent_id": null,
+                             *         "position": 1,
+                             *         "status": true,
+                             *         "depth": 0,
+                             *         "has_children": true,
+                             *         "children_count": 3,
+                             *         "children": [
+                             *           {
+                             *             "id": 2,
+                             *             "name": "智慧型手機",
+                             *             "slug": "smartphones",
+                             *             "parent_id": 1,
+                             *             "position": 1,
+                             *             "status": true,
+                             *             "depth": 1,
+                             *             "has_children": false,
+                             *             "children_count": 0,
+                             *             "children": []
+                             *           }
+                             *         ]
+                             *       }
+                             *     ] */
+                            data?: {
+                                /** @example 1 */
+                                id?: number;
+                                /** @example 電子產品 */
+                                name?: string;
+                                /** @example electronics */
+                                slug?: string;
+                                /** @example null */
+                                parent_id?: string;
+                                /** @example 1 */
+                                position?: number;
+                                /** @example true */
+                                status?: boolean;
+                                /** @example 0 */
+                                depth?: number;
+                                /** @example true */
+                                has_children?: boolean;
+                                /** @example 3 */
+                                children_count?: number;
+                                /** @example [
+                                 *       {
+                                 *         "id": 2,
+                                 *         "name": "智慧型手機",
+                                 *         "slug": "smartphones",
+                                 *         "parent_id": 1,
+                                 *         "position": 1,
+                                 *         "status": true,
+                                 *         "depth": 1,
+                                 *         "has_children": false,
+                                 *         "children_count": 0,
+                                 *         "children": []
+                                 *       }
+                                 *     ] */
+                                children?: {
+                                    /** @example 2 */
+                                    id?: number;
+                                    /** @example 智慧型手機 */
+                                    name?: string;
+                                    /** @example smartphones */
+                                    slug?: string;
+                                    /** @example 1 */
+                                    parent_id?: number;
+                                    /** @example 1 */
+                                    position?: number;
+                                    /** @example true */
+                                    status?: boolean;
+                                    /** @example 1 */
+                                    depth?: number;
+                                    /** @example false */
+                                    has_children?: boolean;
+                                    /** @example 0 */
+                                    children_count?: number;
+                                    /** @example [] */
+                                    children?: unknown[];
+                                }[];
+                            }[];
+                            meta?: {
+                                /** @example 25 */
+                                total_categories?: number;
+                                /** @example 3 */
+                                max_depth?: number;
+                                /** @example true */
+                                cache_hit?: boolean;
+                            };
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -195,53 +823,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/product-categories/{id}": {
+    "/api/product-categories/{product_category_id}/breadcrumbs": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /**
+                 * @description The ID of the product category.
+                 * @example 1
+                 */
+                product_category_id: number;
+            };
             cookie?: never;
         };
-        /** 取得單一商品分類資訊 */
-        get: operations["getProductCategoryById"];
-        /** 更新商品分類 */
-        put: operations["updateProductCategory"];
-        post?: never;
-        /** 刪除商品分類 */
-        delete: operations["deleteProductCategory"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/product-categories/batch/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+        /** 取得麵包屑 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the product category.
+                     * @example 1
+                     */
+                    product_category_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Server Error */
+                            message?: string;
+                        };
+                    };
+                };
+            };
         };
-        get?: never;
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 批次更新商品分類狀態 */
-        patch: operations["batchUpdateCategoryStatus"];
+        patch?: never;
         trace?: never;
     };
-    "/api/product-categories/batch/delete": {
+    "/api/product-categories/{product_category_id}/descendants": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /**
+                 * @description The ID of the product category.
+                 * @example 1
+                 */
+                product_category_id: number;
+            };
             cookie?: never;
         };
-        get?: never;
+        /** 取得子孫分類 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the product category.
+                     * @example 1
+                     */
+                    product_category_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Server Error */
+                            message?: string;
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
-        /** 批次刪除商品分類 */
-        post: operations["batchDeleteCategories"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -261,39 +936,120 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新商品分類排序 */
-        patch: operations["sortCategories"];
+        /** 拖曳排序 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Must have at least 1 items.
+                         * @example [
+                         *       []
+                         *     ]
+                         */
+                        positions: {
+                            /**
+                             * @description The <code>id</code> of an existing record in the product_categories table.
+                             * @example 17
+                             */
+                            id: number;
+                            /**
+                             * @description Must be at least 0.
+                             * @example 45
+                             */
+                            position: number;
+                            /**
+                             * @description The <code>id</code> of an existing record in the product_categories table.
+                             * @example 17
+                             */
+                            parent_id?: number | null;
+                        }[];
+                    };
+                };
+            };
+            responses: never;
+        };
         trace?: never;
     };
-    "/api/product-categories/{id}/breadcrumbs": {
+    "/api/product-categories/batch-status": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 取得商品分類麵包屑 */
-        get: operations["getCategoryBreadcrumbs"];
+        get?: never;
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** 批次更新狀態 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description The <code>id</code> of an existing record in the product_categories table.
+                         * @example [
+                         *       17
+                         *     ]
+                         */
+                        ids?: number[];
+                        /** @example false */
+                        status: boolean;
+                    };
+                };
+            };
+            responses: never;
+        };
         trace?: never;
     };
-    "/api/product-categories/{id}/descendants": {
+    "/api/product-categories/batch-delete": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 取得一個分類的所有後代（樹狀） */
-        get: operations["getCategoryDescendants"];
+        get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** 批次刪除 */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description The <code>id</code> of an existing record in the product_categories table.
+                         * @example [
+                         *       17
+                         *     ]
+                         */
+                        ids?: number[];
+                    };
+                };
+            };
+            responses: never;
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -306,10 +1062,2290 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 取得商品分類統計數據 */
-        get: operations["getCategoryStatistics"];
+        /** 取得分類統計 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example This action is unauthorized. */
+                            message?: string;
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 取得認證用戶資訊的路由
+         *     需要 Sanctum 認證 */
+        get: operations["Sanctum"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 測試路由
+         *     檢查 API 是否正常運作 */
+        get: operations["API"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 使用者統計資料
+         * @description 取得使用者相關的統計資訊，包含總數、狀態分布、角色分布等
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description 特定門市統計
+                     * @example 1
+                     */
+                    store_id?: number;
+                    /**
+                     * @description 統計期間（daily/weekly/monthly/yearly）
+                     * @example monthly
+                     */
+                    period?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 取得統計資料成功 */
+                            message?: string;
+                            data?: {
+                                overview?: {
+                                    /** @example 150 */
+                                    total_users?: number;
+                                    /** @example 120 */
+                                    active_users?: number;
+                                    /** @example 20 */
+                                    inactive_users?: number;
+                                    /** @example 5 */
+                                    locked_users?: number;
+                                    /** @example 5 */
+                                    pending_users?: number;
+                                };
+                                /** @example [
+                                 *       {
+                                 *         "store_id": 1,
+                                 *         "store_name": "總店",
+                                 *         "user_count": 80
+                                 *       },
+                                 *       {
+                                 *         "store_id": 2,
+                                 *         "store_name": "分店A",
+                                 *         "user_count": 45
+                                 *       }
+                                 *     ] */
+                                by_store?: {
+                                    /** @example 1 */
+                                    store_id?: number;
+                                    /** @example 總店 */
+                                    store_name?: string;
+                                    /** @example 80 */
+                                    user_count?: number;
+                                }[];
+                                /** @example [
+                                 *       {
+                                 *         "role_name": "staff",
+                                 *         "role_display_name": "員工",
+                                 *         "user_count": 100
+                                 *       },
+                                 *       {
+                                 *         "role_name": "manager",
+                                 *         "role_display_name": "管理員",
+                                 *         "user_count": 30
+                                 *       }
+                                 *     ] */
+                                by_role?: {
+                                    /** @example staff */
+                                    role_name?: string;
+                                    /** @example 員工 */
+                                    role_display_name?: string;
+                                    /** @example 100 */
+                                    user_count?: number;
+                                }[];
+                                trends?: {
+                                    /** @example 15 */
+                                    new_users_this_month?: number;
+                                    /** @example 12 */
+                                    new_users_last_month?: number;
+                                    /** @example 25 */
+                                    growth_rate?: number;
+                                };
+                                security?: {
+                                    /** @example 75 */
+                                    users_with_2fa?: number;
+                                    /** @example 75 */
+                                    users_without_2fa?: number;
+                                    /** @example 25 */
+                                    unverified_emails?: number;
+                                };
+                            };
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 權限不足 */
+                            message?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/batch-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * 批次更新使用者狀態
+         * @description 批次啟用或停用多個使用者帳號
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 使用者ID陣列
+                         * @example [
+                         *       1,
+                         *       2,
+                         *       3
+                         *     ]
+                         */
+                        user_ids: string[];
+                        /**
+                         * @description 目標狀態
+                         * @example null
+                         */
+                        status: string;
+                        /**
+                         * @description Must not be greater than 500 characters.
+                         * @example mqeopfuudtdsufvyvddqa
+                         */
+                        reason?: string | null;
+                        /** @example true */
+                        send_notification?: boolean | null;
+                        /** @example true */
+                        force?: boolean | null;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 批次更新狀態成功 */
+                            message?: string;
+                            data?: {
+                                /** @example 3 */
+                                affected_count?: number;
+                            };
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 權限不足 */
+                            message?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 驗證失敗 */
+                            message?: string;
+                            errors?: {
+                                /** @example [
+                                 *       "至少選擇一個使用者"
+                                 *     ] */
+                                user_ids?: string[];
+                                /** @example [
+                                 *       "狀態值無效"
+                                 *     ] */
+                                status?: string[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 取得使用者列表
+         * @description 支援分頁、搜尋、篩選、排序等功能。具備門市隔離機制，非管理員僅能查看同門市使用者。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description 頁碼
+                     * @example 1
+                     */
+                    page?: number;
+                    /**
+                     * @description 每頁項目數（1-100）
+                     * @example 20
+                     */
+                    per_page?: number;
+                    /**
+                     * @description 搜尋關鍵字（支援名稱、使用者名稱、信箱）
+                     * @example John
+                     */
+                    search?: string;
+                    /**
+                     * @description 關鍵字搜尋
+                     * @example admin
+                     */
+                    keyword?: string;
+                    /**
+                     * @description 使用者狀態篩選
+                     * @example null
+                     */
+                    status?: string;
+                    /**
+                     * @description 門市ID篩選
+                     * @example 1
+                     */
+                    store_id?: number;
+                    /**
+                     * @description 角色篩選
+                     * @example staff
+                     */
+                    role?: string;
+                    /**
+                     * @description 是否啟用雙因子驗證
+                     * @example true
+                     */
+                    has_2fa?: boolean;
+                    /**
+                     * @description 信箱是否已驗證
+                     * @example true
+                     */
+                    email_verified?: boolean;
+                    /**
+                     * @description 建立日期起始
+                     * @example 2025-01-01
+                     */
+                    created_from?: string;
+                    /**
+                     * @description 建立日期結束
+                     * @example 2025-12-31
+                     */
+                    created_to?: string;
+                    /**
+                     * @description 最後登入起始日期
+                     * @example 2025-01-01
+                     */
+                    last_login_from?: string;
+                    /**
+                     * @description 最後登入結束日期
+                     * @example 2025-12-31
+                     */
+                    last_login_to?: string;
+                    /**
+                     * @description 排序欄位
+                     * @example null
+                     */
+                    sort?: string;
+                    /**
+                     * @description 排序方向（asc/desc）
+                     * @example null
+                     */
+                    order?: string;
+                    /**
+                     * @description 包含關聯資料
+                     * @example roles,store
+                     */
+                    include?: string;
+                    /**
+                     * @description 是否包含統計計數
+                     * @example true
+                     */
+                    with_count?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Must be at least 1.
+                         * @example 73
+                         */
+                        page?: number;
+                        /**
+                         * @description Must be at least 1. Must not be greater than 100.
+                         * @example 13
+                         */
+                        per_page?: number;
+                        /** @example consequatur */
+                        cursor?: string;
+                        /**
+                         * @description Must not be greater than 255 characters.
+                         * @example mqeopfuudtdsufvyvddqa
+                         */
+                        search?: string | null;
+                        /**
+                         * @description Must not be greater than 255 characters.
+                         * @example mniihfqcoynlazghdtqtq
+                         */
+                        keyword?: string | null;
+                        /**
+                         * @example active
+                         * @enum {string|null}
+                         */
+                        status?: "active" | "inactive" | "locked" | "pending" | null;
+                        /**
+                         * @description The <code>id</code> of an existing record in the stores table.
+                         * @example 17
+                         */
+                        store_id?: number | null;
+                        /**
+                         * @description The <code>name</code> of an existing record in the roles table.
+                         * @example consequatur
+                         */
+                        role?: string | null;
+                        /** @example false */
+                        has_2fa?: boolean | null;
+                        /** @example false */
+                        email_verified?: boolean | null;
+                        /**
+                         * @description Must be a valid date.
+                         * @example 2025-06-07T14:07:57
+                         */
+                        created_from?: string | null;
+                        /**
+                         * @description Must be a valid date. Must be a date after or equal to <code>created_from</code>.
+                         * @example 2106-07-07
+                         */
+                        created_to?: string | null;
+                        /**
+                         * @description Must be a valid date.
+                         * @example 2025-06-07T14:07:57
+                         */
+                        last_login_from?: string | null;
+                        /**
+                         * @description Must be a valid date. Must be a date after or equal to <code>last_login_from</code>.
+                         * @example 2106-07-07
+                         */
+                        last_login_to?: string | null;
+                        /**
+                         * @example name
+                         * @enum {string|null}
+                         */
+                        sort?: "id" | "name" | "username" | "email" | "status" | "last_login_at" | "created_at" | "updated_at" | null;
+                        /**
+                         * @example asc
+                         * @enum {string|null}
+                         */
+                        order?: "asc" | "desc" | null;
+                        /** @example consequatur */
+                        include?: string | null;
+                        /** @example false */
+                        with_count?: boolean | null;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 取得使用者列表成功 */
+                            message?: string;
+                            data?: {
+                                /** @example [
+                                 *       {
+                                 *         "id": 1,
+                                 *         "username": "admin",
+                                 *         "name": "管理員",
+                                 *         "email": "admin@lomis.com",
+                                 *         "store_id": 1,
+                                 *         "phone": "0912345678",
+                                 *         "status": {
+                                 *           "value": "active",
+                                 *           "label": "啟用",
+                                 *           "color": "success",
+                                 *           "is_active": true
+                                 *         },
+                                 *         "email_verified_at": "2025-01-01T00:00:00.000000Z",
+                                 *         "is_email_verified": true,
+                                 *         "two_factor": {
+                                 *           "enabled": true,
+                                 *           "confirmed_at": "2025-01-01T00:00:00.000000Z"
+                                 *         },
+                                 *         "login_info": {
+                                 *           "last_login_at": "2025-01-07T10:00:00.000000Z",
+                                 *           "is_locked": false,
+                                 *           "locked_until": null
+                                 *         },
+                                 *         "roles": [
+                                 *           {
+                                 *             "id": 1,
+                                 *             "name": "admin",
+                                 *             "display_name": "管理員",
+                                 *             "level": 100,
+                                 *             "color": "primary"
+                                 *           }
+                                 *         ],
+                                 *         "avatar": {
+                                 *           "url": "https://example.com/avatars/1.jpg",
+                                 *           "thumbnail_url": "https://example.com/avatars/1-thumb.jpg",
+                                 *           "has_avatar": true
+                                 *         },
+                                 *         "audit": {
+                                 *           "created_at": "2025-01-01T00:00:00.000000Z",
+                                 *           "updated_at": "2025-01-07T10:00:00.000000Z"
+                                 *         }
+                                 *       }
+                                 *     ] */
+                                data?: {
+                                    /** @example 1 */
+                                    id?: number;
+                                    /** @example admin */
+                                    username?: string;
+                                    /** @example 管理員 */
+                                    name?: string;
+                                    /** @example admin@lomis.com */
+                                    email?: string;
+                                    /** @example 1 */
+                                    store_id?: number;
+                                    /** @example 0912345678 */
+                                    phone?: string;
+                                    status?: {
+                                        /** @example active */
+                                        value?: string;
+                                        /** @example 啟用 */
+                                        label?: string;
+                                        /** @example success */
+                                        color?: string;
+                                        /** @example true */
+                                        is_active?: boolean;
+                                    };
+                                    /** @example 2025-01-01T00:00:00.000000Z */
+                                    email_verified_at?: string;
+                                    /** @example true */
+                                    is_email_verified?: boolean;
+                                    two_factor?: {
+                                        /** @example true */
+                                        enabled?: boolean;
+                                        /** @example 2025-01-01T00:00:00.000000Z */
+                                        confirmed_at?: string;
+                                    };
+                                    login_info?: {
+                                        /** @example 2025-01-07T10:00:00.000000Z */
+                                        last_login_at?: string;
+                                        /** @example false */
+                                        is_locked?: boolean;
+                                        /** @example null */
+                                        locked_until?: string;
+                                    };
+                                    /** @example [
+                                     *       {
+                                     *         "id": 1,
+                                     *         "name": "admin",
+                                     *         "display_name": "管理員",
+                                     *         "level": 100,
+                                     *         "color": "primary"
+                                     *       }
+                                     *     ] */
+                                    roles?: {
+                                        /** @example 1 */
+                                        id?: number;
+                                        /** @example admin */
+                                        name?: string;
+                                        /** @example 管理員 */
+                                        display_name?: string;
+                                        /** @example 100 */
+                                        level?: number;
+                                        /** @example primary */
+                                        color?: string;
+                                    }[];
+                                    avatar?: {
+                                        /** @example https://example.com/avatars/1.jpg */
+                                        url?: string;
+                                        /** @example https://example.com/avatars/1-thumb.jpg */
+                                        thumbnail_url?: string;
+                                        /** @example true */
+                                        has_avatar?: boolean;
+                                    };
+                                    audit?: {
+                                        /** @example 2025-01-01T00:00:00.000000Z */
+                                        created_at?: string;
+                                        /** @example 2025-01-07T10:00:00.000000Z */
+                                        updated_at?: string;
+                                    };
+                                }[];
+                                links?: {
+                                    /** @example http://localhost/api/users?page=1 */
+                                    first?: string;
+                                    /** @example http://localhost/api/users?page=10 */
+                                    last?: string;
+                                    /** @example null */
+                                    prev?: string;
+                                    /** @example http://localhost/api/users?page=2 */
+                                    next?: string;
+                                };
+                                meta?: {
+                                    /** @example 1 */
+                                    current_page?: number;
+                                    /** @example 1 */
+                                    from?: number;
+                                    /** @example 10 */
+                                    last_page?: number;
+                                    /** @example 20 */
+                                    per_page?: number;
+                                    /** @example 20 */
+                                    to?: number;
+                                    /** @example 200 */
+                                    total?: number;
+                                };
+                            };
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 權限不足 */
+                            message?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 驗證失敗 */
+                            message?: string;
+                            errors?: {
+                                /** @example [
+                                 *       "每頁最多只能顯示 100 筆資料"
+                                 *     ] */
+                                per_page?: string[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * 建立使用者
+         * @description 建立新的使用者帳號。支援自動密碼生成、角色指派、門市隔離等功能。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 使用者名稱（3-50字元，唯一）
+                         * @example john_doe
+                         */
+                        username: string;
+                        /**
+                         * @description 姓名（2-100字元）
+                         * @example 約翰
+                         */
+                        name: string;
+                        /**
+                         * @description 電子信箱（唯一）
+                         * @example john@example.com
+                         */
+                        email: string;
+                        /**
+                         * @description 密碼（8字元以上，包含大小寫字母、數字、符號）
+                         * @example SecurePass123!
+                         */
+                        password: string;
+                        /**
+                         * @description 確認密碼
+                         * @example SecurePass123!
+                         */
+                        password_confirmation: string;
+                        /**
+                         * @description 所屬門市ID
+                         * @example 1
+                         */
+                        store_id: number;
+                        /**
+                         * @description 手機號碼
+                         * @example 0912345678
+                         */
+                        phone?: string | null;
+                        /**
+                         * @description 使用者狀態（預設active）
+                         * @example null
+                         */
+                        status?: string | null;
+                        /**
+                         * @description 角色陣列
+                         * @example [
+                         *       "staff",
+                         *       "manager"
+                         *     ]
+                         */
+                        roles: string[];
+                        /**
+                         * @description The <code>name</code> of an existing record in the permissions table.
+                         * @example [
+                         *       "consequatur"
+                         *     ]
+                         */
+                        permissions?: string[];
+                        /** @example null */
+                        preferences?: Record<string, never> | null;
+                        /** @example true */
+                        enable_2fa?: boolean | null;
+                        /**
+                         * @description 是否發送歡迎信件（預設true）
+                         * @example true
+                         */
+                        send_welcome_email?: boolean;
+                    };
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 建立使用者成功 */
+                            message?: string;
+                            data?: {
+                                /** @example 25 */
+                                id?: number;
+                                /** @example john_doe */
+                                username?: string;
+                                /** @example 約翰 */
+                                name?: string;
+                                /** @example john@example.com */
+                                email?: string;
+                                /** @example 0912345678 */
+                                phone?: string;
+                                /** @example 1 */
+                                store_id?: number;
+                                status?: {
+                                    /** @example active */
+                                    value?: string;
+                                    /** @example 啟用 */
+                                    label?: string;
+                                    /** @example success */
+                                    color?: string;
+                                    /** @example true */
+                                    is_active?: boolean;
+                                };
+                                /** @example null */
+                                email_verified_at?: string;
+                                /** @example false */
+                                is_email_verified?: boolean;
+                                two_factor?: {
+                                    /** @example false */
+                                    enabled?: boolean;
+                                    /** @example null */
+                                    confirmed_at?: string;
+                                };
+                                /** @example [
+                                 *       {
+                                 *         "id": 3,
+                                 *         "name": "staff",
+                                 *         "display_name": "員工",
+                                 *         "level": 40,
+                                 *         "color": "info"
+                                 *       }
+                                 *     ] */
+                                roles?: {
+                                    /** @example 3 */
+                                    id?: number;
+                                    /** @example staff */
+                                    name?: string;
+                                    /** @example 員工 */
+                                    display_name?: string;
+                                    /** @example 40 */
+                                    level?: number;
+                                    /** @example info */
+                                    color?: string;
+                                }[];
+                                avatar?: {
+                                    /** @example null */
+                                    url?: string;
+                                    /** @example null */
+                                    thumbnail_url?: string;
+                                    /** @example false */
+                                    has_avatar?: boolean;
+                                };
+                                audit?: {
+                                    /** @example 2025-01-07T10:30:00.000000Z */
+                                    created_at?: string;
+                                    /** @example 2025-01-07T10:30:00.000000Z */
+                                    updated_at?: string;
+                                };
+                            };
+                        };
+                    };
+                };
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 建立使用者失敗：角色權限不足 */
+                            message?: string;
+                            /** @example USER_CREATE_FAILED */
+                            error_code?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 驗證失敗 */
+                            message?: string;
+                            errors?: {
+                                /** @example [
+                                 *       "使用者名稱已被使用"
+                                 *     ] */
+                                username?: string[];
+                                /** @example [
+                                 *       "電子信箱已被使用"
+                                 *     ] */
+                                email?: string[];
+                                /** @example [
+                                 *       "密碼強度不足"
+                                 *     ] */
+                                password?: string[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description The ID of the user.
+                 * @example 1
+                 */
+                id: number;
+                /**
+                 * @description 使用者ID
+                 * @example 1
+                 */
+                user: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * 顯示使用者詳情
+         * @description 取得單一使用者的詳細資訊，包含角色、權限、門市、頭像、登入歷史等完整資料
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the user.
+                     * @example 1
+                     */
+                    id: number;
+                    /**
+                     * @description 使用者ID
+                     * @example 1
+                     */
+                    user: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 取得使用者詳情成功 */
+                            message?: string;
+                            data?: {
+                                /** @example 1 */
+                                id?: number;
+                                /** @example admin */
+                                username?: string;
+                                /** @example 管理員 */
+                                name?: string;
+                                /** @example admin@lomis.com */
+                                email?: string;
+                                /** @example 1 */
+                                store_id?: number;
+                                store?: {
+                                    /** @example 1 */
+                                    id?: number;
+                                    /** @example 總店 */
+                                    name?: string;
+                                    /** @example STORE001 */
+                                    code?: string;
+                                };
+                                /** @example 0912345678 */
+                                phone?: string;
+                                status?: {
+                                    /** @example active */
+                                    value?: string;
+                                    /** @example 啟用 */
+                                    label?: string;
+                                    /** @example success */
+                                    color?: string;
+                                    /** @example true */
+                                    is_active?: boolean;
+                                };
+                                /** @example 2025-01-01T00:00:00.000000Z */
+                                email_verified_at?: string;
+                                /** @example true */
+                                is_email_verified?: boolean;
+                                two_factor?: {
+                                    /** @example true */
+                                    enabled?: boolean;
+                                    /** @example 2025-01-01T00:00:00.000000Z */
+                                    confirmed_at?: string;
+                                };
+                                login_info?: {
+                                    /** @example 2025-01-07T10:00:00.000000Z */
+                                    last_login_at?: string;
+                                    /** @example 192.168.1.100 */
+                                    last_login_ip?: string;
+                                    /** @example 0 */
+                                    login_attempts?: number;
+                                    /** @example false */
+                                    is_locked?: boolean;
+                                    /** @example null */
+                                    locked_until?: string;
+                                };
+                                /** @example [
+                                 *       {
+                                 *         "id": 1,
+                                 *         "name": "admin",
+                                 *         "display_name": "管理員",
+                                 *         "level": 100,
+                                 *         "color": "primary"
+                                 *       }
+                                 *     ] */
+                                roles?: {
+                                    /** @example 1 */
+                                    id?: number;
+                                    /** @example admin */
+                                    name?: string;
+                                    /** @example 管理員 */
+                                    display_name?: string;
+                                    /** @example 100 */
+                                    level?: number;
+                                    /** @example primary */
+                                    color?: string;
+                                }[];
+                                /** @example [
+                                 *       "users.view",
+                                 *       "users.create",
+                                 *       "users.update"
+                                 *     ] */
+                                permissions?: string[];
+                                avatar?: {
+                                    /** @example https://example.com/avatars/1.jpg */
+                                    url?: string;
+                                    /** @example https://example.com/avatars/1-thumb.jpg */
+                                    thumbnail_url?: string;
+                                    /** @example true */
+                                    has_avatar?: boolean;
+                                };
+                                statistics?: {
+                                    /** @example 5 */
+                                    media_count?: number;
+                                    /** @example 3 */
+                                    tokens_count?: number;
+                                    /** @example 150 */
+                                    activities_count?: number;
+                                    /** @example 25 */
+                                    created_users_count?: number;
+                                };
+                                audit?: {
+                                    /** @example 2025-01-01T00:00:00.000000Z */
+                                    created_at?: string;
+                                    /** @example 2025-01-07T10:00:00.000000Z */
+                                    updated_at?: string;
+                                    created_by?: {
+                                        /** @example 1 */
+                                        id?: number;
+                                        /** @example 系統管理員 */
+                                        name?: string;
+                                    };
+                                };
+                                actions?: {
+                                    /** @example true */
+                                    can_update?: boolean;
+                                    /** @example false */
+                                    can_delete?: boolean;
+                                    /** @example true */
+                                    can_reset_password?: boolean;
+                                    /** @example true */
+                                    can_toggle_2fa?: boolean;
+                                };
+                            };
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 權限不足 */
+                            message?: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 使用者不存在 */
+                            message?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * 刪除使用者
+         * @description 軟刪除使用者帳號。刪除後使用者無法登入，但資料保留以供審計。
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the user.
+                     * @example 1
+                     */
+                    id: number;
+                    /**
+                     * @description 使用者ID
+                     * @example 1
+                     */
+                    user: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 刪除使用者成功 */
+                            message?: string;
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 權限不足 */
+                            message?: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 使用者不存在 */
+                            message?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 無法刪除自己的帳號 */
+                            message?: string;
+                            /** @example USER_DELETE_FAILED */
+                            error_code?: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{user_id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description The ID of the user.
+                 * @example 1
+                 */
+                user_id: number;
+                /**
+                 * @description 使用者ID
+                 * @example 1
+                 */
+                user: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * 重設密碼
+         * @description 管理員重設使用者密碼，可選擇自動生成或指定密碼
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the user.
+                     * @example 1
+                     */
+                    user_id: number;
+                    /**
+                     * @description 使用者ID
+                     * @example 1
+                     */
+                    user: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 新密碼（留空則自動生成）
+                         * @example NewPassword123!
+                         */
+                        password?: string;
+                        /**
+                         * @description 確認密碼（當指定密碼時必填）
+                         * @example NewPassword123!
+                         */
+                        password_confirmation?: string;
+                        /**
+                         * @description 是否自動生成密碼（預設false）
+                         * @example true
+                         */
+                        auto_generate?: boolean;
+                        /**
+                         * @description 是否發送密碼重設通知（預設true）
+                         * @example true
+                         */
+                        send_email?: boolean;
+                        /**
+                         * @description 是否強制下次登入修改密碼（預設true）
+                         * @example true
+                         */
+                        force_change?: boolean;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 密碼重設成功 */
+                            message?: string;
+                            data?: {
+                                /** @example true */
+                                password_sent_to_email?: boolean;
+                                /** @example TempPass123! */
+                                temporary_password?: string;
+                                /** @example true */
+                                force_change_required?: boolean;
+                            };
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 權限不足 */
+                            message?: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 使用者不存在 */
+                            message?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 不能重設自己的密碼 */
+                            message?: string;
+                            /** @example PASSWORD_RESET_FAILED */
+                            error_code?: string;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/users/{user_id}/activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description The ID of the user.
+                 * @example 1
+                 */
+                user_id: number;
+                /**
+                 * @description 使用者ID
+                 * @example 1
+                 */
+                user: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * 使用者活動記錄
+         * @description 取得使用者的操作活動記錄，支援分頁和篩選
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description 頁碼
+                     * @example 1
+                     */
+                    page?: number;
+                    /**
+                     * @description 每頁項目數
+                     * @example 20
+                     */
+                    per_page?: number;
+                    /**
+                     * @description 活動類型篩選
+                     * @example user_login
+                     */
+                    log_name?: string;
+                    /**
+                     * @description 開始日期
+                     * @example 2025-01-01
+                     */
+                    from_date?: string;
+                    /**
+                     * @description 結束日期
+                     * @example 2025-01-31
+                     */
+                    to_date?: string;
+                };
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the user.
+                     * @example 1
+                     */
+                    user_id: number;
+                    /**
+                     * @description 使用者ID
+                     * @example 1
+                     */
+                    user: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 取得活動記錄成功 */
+                            message?: string;
+                            data?: {
+                                /** @example [
+                                 *       {
+                                 *         "id": 1,
+                                 *         "log_name": "user_login",
+                                 *         "description": "使用者登入成功",
+                                 *         "properties": {
+                                 *           "ip_address": "192.168.1.100",
+                                 *           "user_agent": "Mozilla/5.0...",
+                                 *           "device_name": "Chrome on Windows"
+                                 *         },
+                                 *         "created_at": "2025-01-07T10:00:00.000000Z"
+                                 *       },
+                                 *       {
+                                 *         "id": 2,
+                                 *         "log_name": "user_update",
+                                 *         "description": "使用者資料更新",
+                                 *         "properties": {
+                                 *           "updated_fields": [
+                                 *             "name",
+                                 *             "phone"
+                                 *           ],
+                                 *           "old_values": {
+                                 *             "name": "舊名稱"
+                                 *           },
+                                 *           "new_values": {
+                                 *             "name": "新名稱"
+                                 *           }
+                                 *         },
+                                 *         "created_at": "2025-01-07T09:30:00.000000Z"
+                                 *       }
+                                 *     ] */
+                                data?: {
+                                    /** @example 1 */
+                                    id?: number;
+                                    /** @example user_login */
+                                    log_name?: string;
+                                    /** @example 使用者登入成功 */
+                                    description?: string;
+                                    properties?: {
+                                        /** @example 192.168.1.100 */
+                                        ip_address?: string;
+                                        /** @example Mozilla/5.0... */
+                                        user_agent?: string;
+                                        /** @example Chrome on Windows */
+                                        device_name?: string;
+                                    };
+                                    /** @example 2025-01-07T10:00:00.000000Z */
+                                    created_at?: string;
+                                }[];
+                                links?: {
+                                    /** @example http://localhost/api/users/1/activities?page=1 */
+                                    first?: string;
+                                    /** @example http://localhost/api/users/1/activities?page=5 */
+                                    last?: string;
+                                    /** @example null */
+                                    prev?: string;
+                                    /** @example http://localhost/api/users/1/activities?page=2 */
+                                    next?: string;
+                                };
+                                meta?: {
+                                    /** @example 1 */
+                                    current_page?: number;
+                                    /** @example 1 */
+                                    from?: number;
+                                    /** @example 5 */
+                                    last_page?: number;
+                                    /** @example 20 */
+                                    per_page?: number;
+                                    /** @example 20 */
+                                    to?: number;
+                                    /** @example 100 */
+                                    total?: number;
+                                };
+                            };
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 權限不足 */
+                            message?: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 使用者不存在 */
+                            message?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{user_id}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description The ID of the user.
+                 * @example 1
+                 */
+                user_id: number;
+                /**
+                 * @description 使用者ID
+                 * @example 1
+                 */
+                user: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * 刪除使用者頭像
+         * @description 移除使用者的頭像圖片
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description The ID of the user.
+                     * @example 1
+                     */
+                    user_id: number;
+                    /**
+                     * @description 使用者ID
+                     * @example 1
+                     */
+                    user: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 頭像刪除成功 */
+                            message?: string;
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 權限不足 */
+                            message?: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 使用者不存在 */
+                            message?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 使用者沒有設定頭像 */
+                            message?: string;
+                            /** @example AVATAR_DELETE_FAILED */
+                            error_code?: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 使用者登入
+         * @description 處理使用者登入驗證，支援使用者名稱或信箱登入。具備節流保護、門市隔離、2FA檢查等安全機制。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 登入帳號（使用者名稱或信箱）
+                         * @example admin@lomis.com
+                         */
+                        login: string;
+                        /**
+                         * @description 密碼
+                         * @example SecurePass123!
+                         */
+                        password: string;
+                        /**
+                         * @description 裝置名稱（用於Token識別）
+                         * @example Chrome on Windows
+                         */
+                        device_name?: string;
+                        /**
+                         * @description 記住我（延長Token有效期）
+                         * @example true
+                         */
+                        remember?: boolean;
+                        /**
+                         * @description 門市代碼（可選，用於門市特定登入）
+                         * @example STORE001
+                         */
+                        store_code?: string;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 登入成功 */
+                            message?: string;
+                            data?: {
+                                user?: {
+                                    /** @example 1 */
+                                    id?: number;
+                                    /** @example admin */
+                                    username?: string;
+                                    /** @example 管理員 */
+                                    name?: string;
+                                    /** @example admin@lomis.com */
+                                    email?: string;
+                                    /** @example 1 */
+                                    store_id?: number;
+                                    status?: {
+                                        /** @example active */
+                                        value?: string;
+                                        /** @example 啟用 */
+                                        label?: string;
+                                        /** @example success */
+                                        color?: string;
+                                        /** @example true */
+                                        is_active?: boolean;
+                                    };
+                                    /** @example [
+                                     *       {
+                                     *         "id": 1,
+                                     *         "name": "admin",
+                                     *         "display_name": "管理員",
+                                     *         "level": 100,
+                                     *         "color": "primary"
+                                     *       }
+                                     *     ] */
+                                    roles?: {
+                                        /** @example 1 */
+                                        id?: number;
+                                        /** @example admin */
+                                        name?: string;
+                                        /** @example 管理員 */
+                                        display_name?: string;
+                                        /** @example 100 */
+                                        level?: number;
+                                        /** @example primary */
+                                        color?: string;
+                                    }[];
+                                    avatar?: {
+                                        /** @example https://example.com/avatars/1.jpg */
+                                        url?: string;
+                                        /** @example https://example.com/avatars/1-thumb.jpg */
+                                        thumbnail_url?: string;
+                                        /** @example true */
+                                        has_avatar?: boolean;
+                                    };
+                                };
+                                /** @example 1|abcdef123456... */
+                                token?: string;
+                                /** @example 2025-01-08T10:00:00.000000Z */
+                                expires_at?: string;
+                                /** @example [
+                                 *       "users.view",
+                                 *       "users.create",
+                                 *       "users.update"
+                                 *     ] */
+                                permissions?: string[];
+                                store?: {
+                                    /** @example 1 */
+                                    id?: number;
+                                    /** @example 總店 */
+                                    name?: string;
+                                };
+                            };
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 登入失敗：帳號或密碼錯誤 */
+                            message?: string;
+                            /** @example INVALID_CREDENTIALS */
+                            error_code?: string;
+                        };
+                    };
+                };
+                423: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 帳號已被鎖定 */
+                            message?: string;
+                            /** @example ACCOUNT_LOCKED */
+                            error_code?: string;
+                            /** @example 2025-01-07T11:00:00.000000Z */
+                            locked_until?: string;
+                        };
+                    };
+                };
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 需要雙因子驗證 */
+                            message?: string;
+                            /** @example true */
+                            requires_2fa?: boolean;
+                            /** @example 1 */
+                            user_id?: number;
+                            /** @example TWO_FACTOR_REQUIRED */
+                            error_code?: string;
+                        };
+                    };
+                };
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 登入嘗試過於頻繁，請稍後再試 */
+                            message?: string;
+                            /** @example TOO_MANY_ATTEMPTS */
+                            error_code?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/2fa/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 2FA 挑戰驗證
+         * @description 處理雙因子驗證代碼驗證，支援 TOTP 代碼和恢復代碼兩種驗證方式
+         */
+        post: operations["2FA"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 登出
+         * @description 撤銷當前使用者的 Sanctum Token 並記錄登出活動
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 登出成功 */
+                            message?: string;
+                        };
+                    };
+                };
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 未授權 */
+                            message?: string;
+                            /** @example UNAUTHENTICATED */
+                            error_code?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 獲取當前認證使用者資訊
+         * @description 處理未認證情況，返回 JSON 錯誤而非重定向（符合純 Bearer Token API 設計原則）
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 取得使用者資訊成功 */
+                            message?: string;
+                            data?: {
+                                /** @example 1 */
+                                id?: number;
+                                /** @example admin */
+                                username?: string;
+                                /** @example 管理員 */
+                                name?: string;
+                                /** @example admin@lomis.com */
+                                email?: string;
+                                /** @example [
+                                 *       "admin"
+                                 *     ] */
+                                roles?: string[];
+                                /** @example [
+                                 *       "users.view",
+                                 *       "users.create"
+                                 *     ] */
+                                permissions?: string[];
+                            };
+                        };
+                    };
+                };
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example Unauthenticated. */
+                            message?: string;
+                            /** @example UNAUTHENTICATED */
+                            error_code?: string;
+                            /** @example null */
+                            errors?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 刷新 Token
+         * @description 刷新當前的 API Token，延長有效期限
+         */
+        post: operations["Token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/2fa/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 啟用雙因子驗證
+         * @description 為使用者帳號啟用2FA功能，生成QR Code供驗證器應用程式掃描
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 2FA 已啟用，請掃描 QR Code */
+                            message?: string;
+                            data?: {
+                                /** @example data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+... */
+                                qr_code?: string;
+                                /** @example ABCDEFGHIJKLMNOP */
+                                secret?: string;
+                                /** @example [
+                                 *       "abc123defg",
+                                 *       "hij456klmn",
+                                 *       "opq789rstu"
+                                 *     ] */
+                                recovery_codes?: string[];
+                                /** @example ABCD EFGH IJKL MNOP */
+                                manual_entry_key?: string;
+                            };
+                        };
+                    };
+                };
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 未授權 */
+                            message?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 雙因子驗證已啟用 */
+                            message?: string;
+                            /** @example 2FA_ALREADY_ENABLED */
+                            error_code?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/2fa/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 確認雙因子驗證
+         * @description 使用驗證器應用程式產生的代碼確認2FA設定
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 6位數驗證碼
+                         * @example 123456
+                         */
+                        code: string;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 雙因子驗證確認成功 */
+                            message?: string;
+                            data?: {
+                                /** @example 2025-01-07T10:00:00.000000Z */
+                                confirmed_at?: string;
+                                /** @example [
+                                 *       "abc123defg",
+                                 *       "hij456klmn",
+                                 *       "opq789rstu"
+                                 *     ] */
+                                recovery_codes?: string[];
+                            };
+                        };
+                    };
+                };
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 雙因子驗證尚未啟用 */
+                            message?: string;
+                            /** @example 2FA_NOT_ENABLED */
+                            error_code?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 驗證碼錯誤 */
+                            message?: string;
+                            /** @example INVALID_2FA_CODE */
+                            error_code?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/2fa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 停用雙因子驗證
+         * @description 關閉使用者的2FA功能，需要密碼確認
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 使用者密碼
+                         * @example CurrentPassword123!
+                         */
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            /** @example 雙因子驗證已停用 */
+                            message?: string;
+                        };
+                    };
+                };
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 雙因子驗證尚未啟用 */
+                            message?: string;
+                            /** @example 2FA_NOT_ENABLED */
+                            error_code?: string;
+                        };
+                    };
+                };
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example false */
+                            success?: boolean;
+                            /** @example 密碼錯誤 */
+                            message?: string;
+                            /** @example INVALID_PASSWORD */
+                            error_code?: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -319,381 +3355,16 @@ export interface paths {
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /** @description 使用者核心資料模型 */
-        User: {
-            /** @description ID */
-            id?: number;
-            /** @description 姓名 */
-            name?: string;
-            /** @description 用戶名 */
-            username?: string;
-            /**
-             * Format: email
-             * @description 電子郵件
-             */
-            email?: string;
-            phone?: string | null;
-            /** Format: uri */
-            avatar?: string | null;
-            /** @enum {string} */
-            status?: "active" | "inactive" | "suspended";
-            /** Format: date-time */
-            email_verified_at?: string | null;
-            two_factor_enabled?: boolean;
-            /** Format: date-time */
-            created_at?: string;
-            /** Format: date-time */
-            updated_at?: string;
-            store?: components["schemas"]["Store"];
-            roles?: components["schemas"]["Role"][];
-        };
-        /** @description 門市資料模型 */
-        Store: {
-            id?: number;
-            name?: string;
-        };
-        /** @description 角色資料模型 */
-        Role: {
-            id?: number;
-            /** @description 角色內部名稱 (e.g. admin) */
-            name?: string;
-            /** @description 角色顯示名稱 (e.g. 系統管理員) */
-            display_name?: string;
-        };
-        /** @description 商品分類模型 */
-        ProductCategory: {
-            id?: number;
-            name?: string;
-            slug?: string;
-            description?: string | null;
-            parent_id?: number | null;
-            status?: boolean;
-            position?: number;
-            depth?: number;
-            children_count?: number;
-            /** Format: date-time */
-            created_at?: string;
-            /** Format: date-time */
-            updated_at?: string;
-            children?: components["schemas"]["ProductCategory"][];
-        };
-        PaginationLinks: {
-            /** Format: uri */
-            first?: string | null;
-            /** Format: uri */
-            last?: string | null;
-            /** Format: uri */
-            prev?: string | null;
-            /** Format: uri */
-            next?: string | null;
-        };
-        PaginationMeta: {
-            current_page?: number;
-            from?: number | null;
-            last_page?: number;
-            /** Format: uri */
-            path?: string;
-            per_page?: number;
-            to?: number | null;
-            total?: number;
-        };
-        LoginRequest: {
-            /** Format: email */
-            email: string;
-            password: string;
-            remember?: boolean;
-        };
-        LoginResponse: {
-            token?: string;
-            user?: components["schemas"]["User"];
-            /** @description 是否需要二階段驗證 */
-            two_factor?: boolean;
-        };
-        AuthenticatedUserResponse: {
-            data?: components["schemas"]["User"];
-        };
-        TwoFactorChallengeRequest: {
-            code?: string;
-            recovery_code?: string;
-        };
-        UserResponse: {
-            data?: components["schemas"]["User"];
-        };
-        PaginatedUsersResponse: {
-            data?: components["schemas"]["User"][];
-            links?: components["schemas"]["PaginationLinks"];
-            meta?: components["schemas"]["PaginationMeta"];
-        };
-        CreateUserRequest: {
-            name: string;
-            username: string;
-            /** Format: email */
-            email: string;
-            /** Format: password */
-            password: string;
-            /** Format: password */
-            password_confirmation: string;
-            phone?: string;
-            store_id: number;
-            role_ids: number[];
-            /** @enum {string} */
-            status: "active" | "inactive";
-        };
-        UpdateUserRequest: {
-            name?: string;
-            username?: string;
-            /** Format: email */
-            email?: string;
-            /**
-             * Format: password
-             * @description 僅在需要更改密碼時提供
-             */
-            password?: string;
-            /** Format: password */
-            password_confirmation?: string;
-            phone?: string;
-            store_id?: number;
-            role_ids?: number[];
-            /** @enum {string} */
-            status?: "active" | "inactive" | "suspended";
-        };
-        BatchStatusUserRequest: {
-            ids: number[];
-            /** @enum {string} */
-            status: "active" | "inactive" | "suspended";
-        };
-        UserStatsResponse: {
-            data?: components["schemas"]["UserStatsData"];
-        };
-        UserStatsData: {
-            counts?: components["schemas"]["UserCounts"];
-            two_factor?: components["schemas"]["TwoFactorStats"];
-            activity?: components["schemas"]["UserActivityStats"];
-        };
-        UserCounts: {
-            total?: number;
-            active?: number;
-            inactive?: number;
-            suspended?: number;
-        };
-        TwoFactorStats: {
-            enabled?: number;
-            disabled?: number;
-        };
-        UserActivityStats: {
-            new_this_week?: number;
-            logins_today?: number;
-        };
-        CategoryResponse: {
-            data?: components["schemas"]["ProductCategory"];
-        };
-        CategoryTreeResponse: {
-            data?: components["schemas"]["ProductCategory"][];
-        };
-        PaginatedCategoriesResponse: {
-            data?: components["schemas"]["ProductCategory"][];
-            links?: {
-                /** Format: url */
-                first?: string | null;
-                /** Format: url */
-                last?: string | null;
-                /** Format: url */
-                prev?: string | null;
-                /** Format: url */
-                next?: string | null;
-            };
-            meta?: {
-                current_page?: number;
-                from?: number | null;
-                last_page?: number;
-                /** Format: url */
-                path?: string;
-                per_page?: number;
-                to?: number | null;
-                total?: number;
-            };
-        };
-        CategoryStatsResponse: {
-            data?: components["schemas"]["CategoryStatsData"];
-        };
-        CategoryStatsData: {
-            /** @description 總分類數 */
-            total?: number;
-            /** @description 啟用分類數 */
-            active?: number;
-            /** @description 停用分類數 */
-            inactive?: number;
-            /** @description 最大層級深度 */
-            max_depth?: number;
-            /** @description 根節點數量 */
-            root_nodes?: number;
-        };
-        BreadcrumbResponse: {
-            data?: {
-                id?: number;
-                name?: string;
-            }[];
-        };
-        CreateCategoryRequest: {
-            name: string;
-            slug?: string | null;
-            description?: string | null;
-            parent_id?: number | null;
-            status: boolean;
-        };
-        UpdateCategoryRequest: {
-            name?: string;
-            slug?: string | null;
-            description?: string | null;
-            parent_id?: number | null;
-            status?: boolean;
-        };
-        SortCategoriesRequest: {
-            categories: {
-                id?: number;
-                position?: number;
-                parent_id?: number | null;
-            }[];
-        };
-        BatchStatusCategoriesRequest: {
-            ids: number[];
-            status: boolean;
-        };
-        SuccessResponse: {
-            /** @example true */
-            success?: boolean;
-            /** @example 操作成功 */
-            message?: string;
-        };
-        ErrorResponse: {
-            /** @example false */
-            success?: boolean;
-            /** @example 資源不存在 */
-            message?: string;
-            /** @example NOT_FOUND */
-            code?: string;
-        };
-        ValidationErrorResponse: {
-            /** @example 給定的資料有誤 */
-            message?: string;
-            /** @example {
-             *       "email": [
-             *         "電子郵件格式不正確"
-             *       ]
-             *     } */
-            errors?: {
-                [key: string]: string[];
-            };
-        };
-    };
-    responses: {
-        /** @description 操作成功 */
-        Success: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["SuccessResponse"];
-            };
-        };
-        /** @description 找不到資源 */
-        NotFound: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorResponse"];
-            };
-        };
-        /** @description 權限不足 */
-        Forbidden: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorResponse"];
-            };
-        };
-        /** @description 未認證 */
-        Unauthorized: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorResponse"];
-            };
-        };
-        /** @description 驗證失敗 */
-        ValidationError: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ValidationErrorResponse"];
-            };
-        };
-    };
+    schemas: never;
+    responses: never;
     parameters: never;
-    requestBodies: {
-        CreateUserRequest: {
-            content: {
-                "application/json": components["schemas"]["CreateUserRequest"];
-            };
-        };
-        UpdateUserRequest: {
-            content: {
-                "application/json": components["schemas"]["UpdateUserRequest"];
-            };
-        };
-        CreateCategoryRequest: {
-            content: {
-                "application/json": components["schemas"]["CreateCategoryRequest"];
-            };
-        };
-        UpdateCategoryRequest: {
-            content: {
-                "application/json": components["schemas"]["UpdateCategoryRequest"];
-            };
-        };
-        SortCategoriesRequest: {
-            content: {
-                "application/json": components["schemas"]["SortCategoriesRequest"];
-            };
-        };
-    };
+    requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    loginUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description 登入成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    logoutUser: {
+    Sanctum: {
         parameters: {
             query?: never;
             header?: never;
@@ -702,17 +3373,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功登出 */
-            204: {
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @example Unauthenticated. */
+                        message?: string;
+                    };
+                };
             };
-            401: components["responses"]["Unauthorized"];
         };
     };
-    getCurrentUser: {
+    API: {
         parameters: {
             query?: never;
             header?: never;
@@ -721,410 +3395,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功取得使用者資訊 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthenticatedUserResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    twoFactorChallenge: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TwoFactorChallengeRequest"];
-            };
-        };
-        responses: {
-            /** @description 2FA 驗證成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"];
-                };
-            };
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    listUsers: {
-        parameters: {
-            query?: {
-                /** @description 頁碼 */
-                page?: number;
-                /** @description 每頁數量 */
-                per_page?: number;
-                /** @description 關鍵字搜尋 (姓名, 用戶名, email) */
-                search?: string;
-                /** @description 狀態篩選 */
-                status?: "active" | "inactive" | "suspended";
-                /** @description 門市 ID 篩選 */
-                store_id?: number;
-                /** @description 角色名稱篩選 */
-                role?: string;
-                /** @description 是否啟用 2FA */
-                has_2fa?: boolean;
-                /** @description 是否驗證 Email */
-                email_verified?: boolean;
-                /** @description 建立日期 (起) */
-                created_from?: string;
-                /** @description 建立日期 (迄) */
-                created_to?: string;
-                /** @description 排序欄位 */
-                sort?: "name" | "email" | "created_at";
-                /** @description 排序方向 */
-                order?: "asc" | "desc";
-                /** @description 包含的關聯 (e.g., roles,store) */
-                include?: string;
-                /** @description 包含的計數關聯 (e.g., logs) */
-                with_count?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功取得使用者列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedUsersResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    createUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: components["requestBodies"]["CreateUserRequest"];
-        responses: {
-            /** @description 成功建立使用者 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    getUserById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 使用者 ID */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功取得使用者資訊 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 使用者 ID */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: components["requestBodies"]["UpdateUserRequest"];
-        responses: {
-            /** @description 成功更新使用者資訊 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    deleteUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 使用者 ID */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    batchUpdateUserStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BatchStatusUserRequest"];
-            };
-        };
-        responses: {
-            200: components["responses"]["Success"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    resetUserPassword: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 使用者 ID */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功發送密碼重設郵件 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getUserStatistics: {
-        parameters: {
-            query?: {
-                /** @description 依門市 ID 篩選 */
-                store_id?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功取得統計數據 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserStatsResponse"];
+                    "application/json": {
+                        /** @example API 運作正常 */
+                        message?: string;
+                        /** @example 2025-06-07T14:07:53.170244Z */
+                        timestamp?: string;
+                    };
                 };
             };
         };
     };
-    listProductCategories: {
-        parameters: {
-            query?: {
-                page?: number;
-                per_page?: number;
-                /** @description 名稱或 slug 搜尋 */
-                search?: string;
-                /** @description 狀態篩選 (true=啟用, false=停用) */
-                status?: boolean;
-                /** @description 父分類 ID */
-                parent_id?: number;
-                sort?: "name" | "position" | "created_at";
-                direction?: "asc" | "desc";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功取得列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedCategoriesResponse"];
-                };
-            };
-        };
-    };
-    createProductCategory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: components["requestBodies"]["CreateCategoryRequest"];
-        responses: {
-            /** @description 成功建立 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CategoryResponse"];
-                };
-            };
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    getProductCategoryTree: {
-        parameters: {
-            query?: {
-                /** @description 狀態篩選 */
-                status?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功取得樹狀結構 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CategoryTreeResponse"];
-                };
-            };
-        };
-    };
-    getProductCategoryById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功取得 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CategoryResponse"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateProductCategory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: components["requestBodies"]["UpdateCategoryRequest"];
-        responses: {
-            /** @description 成功更新 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CategoryResponse"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    deleteProductCategory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功刪除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    batchUpdateCategoryStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BatchStatusCategoriesRequest"];
-            };
-        };
-        responses: {
-            200: components["responses"]["Success"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    batchDeleteCategories: {
+    "2FA": {
         parameters: {
             query?: never;
             header?: never;
@@ -1134,89 +3420,173 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description 要刪除的分類 ID 列表 */
-                    ids?: number[];
+                    /**
+                     * @description 使用者ID（來自登入回應）
+                     * @example 1
+                     */
+                    user_id: number;
+                    /**
+                     * @description 6位數TOTP驗證碼（與recovery_code二選一）
+                     * @example 123456
+                     */
+                    code?: string;
+                    /**
+                     * @description 10字元恢復代碼（與code二選一）
+                     * @example abc123defg
+                     */
+                    recovery_code?: string;
+                    /**
+                     * @description 裝置名稱
+                     * @example Chrome on Windows
+                     */
+                    device_name?: string | null;
                 };
             };
         };
         responses: {
-            200: components["responses"]["Success"];
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /** @example 雙因子驗證成功 */
+                        message?: string;
+                        data?: {
+                            user?: {
+                                /** @example 1 */
+                                id?: number;
+                                /** @example admin */
+                                username?: string;
+                                /** @example 管理員 */
+                                name?: string;
+                                /** @example admin@lomis.com */
+                                email?: string;
+                                /** @example 1 */
+                                store_id?: number;
+                                /** @example [
+                                 *       {
+                                 *         "id": 1,
+                                 *         "name": "admin",
+                                 *         "display_name": "管理員"
+                                 *       }
+                                 *     ] */
+                                roles?: {
+                                    /** @example 1 */
+                                    id?: number;
+                                    /** @example admin */
+                                    name?: string;
+                                    /** @example 管理員 */
+                                    display_name?: string;
+                                }[];
+                            };
+                            /** @example 2|xyz789... */
+                            token?: string;
+                            /** @example 2025-01-08T10:00:00.000000Z */
+                            expires_at?: string;
+                            /** @example [
+                             *       "users.view",
+                             *       "users.create"
+                             *     ] */
+                            permissions?: string[];
+                            store?: {
+                                /** @example 1 */
+                                id?: number;
+                                /** @example 總店 */
+                                name?: string;
+                            };
+                        };
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        success?: boolean;
+                        /** @example 使用者不存在 */
+                        message?: string;
+                        /** @example USER_NOT_FOUND */
+                        error_code?: string;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        success?: boolean;
+                        /** @example 驗證代碼錯誤 */
+                        message?: string;
+                        /** @example INVALID_2FA_CODE */
+                        error_code?: string;
+                    };
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        success?: boolean;
+                        /** @example 驗證嘗試過於頻繁 */
+                        message?: string;
+                        /** @example TOO_MANY_ATTEMPTS */
+                        error_code?: string;
+                    };
+                };
+            };
         };
     };
-    sortCategories: {
+    Token: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: components["requestBodies"]["SortCategoriesRequest"];
-        responses: {
-            200: components["responses"]["Success"];
-        };
-    };
-    getCategoryBreadcrumbs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
         requestBody?: never;
         responses: {
-            /** @description 成功取得麵包屑 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BreadcrumbResponse"];
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /** @example Token 刷新成功 */
+                        message?: string;
+                        data?: {
+                            /** @example 3|newtoken123... */
+                            token?: string;
+                            /** @example 2025-01-08T10:00:00.000000Z */
+                            expires_at?: string;
+                        };
+                    };
                 };
             };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getCategoryDescendants: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功取得後代 */
-            200: {
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CategoryTreeResponse"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getCategoryStatistics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功取得統計數據 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CategoryStatsResponse"];
+                    "application/json": {
+                        /** @example false */
+                        success?: boolean;
+                        /** @example 未授權 */
+                        message?: string;
+                    };
                 };
             };
         };

@@ -10,8 +10,17 @@ use App\Http\Resources\Store\StoreResource;
 use App\Enums\{UserStatus, UserRole};
 
 /**
- * 使用者資源回應格式
+ * 使用者資源回應格式 (V2.0 - API 純數據原則)
  * 遵循 LomisX3 架構標準的統一 API 回應格式
+ * 
+ * ✅ V2.1 Enum 修復更新：
+ * - 使用 $this->status->value 強制轉換 UserStatus Enum 為字串
+ * - 修復 Laravel Enum 自動序列化為物件的問題
+ * 
+ * ✅ V2.0 重要更新：
+ * - status 欄位簡化為純字串，移除複雜物件結構
+ * - 移除 getStatusLabel() 和 getStatusColor() 方法
+ * - 遵循 API 返回純數據，格式化邏輯交由前端處理的原則
  * 
  * 功能特色：
  * - 門市隔離資料過濾
@@ -46,13 +55,8 @@ class UserResource extends JsonResource
             // 聯絡資訊
             'phone' => $this->phone,
             
-            // 狀態資訊
-            'status' => [
-                'value' => $this->status,
-                'label' => $this->getStatusLabel(),
-                'color' => $this->getStatusColor(),
-                'is_active' => $this->status === UserStatus::ACTIVE->value
-            ],
+            // 狀態資訊 (V2.1 - 強制轉換為字串)
+            'status' => $this->status->value, // ✅ 從 UserStatus Enum 取得原始字串值
             
             // 認證相關
             'email_verified_at' => $this->email_verified_at?->toISOString(),
@@ -145,33 +149,8 @@ class UserResource extends JsonResource
         ];
     }
 
-    /**
-     * 取得狀態標籤
-     */
-    private function getStatusLabel(): string
-    {
-        return match ($this->status) {
-            UserStatus::ACTIVE->value => '啟用',
-            UserStatus::INACTIVE->value => '停用',
-            UserStatus::LOCKED->value => '鎖定',
-            UserStatus::PENDING->value => '待啟用',
-            default => '未知'
-        };
-    }
-
-    /**
-     * 取得狀態顏色
-     */
-    private function getStatusColor(): string
-    {
-        return match ($this->status) {
-            UserStatus::ACTIVE->value => 'success',
-            UserStatus::INACTIVE->value => 'warning',
-            UserStatus::LOCKED->value => 'error',
-            UserStatus::PENDING->value => 'info',
-            default => 'default'
-        };
-    }
+    // ✅ V2.0 移除：getStatusLabel() 和 getStatusColor() 方法
+    // 狀態格式化邏輯已轉移到前端，遵循 API 返回純數據的原則
 
     /**
      * 取得角色層級

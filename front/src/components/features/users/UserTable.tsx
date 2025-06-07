@@ -571,7 +571,7 @@ export function UserTable({
       
       <DataTable
         title={title}
-        data={usersResponse?.data?.data || []}
+        data={Array.isArray(usersResponse?.data?.data) ? usersResponse.data.data : []}
         columns={columns}
         actions={actions}
         rowSelection={showBatchActions}

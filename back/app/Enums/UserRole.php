@@ -8,7 +8,7 @@ namespace App\Enums;
  * 使用者角色枚舉
  * 
  * @author LomisX3 開發團隊
- * @version V6.2
+ * @version V1.0
  */
 enum UserRole: string
 {
@@ -38,74 +38,62 @@ enum UserRole: string
     public function description(): string
     {
         return match($this) {
-            self::ADMIN => '擁有系統最高權限，可管理所有門市和使用者',
-            self::STORE_ADMIN => '可管理指定門市的使用者和資料',
-            self::MANAGER => '可查看和管理部分門市功能',
-            self::STAFF => '一般員工，基本查看權限',
-            self::GUEST => '訪客權限，僅限查看自己的資料',
+            self::ADMIN => '具有系統最高權限，可管理所有門市和使用者',
+            self::STORE_ADMIN => '管理特定門市的所有業務和使用者',
+            self::MANAGER => '管理門市日常營運和部分員工',
+            self::STAFF => '執行日常業務操作',
+            self::GUEST => '僅具備基本查看權限',
         };
     }
 
     /**
-     * 取得角色權限列表
-     */
-    public function getPermissions(): array
-    {
-        return match($this) {
-            self::ADMIN => [
-                'users.*',
-                'roles.*',
-                'permissions.*',
-                'stores.*',
-                'reports.*',
-                'media.view.private',
-                'system.admin',
-                'product-categories.*',
-                'activities.view.all',
-            ],
-            self::STORE_ADMIN => [
-                'users.view',
-                'users.create', 
-                'users.update',
-                'roles.view',
-                'stores.view', 
-                'stores.update',
-                'reports.view.store',
-                'product-categories.view',
-                'product-categories.create',
-                'product-categories.update',
-                'activities.view.store',
-            ],
-            self::MANAGER => [
-                'users.view',
-                'stores.view',
-                'reports.view.store',
-                'product-categories.view',
-                'activities.view.store',
-            ],
-            self::STAFF => [
-                'users.view.own',
-                'stores.view',
-                'product-categories.view',
-                'activities.view.own',
-            ],
-            self::GUEST => [
-                'users.view.own',
-            ],
-        };
-    }
-
-    /**
-     * 取得角色級別（數字越大權限越高）
+     * 取得角色層級
      */
     public function level(): int
     {
         return match($this) {
-            self::GUEST => 1,
-            self::STAFF => 2,
-            self::MANAGER => 3,
-            self::STORE_ADMIN => 4,
-            self::ADMIN => 5,
+            self::ADMIN => 100,
+            self::STORE_ADMIN => 80,
+            self::MANAGER => 60,
+            self::STAFF => 40,
+            self::GUEST => 20,
+        };
+    }
+
+    /**
+     * 取得角色顏色
+     */
+    public function color(): string
+    {
+        return match($this) {
+            self::ADMIN => 'danger',
+            self::STORE_ADMIN => 'purple',
+            self::MANAGER => 'primary',
+            self::STAFF => 'success',
+            self::GUEST => 'secondary',
+        };
+    }
+
+    /**
+     * 取得預設權限
+     */
+    public function defaultPermissions(): array
+    {
+        return match($this) {
+            self::ADMIN => ['*'],
+            self::STORE_ADMIN => [
+                'users.*', 'orders.*', 'products.*', 'categories.*', 
+                'reports.view', 'settings.store'
+            ],
+            self::MANAGER => [
+                'users.view', 'orders.*', 'products.view', 'reports.view'
+            ],
+            self::STAFF => [
+                'orders.view', 'orders.create', 'products.view'
+            ],
+            self::GUEST => [
+                'dashboard.view'
+            ],
         };
     }
 
@@ -118,83 +106,12 @@ enum UserRole: string
     }
 
     /**
-     * 檢查是否為管理員角色
-     */
-    public function isAdmin(): bool
-    {
-        return in_array($this, [self::ADMIN, self::STORE_ADMIN]);
-    }
-
-    /**
-     * 檢查是否可以跨門市操作
-     */
-    public function canAccessMultipleStores(): bool
-    {
-        return $this === self::ADMIN;
-    }
-
-    /**
-     * 取得角色顏色（用於前端顯示）
-     */
-    public function color(): string
-    {
-        return match($this) {
-            self::ADMIN => 'danger',
-            self::STORE_ADMIN => 'warning',
-            self::MANAGER => 'info',
-            self::STAFF => 'success',
-            self::GUEST => 'secondary',
-        };
-    }
-
-    /**
-     * 取得角色圖示
-     */
-    public function icon(): string
-    {
-        return match($this) {
-            self::ADMIN => 'crown',
-            self::STORE_ADMIN => 'shield-check',
-            self::MANAGER => 'briefcase',
-            self::STAFF => 'user',
-            self::GUEST => 'eye',
-        };
-    }
-
-    /**
-     * 取得可分配的下級角色
-     */
-    public function getAssignableRoles(): array
-    {
-        return collect(self::cases())
-            ->filter(fn($role) => $this->canManage($role))
-            ->values()
-            ->toArray();
-    }
-
-    /**
-     * 取得所有角色選項（用於表單）
+     * 取得所有角色選項
      */
     public static function options(): array
     {
         return collect(self::cases())->mapWithKeys(fn($role) => [
             $role->value => $role->label()
         ])->toArray();
-    }
-
-    /**
-     * 根據權限級別取得適當的預設角色
-     */
-    public static function getDefaultRole(): self
-    {
-        return self::STAFF;
-    }
-
-    /**
-     * 檢查角色是否需要特殊審核
-     */
-    public function requiresApproval(): bool
-    {
-        return in_array($this, [self::ADMIN, self::STORE_ADMIN]);
     }
 } 

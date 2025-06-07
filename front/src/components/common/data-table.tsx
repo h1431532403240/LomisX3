@@ -165,12 +165,12 @@ export function DataTable<T extends Record<string, any>>({
   searchPlaceholder = '搜尋...',
   rowClassName,
 }: DataTableProps<T>) {
-  // 🚫 移除所有內部狀態 - 完全受控模式
-  // const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-  // const [sortField, setSortField] = useState<string | null>(null);
-  // const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  // const [searchValue, setSearchValue] = useState('');
-  // const [columnFilters, setColumnFilters] = useState<Record<string, any>>({});
+  // 🛡️ 終極安全保護：確保 data 永遠是陣列
+  const safeData: T[] = Array.isArray(data) ? data : [];
+  
+  if (!Array.isArray(data)) {
+    console.warn('[DataTable] 收到非陣列的 data prop:', data, '已自動轉換為空陣列');
+  }
 
   // ✅ 從 props 取得狀態值 (完全受控)
   const selectedKeys = selectionState?.selectedKeys || [];
@@ -212,8 +212,8 @@ export function DataTable<T extends Record<string, any>>({
     if (!onSelectionChange) return;
 
     if (checked) {
-      const allKeys = data.map((record, index) => getRowKey(record, index));
-      onSelectionChange(allKeys, data);
+      const allKeys = safeData.map((record, index) => getRowKey(record, index));
+      onSelectionChange(allKeys, safeData);
     } else {
       onSelectionChange([], []);
     }
@@ -234,7 +234,7 @@ export function DataTable<T extends Record<string, any>>({
       newSelectedKeys = selectedKeys.filter(k => k !== key);
     }
     
-    const selectedRows = data.filter((_, idx) => 
+    const selectedRows = safeData.filter((_, idx) => 
       newSelectedKeys.includes(getRowKey(_, idx))
     );
     onSelectionChange(newSelectedKeys, selectedRows);
@@ -256,7 +256,7 @@ export function DataTable<T extends Record<string, any>>({
         {hasRowSelection && (
           <TableHead className="w-12">
             <Checkbox
-              checked={selectedKeys.length === data.length && data.length > 0}
+              checked={selectedKeys.length === safeData.length && safeData.length > 0}
               onCheckedChange={handleSelectAll}
             />
           </TableHead>
@@ -305,7 +305,7 @@ export function DataTable<T extends Record<string, any>>({
    */
   const renderTableBody = () => (
     <TableBody>
-      {data.length === 0 ? (
+      {safeData.length === 0 ? (
         <TableRow>
           <TableCell 
             colSpan={columns.length + (hasRowSelection ? 1 : 0) + (actions.length > 0 ? 1 : 0)}
@@ -315,7 +315,7 @@ export function DataTable<T extends Record<string, any>>({
           </TableCell>
         </TableRow>
       ) : (
-        data.map((record, index) => {
+        safeData.map((record, index) => {
           const key = getRowKey(record, index);
           const isSelected = selectedKeys.includes(key);
           const customRowClass = rowClassName ? rowClassName(record, index) : '';

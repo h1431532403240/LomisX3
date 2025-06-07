@@ -1,8 +1,28 @@
 /**
- * 使用者表格組件 (V3.0 - DataTable V2.0 完全受控模式)
+ * 使用者表格組件 (V4.2 - 容錯處理增強)
  * 
- * @description 使用 DataTable V2.0 完全受控組件，管理所有表格狀態
+ * @description 使用 DataTable V2.0 完全受控組件，專注於 UI 展示邏輯
  * @requires shadcn/ui 組件庫 + DataTable V2.0
+ * 
+ * ✅ V4.2 容錯處理增強：
+ * - 新增物件格式 status 的容錯處理，自動提取 value 字段
+ * - 支援過渡期間的後端資料格式變更，提供調試警告
+ * - 防止 React 渲染物件導致的錯誤
+ * 
+ * ✅ V4.1 狀態處理優化：
+ * - 實現統一的 getStatusConfig 輔助函數，替代分離的 getStatusVariant/getStatusText
+ * - 支援更多狀態類型：active, inactive, suspended, locked, pending
+ * - 健壯的錯誤處理：未知狀態會顯示原始值
+ * 
+ * ✅ V4.0 重構記錄：
+ * - 移除防抖邏輯，將搜尋副作用責任交還給容器組件
+ * - 簡化 handleSearchChange，只負責通知父組件
+ * - 提升組件性能，遵循單一職責原則
+ * 
+ * ✅ V3.1 更新記錄：
+ * - 修正 formatRole 函數：支援後端返回的字串陣列格式 (roles: string[])
+ * - 確保 status 欄位正確處理字串格式，精確匹配後端 API 回應
+ * - 角色顯示邏輯：多個角色用逗號連接，提供完整角色資訊
  */
 import { useState } from 'react';
 import { DataTable } from '@/components/common/data-table';
@@ -11,7 +31,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Eye, Trash2 } from 'lucide-react';
 import { PermissionGuard } from '@/components/common/permission-guard';
-import { useDebounce } from '@/hooks/common/use-debounce';
 import type { components } from '@/types/api';
 
 type User = components['schemas']['User'];
@@ -52,14 +71,6 @@ export const UserTable: React.FC<UserTableProps> = ({
     value: '' 
   });
 
-  // 保留原有的防抖搜尋邏輯
-  const debouncedSearchTerm = useDebounce(searchState.value, 300);
-
-  // 當防抖搜尋詞變化時，通知父組件
-  useState(() => {
-    onSearchChange?.(debouncedSearchTerm);
-  });
-
   // ✅ DataTable V2.0 事件回調函數
   const handleSortChange = (field: string, order: 'asc' | 'desc') => {
     setSortState({ field, order });
@@ -73,49 +84,73 @@ export const UserTable: React.FC<UserTableProps> = ({
   };
 
   const handleSearchChange = (newValue: string) => {
-    setSearchState({ value: newValue });
-    // 內部狀態更新後，防抖邏輯會自動觸發 onSearchChange
+    // ✅ V4.0 重構：直接通知父組件，不進行任何防抖或內部狀態設置
+    onSearchChange?.(newValue);
   };
 
   /**
-   * 格式化角色顯示
+   * 格式化角色顯示 (V3.1 - 支援字串陣列格式)
+   * @description 處理後端返回的角色字串陣列，將所有角色用逗號連接
    */
-  const formatRole = (roles?: User['roles']): string => {
+  const formatRole = (roles?: string[]): string => {
     if (!roles || roles.length === 0) return '無角色';
-    const roleName = roles[0]?.name;
-    if (!roleName) return '未知角色';
     
     const roleMap: { [key: string]: string } = {
-      admin: '系統管理員',
-      store_admin: '門市管理員',
-      manager: '經理',
-      staff: '員工',
-      guest: '訪客',
+      'admin': '系統管理員',
+      'store_admin': '門市管理員',
+      'manager': '經理',
+      'staff': '員工',
+      'guest': '訪客',
     };
-    return roleMap[roleName] || roleName;
+
+    // ✅ 將每個角色名翻譯後，用逗號連接
+    return roles.map(roleName => roleMap[roleName] || roleName).join(', ');
   };
 
-  const getStatusVariant = (status?: 'active' | 'inactive' | 'suspended'): 'default' | 'secondary' | 'destructive' => {
-    switch (status) {
-      case 'active':
-        return 'default';
-      case 'suspended':
-        return 'destructive';
-      case 'inactive':
-      default:
-        return 'secondary';
+  /**
+   * 統一的狀態配置輔助函數 (V4.2 - 健壯設計 + 容錯處理)
+   * @description 處理後端返回的狀態字串或物件，提供統一的標籤和樣式配置
+   */
+  const getStatusConfig = (status?: string | any) => {
+    // ✅ 容錯處理：如果收到物件格式，提取 value 字段
+    let statusValue = status;
+    if (typeof status === 'object' && status !== null && 'value' in status) {
+      console.warn('⚠️ 接收到物件格式的 status，自動提取 value 字段:', status);
+      statusValue = status.value;
     }
-  };
-  
-  const getStatusText = (status?: 'active' | 'inactive' | 'suspended'): string => {
-     switch (status) {
+    
+    switch (statusValue) {
       case 'active':
-        return '啟用';
+        return { 
+          variant: 'default' as const, 
+          label: '啟用' 
+        };
       case 'suspended':
-        return '停權';
+        return { 
+          variant: 'destructive' as const, 
+          label: '停權' 
+        };
       case 'inactive':
+        return { 
+          variant: 'secondary' as const, 
+          label: '停用' 
+        };
+      case 'locked':
+        return { 
+          variant: 'destructive' as const, 
+          label: '鎖定' 
+        };
+      case 'pending':
+        return { 
+          variant: 'outline' as const, 
+          label: '待啟用' 
+        };
       default:
-        return '停用';
+        console.warn('⚠️ 未知的狀態值:', statusValue);
+        return { 
+          variant: 'secondary' as const, 
+          label: String(statusValue) || '未知' 
+        };
     }
   };
 
@@ -140,18 +175,17 @@ export const UserTable: React.FC<UserTableProps> = ({
       key: 'role',
       title: '角色',
       dataIndex: 'roles',
-      render: (roles: User['roles']) => formatRole(roles),
+      render: (roles: string[]) => formatRole(roles),
     },
     {
       key: 'status',
       title: '狀態',
-      dataIndex: 'status',
+      dataIndex: 'status', // ✅ 確保 dataIndex 指向 status 字串
       sortable: true,
-      render: (status: User['status']) => (
-        <Badge variant={getStatusVariant(status)}>
-          {getStatusText(status)}
-        </Badge>
-      ),
+      render: (status: string) => { // ✅ 接收到的 status 就是字串
+        const config = getStatusConfig(status);
+        return <Badge variant={config.variant}>{config.label}</Badge>;
+      },
     },
     {
       key: 'created_at',
@@ -196,7 +230,7 @@ export const UserTable: React.FC<UserTableProps> = ({
     <div className="space-y-4">
       {/* ✅ 使用 DataTable V2.0 完全受控組件 */}
       <DataTable<User>
-        data={users}
+        data={Array.isArray(users) ? users : []}
         columns={columns}
         actions={actions}
         loading={isLoading}
@@ -212,7 +246,7 @@ export const UserTable: React.FC<UserTableProps> = ({
         onSearchChange={handleSearchChange}
         
         // UI 配置
-        title={`使用者列表 (${users.length})`}
+        title={`使用者列表 (${Array.isArray(users) ? users.length : 0})`}
         emptyText={searchState.value ? '沒有找到符合條件的使用者' : '暫無使用者資料'}
         searchPlaceholder="搜尋使用者..."
         toolbar={

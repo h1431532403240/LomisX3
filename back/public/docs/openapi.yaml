@@ -1,363 +1,460 @@
 openapi: 3.0.3
 info:
-  title: 'LomisX3 API 文檔'
-  description: 'LomisX3 企業級管理系統的完整 RESTful API 文檔 v2.5'
-  version: 2.5.0
+  title: 'LomisX3 商品分類 API 文檔'
+  description: '商品分類模組的完整 RESTful API 文檔，包含分頁、篩選、樹狀結構等功能'
+  version: 1.0.0
 servers:
-  - url: /
-    description: '相對路徑'
+  -
+    url: 'http://localhost:8000'
 tags:
-  - name: '認證 (Auth)'
-    description: '使用者登入、登出、2FA 及身分驗證'
-  - name: '使用者管理 (Users)'
-    description: '管理使用者帳號、角色、權限和狀態'
-  - name: '商品分類 (Product Categories)'
-    description: '管理商品分類階層、狀態和詳細資訊'
-
+  -
+    name: 商品分類管理
+    description: ''
+  -
+    name: ''
+    description: ''
+  -
+    name: 使用者管理
+    description: ''
+  -
+    name: 認證管理
+    description: ''
+components:
+  securitySchemes:
+    default:
+      type: http
+      scheme: bearer
+      description: '使用 Laravel Sanctum Bearer Token 進行認證。請在請求頭中包含：Authorization: Bearer {token}'
 security:
-  - sanctum: []
-
+  -
+    default: []
 paths:
-  # ------------------------------------------------------------
-  # 認證 API
-  # ------------------------------------------------------------
-  /api/auth/login:
-    post:
-      tags: ['認證 (Auth)']
-      summary: '使用者登入'
-      operationId: loginUser
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-      responses:
-        '200':
-          description: '登入成功'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/auth/logout:
-    post:
-      tags: ['認證 (Auth)']
-      summary: '使用者登出'
-      operationId: logoutUser
-      responses:
-        '204':
-          description: '成功登出'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-  
-  /api/auth/me:
-    get:
-      tags: ['認證 (Auth)']
-      summary: '取得當前登入的使用者資訊'
-      operationId: getCurrentUser
-      responses:
-        '200':
-          description: '成功取得使用者資訊'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthenticatedUserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/auth/2fa/challenge:
-    post:
-      tags: ['認證 (Auth)']
-      summary: '二階段驗證 (2FA)'
-      operationId: twoFactorChallenge
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TwoFactorChallengeRequest'
-      responses:
-        '200':
-          description: '2FA 驗證成功'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  # ------------------------------------------------------------
-  # 使用者管理 API
-  # ------------------------------------------------------------
-  /api/users:
-    get:
-      tags: ['使用者管理 (Users)']
-      summary: '取得使用者列表 (分頁)'
-      operationId: listUsers
-      parameters:
-        - { name: page, in: query, schema: { type: integer, default: 1 }, description: '頁碼' }
-        - { name: per_page, in: query, schema: { type: integer, default: 15 }, description: '每頁數量' }
-        - { name: search, in: query, schema: { type: string }, description: '關鍵字搜尋 (姓名, 用戶名, email)' }
-        - { name: status, in: query, schema: { type: string, enum: [active, inactive, suspended] }, description: '狀態篩選' }
-        - { name: store_id, in: query, schema: { type: integer }, description: '門市 ID 篩選' }
-        - { name: role, in: query, schema: { type: string }, description: '角色名稱篩選' }
-        - { name: has_2fa, in: query, schema: { type: boolean }, description: '是否啟用 2FA' }
-        - { name: email_verified, in: query, schema: { type: boolean }, description: '是否驗證 Email' }
-        - { name: created_from, in: query, schema: { type: string, format: date }, description: '建立日期 (起)' }
-        - { name: created_to, in: query, schema: { type: string, format: date }, description: '建立日期 (迄)' }
-        - { name: sort, in: query, schema: { type: string, enum: [name, email, created_at] }, description: '排序欄位' }
-        - { name: order, in: query, schema: { type: string, enum: [asc, desc] }, description: '排序方向' }
-        - { name: include, in: query, schema: { type: string }, description: '包含的關聯 (e.g., roles,store)' }
-        - { name: with_count, in: query, schema: { type: string }, description: '包含的計數關聯 (e.g., logs)' }
-      responses:
-        '200':
-          description: '成功取得使用者列表'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedUsersResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-    post:
-      tags: ['使用者管理 (Users)']
-      summary: '建立新使用者'
-      operationId: createUser
-      requestBody:
-        $ref: '#/components/requestBodies/CreateUserRequest'
-      responses:
-        '201':
-          description: '成功建立使用者'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /api/users/{id}:
-    get:
-      tags: ['使用者管理 (Users)']
-      summary: '取得單一使用者詳細資訊'
-      operationId: getUserById
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer }, description: '使用者 ID' }
-      responses:
-        '200':
-          description: '成功取得使用者資訊'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      tags: ['使用者管理 (Users)']
-      summary: '更新使用者資訊'
-      operationId: updateUser
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer }, description: '使用者 ID' }
-      requestBody:
-        $ref: '#/components/requestBodies/UpdateUserRequest'
-      responses:
-        '200':
-          description: '成功更新使用者資訊'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-    delete:
-      tags: ['使用者管理 (Users)']
-      summary: '刪除使用者'
-      operationId: deleteUser
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer }, description: '使用者 ID' }
-      responses:
-        '204':
-          description: '成功刪除'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/users/batch/status:
-    patch:
-      tags: ['使用者管理 (Users)']
-      summary: '批次更新使用者狀態'
-      operationId: batchUpdateUserStatus
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BatchStatusUserRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/Success'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /api/users/{id}/reset-password:
-    post:
-      tags: ['使用者管理 (Users)']
-      summary: '重設使用者密碼'
-      operationId: resetUserPassword
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer }, description: '使用者 ID' }
-      responses:
-        '200':
-          description: '成功發送密碼重設郵件'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-          
-  /api/users/statistics:
-    get:
-      tags: ['使用者管理 (Users)']
-      summary: '取得使用者統計數據'
-      operationId: getUserStatistics
-      parameters:
-        - { name: store_id, in: query, schema: { type: integer }, description: '依門市 ID 篩選' }
-      responses:
-        '200':
-          description: '成功取得統計數據'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserStatsResponse'
-
-  # ------------------------------------------------------------
-  # 商品分類 API
-  # ------------------------------------------------------------
   /api/product-categories:
     get:
-      tags: ['商品分類 (Product Categories)']
-      summary: '取得商品分類列表 (分頁)'
-      operationId: listProductCategories
+      summary: 取得分類清單
+      operationId: ''
+      description: 支援分頁、篩選、搜尋等功能。可通過查詢參數控制返回結果。
       parameters:
-        - { name: page, in: query, schema: { type: integer, default: 1 } }
-        - { name: per_page, in: query, schema: { type: integer, default: 15 } }
-        - { name: search, in: query, schema: { type: string }, description: '名稱或 slug 搜尋' }
-        - { name: status, in: query, schema: { type: boolean }, description: '狀態篩選 (true=啟用, false=停用)' }
-        - { name: parent_id, in: query, schema: { type: integer }, description: '父分類 ID' }
-        - { name: sort, in: query, schema: { type: string, enum: [name, position, created_at] } }
-        - { name: direction, in: query, schema: { type: string, enum: [asc, desc] } }
+        -
+          in: query
+          name: search
+          description: 搜尋關鍵字（支援名稱、描述）
+          example: 電子產品
+          required: false
+          schema:
+            type: string
+            description: 搜尋關鍵字（支援名稱、描述）
+            example: 電子產品
+            nullable: false
+        -
+          in: query
+          name: status
+          description: 分類狀態篩選
+          example: true
+          required: false
+          schema:
+            type: boolean
+            description: 分類狀態篩選
+            example: true
+            nullable: false
+        -
+          in: query
+          name: parent_id
+          description: 父分類ID篩選
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 父分類ID篩選
+            example: 1
+            nullable: false
+        -
+          in: query
+          name: depth
+          description: 分類深度篩選
+          example: 2
+          required: false
+          schema:
+            type: integer
+            description: 分類深度篩選
+            example: 2
+            nullable: false
+        -
+          in: query
+          name: with_children
+          description: 是否包含子分類
+          example: true
+          required: false
+          schema:
+            type: boolean
+            description: 是否包含子分類
+            example: true
+            nullable: false
+        -
+          in: query
+          name: max_depth
+          description: 最大深度限制
+          example: 3
+          required: false
+          schema:
+            type: integer
+            description: 最大深度限制
+            example: 3
+            nullable: false
+        -
+          in: query
+          name: with_trashed
+          description: 是否包含已刪除項目
+          example: false
+          required: false
+          schema:
+            type: boolean
+            description: 是否包含已刪除項目
+            example: false
+            nullable: false
+        -
+          in: query
+          name: per_page
+          description: 每頁項目數（1-100）
+          example: 20
+          required: false
+          schema:
+            type: integer
+            description: 每頁項目數（1-100）
+            example: 20
+            nullable: false
+        -
+          in: query
+          name: page
+          description: 頁碼
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 頁碼
+            example: 1
+            nullable: false
       responses:
-        '200':
-          description: '成功取得列表'
+        200:
+          description: ''
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedCategoriesResponse'
+                type: object
+                example:
+                  data:
+                    -
+                      id: 1
+                      name: 電子產品
+                      slug: electronics
+                      parent_id: null
+                      position: 1
+                      status: true
+                      depth: 0
+                      description: 各類電子產品分類
+                      meta_title: '電子產品 | LomisX3'
+                      meta_description: 電子產品相關商品分類
+                      path: /1/
+                      has_children: true
+                      full_path: 電子產品
+                      children_count: 5
+                      created_at: '2025-01-07T10:00:00.000000Z'
+                      updated_at: '2025-01-07T10:00:00.000000Z'
+                  links:
+                    first: 'http://localhost/api/product-categories?page=1'
+                    last: 'http://localhost/api/product-categories?page=10'
+                    prev: null
+                    next: 'http://localhost/api/product-categories?page=2'
+                  meta:
+                    current_page: 1
+                    from: 1
+                    last_page: 10
+                    per_page: 20
+                    to: 20
+                    total: 200
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        id: 1
+                        name: 電子產品
+                        slug: electronics
+                        parent_id: null
+                        position: 1
+                        status: true
+                        depth: 0
+                        description: 各類電子產品分類
+                        meta_title: '電子產品 | LomisX3'
+                        meta_description: 電子產品相關商品分類
+                        path: /1/
+                        has_children: true
+                        full_path: 電子產品
+                        children_count: 5
+                        created_at: '2025-01-07T10:00:00.000000Z'
+                        updated_at: '2025-01-07T10:00:00.000000Z'
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: 電子產品
+                        slug:
+                          type: string
+                          example: electronics
+                        parent_id:
+                          type: string
+                          example: null
+                        position:
+                          type: integer
+                          example: 1
+                        status:
+                          type: boolean
+                          example: true
+                        depth:
+                          type: integer
+                          example: 0
+                        description:
+                          type: string
+                          example: 各類電子產品分類
+                        meta_title:
+                          type: string
+                          example: '電子產品 | LomisX3'
+                        meta_description:
+                          type: string
+                          example: 電子產品相關商品分類
+                        path:
+                          type: string
+                          example: /1/
+                        has_children:
+                          type: boolean
+                          example: true
+                        full_path:
+                          type: string
+                          example: 電子產品
+                        children_count:
+                          type: integer
+                          example: 5
+                        created_at:
+                          type: string
+                          example: '2025-01-07T10:00:00.000000Z'
+                        updated_at:
+                          type: string
+                          example: '2025-01-07T10:00:00.000000Z'
+                  links:
+                    type: object
+                    properties:
+                      first:
+                        type: string
+                        example: 'http://localhost/api/product-categories?page=1'
+                      last:
+                        type: string
+                        example: 'http://localhost/api/product-categories?page=10'
+                      prev:
+                        type: string
+                        example: null
+                      next:
+                        type: string
+                        example: 'http://localhost/api/product-categories?page=2'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      from:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 10
+                      per_page:
+                        type: integer
+                        example: 20
+                      to:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        example: 200
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 驗證失敗
+                  errors:
+                    per_page:
+                      - 每頁項目數不能超過100
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 驗證失敗
+                  errors:
+                    type: object
+                    properties:
+                      per_page:
+                        type: array
+                        example:
+                          - 每頁項目數不能超過100
+                        items:
+                          type: string
+      tags:
+        - 商品分類管理
+      security: []
     post:
-      tags: ['商品分類 (Product Categories)']
-      summary: '建立新商品分類'
-      operationId: createProductCategory
-      requestBody:
-        $ref: '#/components/requestBodies/CreateCategoryRequest'
+      summary: 儲存新分類
+      operationId: ''
+      description: 創建新的商品分類。系統將自動計算層級深度、生成唯一slug，並觸發快取更新。
+      parameters: []
       responses:
-        '201':
-          description: '成功建立'
+        201:
+          description: ''
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CategoryResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /api/product-categories/tree:
-    get:
-      tags: ['商品分類 (Product Categories)']
-      summary: '取得完整的商品分類樹狀結構'
-      operationId: getProductCategoryTree
-      parameters:
-        - { name: status, in: query, schema: { type: boolean }, description: '狀態篩選' }
-      responses:
-        '200':
-          description: '成功取得樹狀結構'
+                type: object
+                example:
+                  success: true
+                  message: 分類建立成功
+                  data:
+                    id: 15
+                    name: 智慧型手機
+                    slug: smartphones
+                    parent_id: 1
+                    position: 10
+                    status: true
+                    depth: 1
+                    description: 各種品牌的智慧型手機
+                    meta_title: '智慧型手機 | LomisX3'
+                    meta_description: 提供各大品牌智慧型手機，包含最新機型與優惠價格
+                    path: /1/15/
+                    has_children: false
+                    full_path: '電子產品 > 智慧型手機'
+                    children_count: 0
+                    created_at: '2025-01-07T10:30:00.000000Z'
+                    updated_at: '2025-01-07T10:30:00.000000Z'
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 分類建立成功
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 15
+                      name:
+                        type: string
+                        example: 智慧型手機
+                      slug:
+                        type: string
+                        example: smartphones
+                      parent_id:
+                        type: integer
+                        example: 1
+                      position:
+                        type: integer
+                        example: 10
+                      status:
+                        type: boolean
+                        example: true
+                      depth:
+                        type: integer
+                        example: 1
+                      description:
+                        type: string
+                        example: 各種品牌的智慧型手機
+                      meta_title:
+                        type: string
+                        example: '智慧型手機 | LomisX3'
+                      meta_description:
+                        type: string
+                        example: 提供各大品牌智慧型手機，包含最新機型與優惠價格
+                      path:
+                        type: string
+                        example: /1/15/
+                      has_children:
+                        type: boolean
+                        example: false
+                      full_path:
+                        type: string
+                        example: '電子產品 > 智慧型手機'
+                      children_count:
+                        type: integer
+                        example: 0
+                      created_at:
+                        type: string
+                        example: '2025-01-07T10:30:00.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2025-01-07T10:30:00.000000Z'
+        400:
+          description: ''
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CategoryTreeResponse'
-
-  /api/product-categories/{id}:
-    get:
-      tags: ['商品分類 (Product Categories)']
-      summary: '取得單一商品分類資訊'
-      operationId: getProductCategoryById
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer } }
-      responses:
-        '200':
-          description: '成功取得'
+                type: object
+                example:
+                  success: false
+                  message: 分類建立失敗：超過最大層級限制
+                  code: MAX_DEPTH_EXCEEDED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類建立失敗：超過最大層級限制
+                  code:
+                    type: string
+                    example: MAX_DEPTH_EXCEEDED
+        422:
+          description: ''
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CategoryResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      tags: ['商品分類 (Product Categories)']
-      summary: '更新商品分類'
-      operationId: updateProductCategory
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer } }
-      requestBody:
-        $ref: '#/components/requestBodies/UpdateCategoryRequest'
-      responses:
-        '200':
-          description: '成功更新'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CategoryResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-    delete:
-      tags: ['商品分類 (Product Categories)']
-      summary: '刪除商品分類'
-      operationId: deleteProductCategory
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer } }
-      responses:
-        '204':
-          description: '成功刪除'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/product-categories/batch/status:
-    patch:
-      tags: ['商品分類 (Product Categories)']
-      summary: '批次更新商品分類狀態'
-      operationId: batchUpdateCategoryStatus
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BatchStatusCategoriesRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/Success'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /api/product-categories/batch/delete:
-    post:
-      tags: ['商品分類 (Product Categories)']
-      summary: '批次刪除商品分類'
-      operationId: batchDeleteCategories
+                type: object
+                example:
+                  success: false
+                  message: 分類建立失敗：名稱已存在
+                  code: CATEGORY_CREATE_FAILED
+                  errors:
+                    name:
+                      - 分類名稱已存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類建立失敗：名稱已存在
+                  code:
+                    type: string
+                    example: CATEGORY_CREATE_FAILED
+                  errors:
+                    type: object
+                    properties:
+                      name:
+                        type: array
+                        example:
+                          - 分類名稱已存在
+                        items:
+                          type: string
+      tags:
+        - 商品分類管理
       requestBody:
         required: true
         content:
@@ -365,429 +462,3922 @@ paths:
             schema:
               type: object
               properties:
-                ids: { type: array, items: { type: integer }, description: '要刪除的分類 ID 列表' }
+                name:
+                  type: string
+                  description: 分類名稱（2-100字元）
+                  example: 智慧型手機
+                  nullable: false
+                slug:
+                  type: string
+                  description: 自訂URL別名（可選，系統會自動生成）
+                  example: smartphones
+                  nullable: true
+                parent_id:
+                  type: integer
+                  description: 父分類ID（可選）
+                  example: 1
+                  nullable: true
+                position:
+                  type: integer
+                  description: 排序位置（可選，預設自動計算）
+                  example: 10
+                  nullable: true
+                status:
+                  type: boolean
+                  description: 啟用狀態（預設true）
+                  example: true
+                  nullable: true
+                description:
+                  type: string
+                  description: 分類描述（可選）
+                  example: 各種品牌的智慧型手機
+                  nullable: true
+                meta_title:
+                  type: string
+                  description: SEO標題（可選，預設使用分類名稱）
+                  example: '智慧型手機 | LomisX3'
+                  nullable: true
+                meta_description:
+                  type: string
+                  description: SEO描述（可選）
+                  example: 提供各大品牌智慧型手機，包含最新機型與優惠價格
+                  nullable: true
+              required:
+                - name
+      security: []
+  '/api/product-categories/{id}':
+    get:
+      summary: 顯示指定分類
+      operationId: ''
+      description: 取得單一商品分類的詳細資訊，包含父分類和子分類資料。
+      parameters: []
       responses:
-        '200':
-          $ref: '#/components/responses/Success'
-
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  data:
+                    id: 1
+                    name: 電子產品
+                    slug: electronics
+                    parent_id: null
+                    position: 1
+                    status: true
+                    depth: 0
+                    description: 各類電子產品分類
+                    meta_title: '電子產品 | LomisX3'
+                    meta_description: 電子產品相關商品分類
+                    path: /1/
+                    has_children: true
+                    full_path: 電子產品
+                    children_count: 5
+                    parent: null
+                    children:
+                      -
+                        id: 2
+                        name: 智慧型手機
+                        slug: smartphones
+                        parent_id: 1
+                        status: true
+                        depth: 1
+                    created_at: '2025-01-07T10:00:00.000000Z'
+                    updated_at: '2025-01-07T10:00:00.000000Z'
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      name:
+                        type: string
+                        example: 電子產品
+                      slug:
+                        type: string
+                        example: electronics
+                      parent_id:
+                        type: string
+                        example: null
+                      position:
+                        type: integer
+                        example: 1
+                      status:
+                        type: boolean
+                        example: true
+                      depth:
+                        type: integer
+                        example: 0
+                      description:
+                        type: string
+                        example: 各類電子產品分類
+                      meta_title:
+                        type: string
+                        example: '電子產品 | LomisX3'
+                      meta_description:
+                        type: string
+                        example: 電子產品相關商品分類
+                      path:
+                        type: string
+                        example: /1/
+                      has_children:
+                        type: boolean
+                        example: true
+                      full_path:
+                        type: string
+                        example: 電子產品
+                      children_count:
+                        type: integer
+                        example: 5
+                      parent:
+                        type: string
+                        example: null
+                      children:
+                        type: array
+                        example:
+                          -
+                            id: 2
+                            name: 智慧型手機
+                            slug: smartphones
+                            parent_id: 1
+                            status: true
+                            depth: 1
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 2
+                            name:
+                              type: string
+                              example: 智慧型手機
+                            slug:
+                              type: string
+                              example: smartphones
+                            parent_id:
+                              type: integer
+                              example: 1
+                            status:
+                              type: boolean
+                              example: true
+                            depth:
+                              type: integer
+                              example: 1
+                      created_at:
+                        type: string
+                        example: '2025-01-07T10:00:00.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2025-01-07T10:00:00.000000Z'
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類不存在
+      tags:
+        - 商品分類管理
+      security: []
+    put:
+      summary: 更新指定分類
+      operationId: ''
+      description: 更新商品分類資訊。變更父分類時會自動重新計算層級結構和快取。
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 分類更新成功
+                  data:
+                    id: 1
+                    name: 更新的分類名稱
+                    slug: updated-slug
+                    parent_id: 2
+                    position: 15
+                    status: false
+                    depth: 1
+                    description: 更新的分類描述
+                    meta_title: 更新的SEO標題
+                    meta_description: 更新的SEO描述
+                    path: /2/1/
+                    has_children: true
+                    full_path: '父分類 > 更新的分類名稱'
+                    children_count: 3
+                    created_at: '2025-01-07T10:00:00.000000Z'
+                    updated_at: '2025-01-07T11:00:00.000000Z'
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 分類更新成功
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      name:
+                        type: string
+                        example: 更新的分類名稱
+                      slug:
+                        type: string
+                        example: updated-slug
+                      parent_id:
+                        type: integer
+                        example: 2
+                      position:
+                        type: integer
+                        example: 15
+                      status:
+                        type: boolean
+                        example: false
+                      depth:
+                        type: integer
+                        example: 1
+                      description:
+                        type: string
+                        example: 更新的分類描述
+                      meta_title:
+                        type: string
+                        example: 更新的SEO標題
+                      meta_description:
+                        type: string
+                        example: 更新的SEO描述
+                      path:
+                        type: string
+                        example: /2/1/
+                      has_children:
+                        type: boolean
+                        example: true
+                      full_path:
+                        type: string
+                        example: '父分類 > 更新的分類名稱'
+                      children_count:
+                        type: integer
+                        example: 3
+                      created_at:
+                        type: string
+                        example: '2025-01-07T10:00:00.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2025-01-07T11:00:00.000000Z'
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類不存在
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類更新失敗：會造成循環引用
+                  code: CATEGORY_UPDATE_FAILED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類更新失敗：會造成循環引用
+                  code:
+                    type: string
+                    example: CATEGORY_UPDATE_FAILED
+      tags:
+        - 商品分類管理
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 分類名稱（2-100字元）
+                  example: 更新的分類名稱
+                  nullable: false
+                slug:
+                  type: string
+                  description: 自訂URL別名
+                  example: updated-slug
+                  nullable: true
+                parent_id:
+                  type: integer
+                  description: 父分類ID（設為null表示設為根分類）
+                  example: 2
+                  nullable: true
+                position:
+                  type: integer
+                  description: 排序位置
+                  example: 15
+                  nullable: true
+                status:
+                  type: boolean
+                  description: 啟用狀態
+                  example: false
+                  nullable: true
+                description:
+                  type: string
+                  description: 分類描述
+                  example: 更新的分類描述
+                  nullable: true
+                meta_title:
+                  type: string
+                  description: SEO標題
+                  example: 更新的SEO標題
+                  nullable: true
+                meta_description:
+                  type: string
+                  description: SEO描述
+                  example: 更新的SEO描述
+                  nullable: true
+      security: []
+    delete:
+      summary: 刪除指定分類
+      operationId: ''
+      description: 軟刪除商品分類。只能刪除沒有子分類的分類，刪除後會觸發快取更新。
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 分類刪除成功
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 分類刪除成功
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類不存在
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 分類刪除失敗：該分類包含子分類
+                  code: CATEGORY_DELETE_FAILED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 分類刪除失敗：該分類包含子分類
+                  code:
+                    type: string
+                    example: CATEGORY_DELETE_FAILED
+      tags:
+        - 商品分類管理
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the product category.'
+        example: 1
+        required: true
+        schema:
+          type: integer
+      -
+        in: path
+        name: productCategory
+        description: 分類ID
+        example: 1
+        required: true
+        schema:
+          type: integer
+  /api/product-categories/tree:
+    get:
+      summary: 取得樹狀結構
+      operationId: ''
+      description: 獲取完整的分類樹狀結構，支援快取優化，適用於選單展示和層級瀏覽。
+      parameters:
+        -
+          in: query
+          name: only_active
+          description: 僅顯示啟用的分類（預設true）
+          example: true
+          required: false
+          schema:
+            type: boolean
+            description: 僅顯示啟用的分類（預設true）
+            example: true
+            nullable: false
+        -
+          in: query
+          name: max_depth
+          description: 最大顯示深度
+          example: 3
+          required: false
+          schema:
+            type: integer
+            description: 最大顯示深度
+            example: 3
+            nullable: false
+        -
+          in: query
+          name: root_id
+          description: 指定根分類ID（顯示特定子樹）
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 指定根分類ID（顯示特定子樹）
+            example: 1
+            nullable: false
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  data:
+                    -
+                      id: 1
+                      name: 電子產品
+                      slug: electronics
+                      parent_id: null
+                      position: 1
+                      status: true
+                      depth: 0
+                      has_children: true
+                      children_count: 3
+                      children:
+                        -
+                          id: 2
+                          name: 智慧型手機
+                          slug: smartphones
+                          parent_id: 1
+                          position: 1
+                          status: true
+                          depth: 1
+                          has_children: false
+                          children_count: 0
+                          children: []
+                  meta:
+                    total_categories: 25
+                    max_depth: 3
+                    cache_hit: true
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    example:
+                      -
+                        id: 1
+                        name: 電子產品
+                        slug: electronics
+                        parent_id: null
+                        position: 1
+                        status: true
+                        depth: 0
+                        has_children: true
+                        children_count: 3
+                        children:
+                          -
+                            id: 2
+                            name: 智慧型手機
+                            slug: smartphones
+                            parent_id: 1
+                            position: 1
+                            status: true
+                            depth: 1
+                            has_children: false
+                            children_count: 0
+                            children: []
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: 電子產品
+                        slug:
+                          type: string
+                          example: electronics
+                        parent_id:
+                          type: string
+                          example: null
+                        position:
+                          type: integer
+                          example: 1
+                        status:
+                          type: boolean
+                          example: true
+                        depth:
+                          type: integer
+                          example: 0
+                        has_children:
+                          type: boolean
+                          example: true
+                        children_count:
+                          type: integer
+                          example: 3
+                        children:
+                          type: array
+                          example:
+                            -
+                              id: 2
+                              name: 智慧型手機
+                              slug: smartphones
+                              parent_id: 1
+                              position: 1
+                              status: true
+                              depth: 1
+                              has_children: false
+                              children_count: 0
+                              children: []
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                                example: 2
+                              name:
+                                type: string
+                                example: 智慧型手機
+                              slug:
+                                type: string
+                                example: smartphones
+                              parent_id:
+                                type: integer
+                                example: 1
+                              position:
+                                type: integer
+                                example: 1
+                              status:
+                                type: boolean
+                                example: true
+                              depth:
+                                type: integer
+                                example: 1
+                              has_children:
+                                type: boolean
+                                example: false
+                              children_count:
+                                type: integer
+                                example: 0
+                              children:
+                                type: array
+                                example: []
+                  meta:
+                    type: object
+                    properties:
+                      total_categories:
+                        type: integer
+                        example: 25
+                      max_depth:
+                        type: integer
+                        example: 3
+                      cache_hit:
+                        type: boolean
+                        example: true
+      tags:
+        - 商品分類管理
+      security: []
+  '/api/product-categories/{product_category_id}/breadcrumbs':
+    get:
+      summary: 取得麵包屑
+      operationId: ''
+      description: ''
+      parameters: []
+      responses:
+        500:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Server Error'
+                properties:
+                  message:
+                    type: string
+                    example: 'Server Error'
+      tags:
+        - 商品分類管理
+      security: []
+    parameters:
+      -
+        in: path
+        name: product_category_id
+        description: 'The ID of the product category.'
+        example: 1
+        required: true
+        schema:
+          type: integer
+  '/api/product-categories/{product_category_id}/descendants':
+    get:
+      summary: 取得子孫分類
+      operationId: ''
+      description: ''
+      parameters: []
+      responses:
+        500:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Server Error'
+                properties:
+                  message:
+                    type: string
+                    example: 'Server Error'
+      tags:
+        - 商品分類管理
+      security: []
+    parameters:
+      -
+        in: path
+        name: product_category_id
+        description: 'The ID of the product category.'
+        example: 1
+        required: true
+        schema:
+          type: integer
   /api/product-categories/sort:
     patch:
-      tags: ['商品分類 (Product Categories)']
-      summary: '更新商品分類排序'
-      operationId: sortCategories
+      summary: 拖曳排序
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 商品分類管理
       requestBody:
-        $ref: '#/components/requestBodies/SortCategoriesRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/Success'
-
-  /api/product-categories/{id}/breadcrumbs:
-    get:
-      tags: ['商品分類 (Product Categories)']
-      summary: '取得商品分類麵包屑'
-      operationId: getCategoryBreadcrumbs
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer } }
-      responses:
-        '200':
-          description: '成功取得麵包屑'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BreadcrumbResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/product-categories/{id}/descendants:
-    get:
-      tags: ['商品分類 (Product Categories)']
-      summary: '取得一個分類的所有後代（樹狀）'
-      operationId: getCategoryDescendants
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer } }
-      responses:
-        '200':
-          description: '成功取得後代'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CategoryTreeResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                positions:
+                  type: array
+                  description: 'Must have at least 1 items.'
+                  example:
+                    - []
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: 'The <code>id</code> of an existing record in the product_categories table.'
+                        example: 17
+                        nullable: false
+                      position:
+                        type: integer
+                        description: 'Must be at least 0.'
+                        example: 45
+                        nullable: false
+                      parent_id:
+                        type: integer
+                        description: 'The <code>id</code> of an existing record in the product_categories table.'
+                        example: 17
+                        nullable: true
+                    required:
+                      - id
+                      - position
+              required:
+                - positions
+      security: []
+  /api/product-categories/batch-status:
+    patch:
+      summary: 批次更新狀態
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 商品分類管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  description: 'The <code>id</code> of an existing record in the product_categories table.'
+                  example:
+                    - 17
+                  items:
+                    type: integer
+                status:
+                  type: boolean
+                  description: ''
+                  example: false
+                  nullable: false
+              required:
+                - status
+      security: []
+  /api/product-categories/batch-delete:
+    delete:
+      summary: 批次刪除
+      operationId: ''
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 商品分類管理
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  description: 'The <code>id</code> of an existing record in the product_categories table.'
+                  example:
+                    - 17
+                  items:
+                    type: integer
+      security: []
   /api/product-categories/statistics:
     get:
-      tags: ['商品分類 (Product Categories)']
-      summary: '取得商品分類統計數據'
-      operationId: getCategoryStatistics
+      summary: 取得分類統計
+      operationId: ''
+      description: ''
+      parameters: []
       responses:
-        '200':
-          description: '成功取得統計數據'
+        403:
+          description: ''
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CategoryStatsResponse'
-
-components:
-  securitySchemes:
-    sanctum:
-      type: http
-      scheme: bearer
-      description: '使用 Laravel Sanctum Bearer Token 進行認證。請在請求頭中包含：Authorization: Bearer {token}'
-  
-  schemas:
-    # ------------------------- Core Models -------------------------
-    User:
-      type: object
-      description: 使用者核心資料模型
-      properties:
-        id: { type: integer, description: 'ID' }
-        name: { type: string, description: '姓名' }
-        username: { type: string, description: '用戶名' }
-        email: { type: string, format: email, description: '電子郵件' }
-        phone: { type: string, nullable: true }
-        avatar: { type: string, format: uri, nullable: true }
-        status: { type: string, enum: [active, inactive, suspended] }
-        email_verified_at: { type: string, format: 'date-time', nullable: true }
-        two_factor_enabled: { type: boolean }
-        created_at: { type: string, format: 'date-time' }
-        updated_at: { type: string, format: 'date-time' }
-        store: { $ref: '#/components/schemas/Store' }
-        roles: { type: array, items: { $ref: '#/components/schemas/Role' } }
-    
-    Store:
-      type: object
-      description: 門市資料模型
-      properties:
-        id: { type: integer }
-        name: { type: string }
-
-    Role:
-      type: object
-      description: 角色資料模型
-      properties:
-        id: { type: integer }
-        name: { type: string, description: '角色內部名稱 (e.g. admin)' }
-        display_name: { type: string, description: '角色顯示名稱 (e.g. 系統管理員)' }
-
-    ProductCategory:
-      type: object
-      description: 商品分類模型
-      properties:
-        id: { type: integer }
-        name: { type: string }
-        slug: { type: string }
-        description: { type: string, nullable: true }
-        parent_id: { type: integer, nullable: true }
-        status: { type: boolean }
-        position: { type: integer }
-        depth: { type: integer }
-        children_count: { type: integer }
-        created_at: { type: string, format: 'date-time' }
-        updated_at: { type: string, format: 'date-time' }
-        children:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductCategory'
-
-    # ------------------------- Generic Payloads -------------------------
-    PaginationLinks:
-      type: object
-      properties:
-        first: { type: string, format: uri, nullable: true }
-        last: { type: string, format: uri, nullable: true }
-        prev: { type: string, format: uri, nullable: true }
-        next: { type: string, format: uri, nullable: true }
-
-    PaginationMeta:
-      type: object
-      properties:
-        current_page: { type: integer }
-        from: { type: integer, nullable: true }
-        last_page: { type: integer }
-        path: { type: string, format: uri }
-        per_page: { type: integer }
-        to: { type: integer, nullable: true }
-        total: { type: integer }
-        
-    # ------------------------- Auth Module -------------------------
-    LoginRequest:
-      type: object
-      required: [email, password]
-      properties:
-        email: { type: string, format: email }
-        password: { type: string }
-        remember: { type: boolean }
-    LoginResponse:
-      type: object
-      properties:
-        token: { type: string }
-        user: { $ref: '#/components/schemas/User' }
-        two_factor: { type: boolean, description: '是否需要二階段驗證' }
-    AuthenticatedUserResponse:
-      type: object
-      properties:
-        data: { $ref: '#/components/schemas/User' }
-    TwoFactorChallengeRequest:
-      type: object
-      properties:
-        code: { type: string }
-        recovery_code: { type: string }
-
-    # ------------------------- User Module -------------------------
-    UserResponse:
-      type: object
-      properties:
-        data: { $ref: '#/components/schemas/User' }
-    PaginatedUsersResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
-        links: { $ref: '#/components/schemas/PaginationLinks' }
-        meta: { $ref: '#/components/schemas/PaginationMeta' }
-    CreateUserRequest:
-      type: object
-      required: [name, username, email, password, password_confirmation, store_id, role_ids, status]
-      properties:
-        name: { type: string }
-        username: { type: string }
-        email: { type: string, format: email }
-        password: { type: string, format: password }
-        password_confirmation: { type: string, format: password }
-        phone: { type: string }
-        store_id: { type: integer }
-        role_ids: { type: array, items: { type: integer } }
-        status: { type: string, enum: [active, inactive] }
-    UpdateUserRequest:
-      type: object
-      properties:
-        name: { type: string }
-        username: { type: string }
-        email: { type: string, format: email }
-        password: { type: string, format: password, description: '僅在需要更改密碼時提供' }
-        password_confirmation: { type: string, format: password }
-        phone: { type: string }
-        store_id: { type: integer }
-        role_ids: { type: array, items: { type: integer } }
-        status: { type: string, enum: [active, inactive, suspended] }
-    BatchStatusUserRequest:
-      type: object
-      required: [ids, status]
-      properties:
-        ids: { type: array, items: { type: integer } }
-        status: { type: string, enum: [active, inactive, suspended] }
-    UserStatsResponse:
-      type: object
-      properties:
-        data:
-          $ref: '#/components/schemas/UserStatsData'
-    UserStatsData:
-      type: object
-      properties:
-        counts: { $ref: '#/components/schemas/UserCounts' }
-        two_factor: { $ref: '#/components/schemas/TwoFactorStats' }
-        activity: { $ref: '#/components/schemas/UserActivityStats' }
-    UserCounts:
-      type: object
-      properties:
-        total: { type: integer }
-        active: { type: integer }
-        inactive: { type: integer }
-        suspended: { type: integer }
-    TwoFactorStats:
-      type: object
-      properties:
-        enabled: { type: integer }
-        disabled: { type: integer }
-    UserActivityStats:
-      type: object
-      properties:
-        new_this_week: { type: integer }
-        logins_today: { type: integer }
-
-    # ------------------------- Product Category Module -------------------------
-    CategoryResponse:
-      type: object
-      properties:
-        data: { $ref: '#/components/schemas/ProductCategory' }
-    CategoryTreeResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductCategory'
-    PaginatedCategoriesResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductCategory'
-        links:
-          type: object
-          properties:
-            first: { type: string, format: url, nullable: true }
-            last: { type: string, format: url, nullable: true }
-            prev: { type: string, format: url, nullable: true }
-            next: { type: string, format: url, nullable: true }
-        meta:
-          type: object
-          properties:
-            current_page: { type: integer }
-            from: { type: integer, nullable: true }
-            last_page: { type: integer }
-            path: { type: string, format: url }
-            per_page: { type: integer }
-            to: { type: integer, nullable: true }
-            total: { type: integer }
-    CategoryStatsResponse:
-      type: object
-      properties:
-        data:
-          $ref: '#/components/schemas/CategoryStatsData'
-    CategoryStatsData:
-      type: object
-      properties:
-        total: { type: integer, description: '總分類數' }
-        active: { type: integer, description: '啟用分類數' }
-        inactive: { type: integer, description: '停用分類數' }
-        max_depth: { type: integer, description: '最大層級深度' }
-        root_nodes: { type: integer, description: '根節點數量' }
-    BreadcrumbResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            type: object
-            properties:
-              id: { type: integer }
-              name: { type: string }
-    CreateCategoryRequest:
-      type: object
-      required: [name, status]
-      properties:
-        name: { type: string }
-        slug: { type: string, nullable: true }
-        description: { type: string, nullable: true }
-        parent_id: { type: integer, nullable: true }
-        status: { type: boolean }
-    UpdateCategoryRequest:
-      type: object
-      properties:
-        name: { type: string }
-        slug: { type: string, nullable: true }
-        description: { type: string, nullable: true }
-        parent_id: { type: integer, nullable: true }
-        status: { type: boolean }
-    SortCategoriesRequest:
-      type: object
-      required: [categories]
-      properties:
-        categories:
-          type: array
-          items:
-            type: object
-            properties:
-              id: { type: integer }
-              position: { type: integer }
-              parent_id: { type: integer, nullable: true }
-    BatchStatusCategoriesRequest:
-      type: object
-      required: [ids, status]
-      properties:
-        ids: { type: array, items: { type: integer } }
-        status: { type: boolean }
-
-    # ------------------------- Generic Schemas -------------------------
-    SuccessResponse:
-      type: object
-      properties:
-        success: { type: boolean, example: true }
-        message: { type: string, example: '操作成功' }
-    ErrorResponse:
-      type: object
-      properties:
-        success: { type: boolean, example: false }
-        message: { type: string, example: '資源不存在' }
-        code: { type: string, example: 'NOT_FOUND' }
-    ValidationErrorResponse:
-      type: object
-      properties:
-        message: { type: string, example: '給定的資料有誤' }
-        errors:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              type: string
-          example:
-            email: ["電子郵件格式不正確"]
-
-  requestBodies:
-    CreateUserRequest:
-      required: true
-      content:
-        application/json:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+      tags:
+        - 商品分類管理
+      security: []
+  /api/user:
+    get:
+      summary: "取得認證用戶資訊的路由\n需要 Sanctum 認證"
+      operationId: Sanctum
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - ''
+      security: []
+  /api/test:
+    get:
+      summary: "測試路由\n檢查 API 是否正常運作"
+      operationId: API
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'API 運作正常'
+                  timestamp: '2025-06-07T14:07:53.170244Z'
+                properties:
+                  message:
+                    type: string
+                    example: 'API 運作正常'
+                  timestamp:
+                    type: string
+                    example: '2025-06-07T14:07:53.170244Z'
+      tags:
+        - ''
+      security: []
+  /api/users/statistics:
+    get:
+      summary: 使用者統計資料
+      operationId: ''
+      description: 取得使用者相關的統計資訊，包含總數、狀態分布、角色分布等
+      parameters:
+        -
+          in: query
+          name: store_id
+          description: 特定門市統計
+          example: 1
+          required: false
           schema:
-            $ref: '#/components/schemas/CreateUserRequest'
-    UpdateUserRequest:
-      required: true
-      content:
-        application/json:
+            type: integer
+            description: 特定門市統計
+            example: 1
+            nullable: false
+        -
+          in: query
+          name: period
+          description: 統計期間（daily/weekly/monthly/yearly）
+          example: monthly
+          required: false
           schema:
-            $ref: '#/components/schemas/UpdateUserRequest'
-    CreateCategoryRequest:
-      required: true
-      content:
-        application/json:
+            type: string
+            description: 統計期間（daily/weekly/monthly/yearly）
+            example: monthly
+            nullable: false
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 取得統計資料成功
+                  data:
+                    overview:
+                      total_users: 150
+                      active_users: 120
+                      inactive_users: 20
+                      locked_users: 5
+                      pending_users: 5
+                    by_store:
+                      -
+                        store_id: 1
+                        store_name: 總店
+                        user_count: 80
+                      -
+                        store_id: 2
+                        store_name: 分店A
+                        user_count: 45
+                    by_role:
+                      -
+                        role_name: staff
+                        role_display_name: 員工
+                        user_count: 100
+                      -
+                        role_name: manager
+                        role_display_name: 管理員
+                        user_count: 30
+                    trends:
+                      new_users_this_month: 15
+                      new_users_last_month: 12
+                      growth_rate: 25.0
+                    security:
+                      users_with_2fa: 75
+                      users_without_2fa: 75
+                      unverified_emails: 25
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 取得統計資料成功
+                  data:
+                    type: object
+                    properties:
+                      overview:
+                        type: object
+                        properties:
+                          total_users:
+                            type: integer
+                            example: 150
+                          active_users:
+                            type: integer
+                            example: 120
+                          inactive_users:
+                            type: integer
+                            example: 20
+                          locked_users:
+                            type: integer
+                            example: 5
+                          pending_users:
+                            type: integer
+                            example: 5
+                      by_store:
+                        type: array
+                        example:
+                          -
+                            store_id: 1
+                            store_name: 總店
+                            user_count: 80
+                          -
+                            store_id: 2
+                            store_name: 分店A
+                            user_count: 45
+                        items:
+                          type: object
+                          properties:
+                            store_id:
+                              type: integer
+                              example: 1
+                            store_name:
+                              type: string
+                              example: 總店
+                            user_count:
+                              type: integer
+                              example: 80
+                      by_role:
+                        type: array
+                        example:
+                          -
+                            role_name: staff
+                            role_display_name: 員工
+                            user_count: 100
+                          -
+                            role_name: manager
+                            role_display_name: 管理員
+                            user_count: 30
+                        items:
+                          type: object
+                          properties:
+                            role_name:
+                              type: string
+                              example: staff
+                            role_display_name:
+                              type: string
+                              example: 員工
+                            user_count:
+                              type: integer
+                              example: 100
+                      trends:
+                        type: object
+                        properties:
+                          new_users_this_month:
+                            type: integer
+                            example: 15
+                          new_users_last_month:
+                            type: integer
+                            example: 12
+                          growth_rate:
+                            type: number
+                            example: 25.0
+                      security:
+                        type: object
+                        properties:
+                          users_with_2fa:
+                            type: integer
+                            example: 75
+                          users_without_2fa:
+                            type: integer
+                            example: 75
+                          unverified_emails:
+                            type: integer
+                            example: 25
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 權限不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 權限不足
+      tags:
+        - 使用者管理
+      security: []
+  /api/users/batch-status:
+    patch:
+      summary: 批次更新使用者狀態
+      operationId: ''
+      description: 批次啟用或停用多個使用者帳號
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 批次更新狀態成功
+                  data:
+                    affected_count: 3
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 批次更新狀態成功
+                  data:
+                    type: object
+                    properties:
+                      affected_count:
+                        type: integer
+                        example: 3
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 權限不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 權限不足
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 驗證失敗
+                  errors:
+                    user_ids:
+                      - 至少選擇一個使用者
+                    status:
+                      - 狀態值無效
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 驗證失敗
+                  errors:
+                    type: object
+                    properties:
+                      user_ids:
+                        type: array
+                        example:
+                          - 至少選擇一個使用者
+                        items:
+                          type: string
+                      status:
+                        type: array
+                        example:
+                          - 狀態值無效
+                        items:
+                          type: string
+      tags:
+        - 使用者管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_ids:
+                  type: array
+                  description: 使用者ID陣列
+                  example:
+                    - 1
+                    - 2
+                    - 3
+                  items:
+                    type: string
+                status:
+                  type: string
+                  description: 目標狀態
+                  example: null
+                  nullable: false
+                reason:
+                  type: string
+                  description: 'Must not be greater than 500 characters.'
+                  example: mqeopfuudtdsufvyvddqa
+                  nullable: true
+                send_notification:
+                  type: boolean
+                  description: ''
+                  example: true
+                  nullable: true
+                force:
+                  type: boolean
+                  description: ''
+                  example: true
+                  nullable: true
+              required:
+                - user_ids
+                - status
+      security: []
+  /api/users:
+    get:
+      summary: 取得使用者列表
+      operationId: ''
+      description: 支援分頁、搜尋、篩選、排序等功能。具備門市隔離機制，非管理員僅能查看同門市使用者。
+      parameters:
+        -
+          in: query
+          name: page
+          description: 頁碼
+          example: 1
+          required: false
           schema:
-            $ref: '#/components/schemas/CreateCategoryRequest'
-    UpdateCategoryRequest:
-      required: true
-      content:
-        application/json:
+            type: integer
+            description: 頁碼
+            example: 1
+            nullable: false
+        -
+          in: query
+          name: per_page
+          description: 每頁項目數（1-100）
+          example: 20
+          required: false
           schema:
-            $ref: '#/components/schemas/UpdateCategoryRequest'
-    SortCategoriesRequest:
-      required: true
-      content:
-        application/json:
+            type: integer
+            description: 每頁項目數（1-100）
+            example: 20
+            nullable: false
+        -
+          in: query
+          name: search
+          description: 搜尋關鍵字（支援名稱、使用者名稱、信箱）
+          example: John
+          required: false
           schema:
-            $ref: '#/components/schemas/SortCategoriesRequest'
-
-  responses:
-    Success:
-      description: '操作成功'
-      content:
-        application/json:
+            type: string
+            description: 搜尋關鍵字（支援名稱、使用者名稱、信箱）
+            example: John
+            nullable: false
+        -
+          in: query
+          name: keyword
+          description: 關鍵字搜尋
+          example: admin
+          required: false
           schema:
-            $ref: '#/components/schemas/SuccessResponse'
-    NotFound:
-      description: '找不到資源'
-      content:
-        application/json:
+            type: string
+            description: 關鍵字搜尋
+            example: admin
+            nullable: false
+        -
+          in: query
+          name: status
+          description: 使用者狀態篩選
+          example: null
+          required: false
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    Forbidden:
-      description: '權限不足'
-      content:
-        application/json:
+            type: string
+            description: 使用者狀態篩選
+            example: null
+            nullable: false
+        -
+          in: query
+          name: store_id
+          description: 門市ID篩選
+          example: 1
+          required: false
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    Unauthorized:
-      description: '未認證'
-      content:
-        application/json:
+            type: integer
+            description: 門市ID篩選
+            example: 1
+            nullable: false
+        -
+          in: query
+          name: role
+          description: 角色篩選
+          example: staff
+          required: false
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    ValidationError:
-      description: '驗證失敗'
-      content:
-        application/json:
+            type: string
+            description: 角色篩選
+            example: staff
+            nullable: false
+        -
+          in: query
+          name: has_2fa
+          description: 是否啟用雙因子驗證
+          example: true
+          required: false
           schema:
-            $ref: '#/components/schemas/ValidationErrorResponse'
+            type: boolean
+            description: 是否啟用雙因子驗證
+            example: true
+            nullable: false
+        -
+          in: query
+          name: email_verified
+          description: 信箱是否已驗證
+          example: true
+          required: false
+          schema:
+            type: boolean
+            description: 信箱是否已驗證
+            example: true
+            nullable: false
+        -
+          in: query
+          name: created_from
+          description: 建立日期起始
+          example: '2025-01-01'
+          required: false
+          schema:
+            type: string
+            description: 建立日期起始
+            example: '2025-01-01'
+            nullable: false
+        -
+          in: query
+          name: created_to
+          description: 建立日期結束
+          example: '2025-12-31'
+          required: false
+          schema:
+            type: string
+            description: 建立日期結束
+            example: '2025-12-31'
+            nullable: false
+        -
+          in: query
+          name: last_login_from
+          description: 最後登入起始日期
+          example: '2025-01-01'
+          required: false
+          schema:
+            type: string
+            description: 最後登入起始日期
+            example: '2025-01-01'
+            nullable: false
+        -
+          in: query
+          name: last_login_to
+          description: 最後登入結束日期
+          example: '2025-12-31'
+          required: false
+          schema:
+            type: string
+            description: 最後登入結束日期
+            example: '2025-12-31'
+            nullable: false
+        -
+          in: query
+          name: sort
+          description: 排序欄位
+          example: null
+          required: false
+          schema:
+            type: string
+            description: 排序欄位
+            example: null
+            nullable: false
+        -
+          in: query
+          name: order
+          description: 排序方向（asc/desc）
+          example: null
+          required: false
+          schema:
+            type: string
+            description: 排序方向（asc/desc）
+            example: null
+            nullable: false
+        -
+          in: query
+          name: include
+          description: 包含關聯資料
+          example: 'roles,store'
+          required: false
+          schema:
+            type: string
+            description: 包含關聯資料
+            example: 'roles,store'
+            nullable: false
+        -
+          in: query
+          name: with_count
+          description: 是否包含統計計數
+          example: true
+          required: false
+          schema:
+            type: boolean
+            description: 是否包含統計計數
+            example: true
+            nullable: false
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 取得使用者列表成功
+                  data:
+                    data:
+                      -
+                        id: 1
+                        username: admin
+                        name: 管理員
+                        email: admin@lomis.com
+                        store_id: 1
+                        phone: '0912345678'
+                        status:
+                          value: active
+                          label: 啟用
+                          color: success
+                          is_active: true
+                        email_verified_at: '2025-01-01T00:00:00.000000Z'
+                        is_email_verified: true
+                        two_factor:
+                          enabled: true
+                          confirmed_at: '2025-01-01T00:00:00.000000Z'
+                        login_info:
+                          last_login_at: '2025-01-07T10:00:00.000000Z'
+                          is_locked: false
+                          locked_until: null
+                        roles:
+                          -
+                            id: 1
+                            name: admin
+                            display_name: 管理員
+                            level: 100
+                            color: primary
+                        avatar:
+                          url: 'https://example.com/avatars/1.jpg'
+                          thumbnail_url: 'https://example.com/avatars/1-thumb.jpg'
+                          has_avatar: true
+                        audit:
+                          created_at: '2025-01-01T00:00:00.000000Z'
+                          updated_at: '2025-01-07T10:00:00.000000Z'
+                    links:
+                      first: 'http://localhost/api/users?page=1'
+                      last: 'http://localhost/api/users?page=10'
+                      prev: null
+                      next: 'http://localhost/api/users?page=2'
+                    meta:
+                      current_page: 1
+                      from: 1
+                      last_page: 10
+                      per_page: 20
+                      to: 20
+                      total: 200
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 取得使用者列表成功
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        example:
+                          -
+                            id: 1
+                            username: admin
+                            name: 管理員
+                            email: admin@lomis.com
+                            store_id: 1
+                            phone: '0912345678'
+                            status:
+                              value: active
+                              label: 啟用
+                              color: success
+                              is_active: true
+                            email_verified_at: '2025-01-01T00:00:00.000000Z'
+                            is_email_verified: true
+                            two_factor:
+                              enabled: true
+                              confirmed_at: '2025-01-01T00:00:00.000000Z'
+                            login_info:
+                              last_login_at: '2025-01-07T10:00:00.000000Z'
+                              is_locked: false
+                              locked_until: null
+                            roles:
+                              -
+                                id: 1
+                                name: admin
+                                display_name: 管理員
+                                level: 100
+                                color: primary
+                            avatar:
+                              url: 'https://example.com/avatars/1.jpg'
+                              thumbnail_url: 'https://example.com/avatars/1-thumb.jpg'
+                              has_avatar: true
+                            audit:
+                              created_at: '2025-01-01T00:00:00.000000Z'
+                              updated_at: '2025-01-07T10:00:00.000000Z'
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            username:
+                              type: string
+                              example: admin
+                            name:
+                              type: string
+                              example: 管理員
+                            email:
+                              type: string
+                              example: admin@lomis.com
+                            store_id:
+                              type: integer
+                              example: 1
+                            phone:
+                              type: string
+                              example: '0912345678'
+                            status:
+                              type: object
+                              properties:
+                                value:
+                                  type: string
+                                  example: active
+                                label:
+                                  type: string
+                                  example: 啟用
+                                color:
+                                  type: string
+                                  example: success
+                                is_active:
+                                  type: boolean
+                                  example: true
+                            email_verified_at:
+                              type: string
+                              example: '2025-01-01T00:00:00.000000Z'
+                            is_email_verified:
+                              type: boolean
+                              example: true
+                            two_factor:
+                              type: object
+                              properties:
+                                enabled:
+                                  type: boolean
+                                  example: true
+                                confirmed_at:
+                                  type: string
+                                  example: '2025-01-01T00:00:00.000000Z'
+                            login_info:
+                              type: object
+                              properties:
+                                last_login_at:
+                                  type: string
+                                  example: '2025-01-07T10:00:00.000000Z'
+                                is_locked:
+                                  type: boolean
+                                  example: false
+                                locked_until:
+                                  type: string
+                                  example: null
+                            roles:
+                              type: array
+                              example:
+                                -
+                                  id: 1
+                                  name: admin
+                                  display_name: 管理員
+                                  level: 100
+                                  color: primary
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: integer
+                                    example: 1
+                                  name:
+                                    type: string
+                                    example: admin
+                                  display_name:
+                                    type: string
+                                    example: 管理員
+                                  level:
+                                    type: integer
+                                    example: 100
+                                  color:
+                                    type: string
+                                    example: primary
+                            avatar:
+                              type: object
+                              properties:
+                                url:
+                                  type: string
+                                  example: 'https://example.com/avatars/1.jpg'
+                                thumbnail_url:
+                                  type: string
+                                  example: 'https://example.com/avatars/1-thumb.jpg'
+                                has_avatar:
+                                  type: boolean
+                                  example: true
+                            audit:
+                              type: object
+                              properties:
+                                created_at:
+                                  type: string
+                                  example: '2025-01-01T00:00:00.000000Z'
+                                updated_at:
+                                  type: string
+                                  example: '2025-01-07T10:00:00.000000Z'
+                      links:
+                        type: object
+                        properties:
+                          first:
+                            type: string
+                            example: 'http://localhost/api/users?page=1'
+                          last:
+                            type: string
+                            example: 'http://localhost/api/users?page=10'
+                          prev:
+                            type: string
+                            example: null
+                          next:
+                            type: string
+                            example: 'http://localhost/api/users?page=2'
+                      meta:
+                        type: object
+                        properties:
+                          current_page:
+                            type: integer
+                            example: 1
+                          from:
+                            type: integer
+                            example: 1
+                          last_page:
+                            type: integer
+                            example: 10
+                          per_page:
+                            type: integer
+                            example: 20
+                          to:
+                            type: integer
+                            example: 20
+                          total:
+                            type: integer
+                            example: 200
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 權限不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 權限不足
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 驗證失敗
+                  errors:
+                    per_page:
+                      - '每頁最多只能顯示 100 筆資料'
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 驗證失敗
+                  errors:
+                    type: object
+                    properties:
+                      per_page:
+                        type: array
+                        example:
+                          - '每頁最多只能顯示 100 筆資料'
+                        items:
+                          type: string
+      tags:
+        - 使用者管理
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page:
+                  type: integer
+                  description: 'Must be at least 1.'
+                  example: 73
+                  nullable: false
+                per_page:
+                  type: integer
+                  description: 'Must be at least 1. Must not be greater than 100.'
+                  example: 13
+                  nullable: false
+                cursor:
+                  type: string
+                  description: ''
+                  example: consequatur
+                  nullable: false
+                search:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: mqeopfuudtdsufvyvddqa
+                  nullable: true
+                keyword:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: mniihfqcoynlazghdtqtq
+                  nullable: true
+                status:
+                  type: string
+                  description: ''
+                  example: active
+                  nullable: true
+                  enum:
+                    - active
+                    - inactive
+                    - locked
+                    - pending
+                store_id:
+                  type: integer
+                  description: 'The <code>id</code> of an existing record in the stores table.'
+                  example: 17
+                  nullable: true
+                role:
+                  type: string
+                  description: 'The <code>name</code> of an existing record in the roles table.'
+                  example: consequatur
+                  nullable: true
+                has_2fa:
+                  type: boolean
+                  description: ''
+                  example: false
+                  nullable: true
+                email_verified:
+                  type: boolean
+                  description: ''
+                  example: false
+                  nullable: true
+                created_from:
+                  type: string
+                  description: 'Must be a valid date.'
+                  example: '2025-06-07T14:07:57'
+                  nullable: true
+                created_to:
+                  type: string
+                  description: 'Must be a valid date. Must be a date after or equal to <code>created_from</code>.'
+                  example: '2106-07-07'
+                  nullable: true
+                last_login_from:
+                  type: string
+                  description: 'Must be a valid date.'
+                  example: '2025-06-07T14:07:57'
+                  nullable: true
+                last_login_to:
+                  type: string
+                  description: 'Must be a valid date. Must be a date after or equal to <code>last_login_from</code>.'
+                  example: '2106-07-07'
+                  nullable: true
+                sort:
+                  type: string
+                  description: ''
+                  example: name
+                  nullable: true
+                  enum:
+                    - id
+                    - name
+                    - username
+                    - email
+                    - status
+                    - last_login_at
+                    - created_at
+                    - updated_at
+                order:
+                  type: string
+                  description: ''
+                  example: asc
+                  nullable: true
+                  enum:
+                    - asc
+                    - desc
+                include:
+                  type: string
+                  description: ''
+                  example: consequatur
+                  nullable: true
+                with_count:
+                  type: boolean
+                  description: ''
+                  example: false
+                  nullable: true
+      security: []
+    post:
+      summary: 建立使用者
+      operationId: ''
+      description: 建立新的使用者帳號。支援自動密碼生成、角色指派、門市隔離等功能。
+      parameters: []
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 建立使用者成功
+                  data:
+                    id: 25
+                    username: john_doe
+                    name: 約翰
+                    email: john@example.com
+                    phone: '0912345678'
+                    store_id: 1
+                    status:
+                      value: active
+                      label: 啟用
+                      color: success
+                      is_active: true
+                    email_verified_at: null
+                    is_email_verified: false
+                    two_factor:
+                      enabled: false
+                      confirmed_at: null
+                    roles:
+                      -
+                        id: 3
+                        name: staff
+                        display_name: 員工
+                        level: 40
+                        color: info
+                    avatar:
+                      url: null
+                      thumbnail_url: null
+                      has_avatar: false
+                    audit:
+                      created_at: '2025-01-07T10:30:00.000000Z'
+                      updated_at: '2025-01-07T10:30:00.000000Z'
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 建立使用者成功
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 25
+                      username:
+                        type: string
+                        example: john_doe
+                      name:
+                        type: string
+                        example: 約翰
+                      email:
+                        type: string
+                        example: john@example.com
+                      phone:
+                        type: string
+                        example: '0912345678'
+                      store_id:
+                        type: integer
+                        example: 1
+                      status:
+                        type: object
+                        properties:
+                          value:
+                            type: string
+                            example: active
+                          label:
+                            type: string
+                            example: 啟用
+                          color:
+                            type: string
+                            example: success
+                          is_active:
+                            type: boolean
+                            example: true
+                      email_verified_at:
+                        type: string
+                        example: null
+                      is_email_verified:
+                        type: boolean
+                        example: false
+                      two_factor:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+                          confirmed_at:
+                            type: string
+                            example: null
+                      roles:
+                        type: array
+                        example:
+                          -
+                            id: 3
+                            name: staff
+                            display_name: 員工
+                            level: 40
+                            color: info
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 3
+                            name:
+                              type: string
+                              example: staff
+                            display_name:
+                              type: string
+                              example: 員工
+                            level:
+                              type: integer
+                              example: 40
+                            color:
+                              type: string
+                              example: info
+                      avatar:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            example: null
+                          thumbnail_url:
+                            type: string
+                            example: null
+                          has_avatar:
+                            type: boolean
+                            example: false
+                      audit:
+                        type: object
+                        properties:
+                          created_at:
+                            type: string
+                            example: '2025-01-07T10:30:00.000000Z'
+                          updated_at:
+                            type: string
+                            example: '2025-01-07T10:30:00.000000Z'
+        400:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 建立使用者失敗：角色權限不足
+                  error_code: USER_CREATE_FAILED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 建立使用者失敗：角色權限不足
+                  error_code:
+                    type: string
+                    example: USER_CREATE_FAILED
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 驗證失敗
+                  errors:
+                    username:
+                      - 使用者名稱已被使用
+                    email:
+                      - 電子信箱已被使用
+                    password:
+                      - 密碼強度不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 驗證失敗
+                  errors:
+                    type: object
+                    properties:
+                      username:
+                        type: array
+                        example:
+                          - 使用者名稱已被使用
+                        items:
+                          type: string
+                      email:
+                        type: array
+                        example:
+                          - 電子信箱已被使用
+                        items:
+                          type: string
+                      password:
+                        type: array
+                        example:
+                          - 密碼強度不足
+                        items:
+                          type: string
+      tags:
+        - 使用者管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: 使用者名稱（3-50字元，唯一）
+                  example: john_doe
+                  nullable: false
+                name:
+                  type: string
+                  description: 姓名（2-100字元）
+                  example: 約翰
+                  nullable: false
+                email:
+                  type: string
+                  description: 電子信箱（唯一）
+                  example: john@example.com
+                  nullable: false
+                password:
+                  type: string
+                  description: 密碼（8字元以上，包含大小寫字母、數字、符號）
+                  example: SecurePass123!
+                  nullable: false
+                password_confirmation:
+                  type: string
+                  description: 確認密碼
+                  example: SecurePass123!
+                  nullable: false
+                store_id:
+                  type: integer
+                  description: 所屬門市ID
+                  example: 1
+                  nullable: false
+                phone:
+                  type: string
+                  description: 手機號碼
+                  example: '0912345678'
+                  nullable: true
+                status:
+                  type: string
+                  description: 使用者狀態（預設active）
+                  example: null
+                  nullable: true
+                roles:
+                  type: array
+                  description: 角色陣列
+                  example:
+                    - staff
+                    - manager
+                  items:
+                    type: string
+                permissions:
+                  type: array
+                  description: 'The <code>name</code> of an existing record in the permissions table.'
+                  example:
+                    - consequatur
+                  items:
+                    type: string
+                preferences:
+                  type: object
+                  description: ''
+                  example: null
+                  nullable: true
+                  properties: {  }
+                enable_2fa:
+                  type: boolean
+                  description: ''
+                  example: true
+                  nullable: true
+                send_welcome_email:
+                  type: boolean
+                  description: 是否發送歡迎信件（預設true）
+                  example: true
+                  nullable: false
+              required:
+                - username
+                - name
+                - email
+                - password
+                - password_confirmation
+                - store_id
+                - roles
+      security: []
+  '/api/users/{id}':
+    get:
+      summary: 顯示使用者詳情
+      operationId: ''
+      description: 取得單一使用者的詳細資訊，包含角色、權限、門市、頭像、登入歷史等完整資料
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 取得使用者詳情成功
+                  data:
+                    id: 1
+                    username: admin
+                    name: 管理員
+                    email: admin@lomis.com
+                    store_id: 1
+                    store:
+                      id: 1
+                      name: 總店
+                      code: STORE001
+                    phone: '0912345678'
+                    status:
+                      value: active
+                      label: 啟用
+                      color: success
+                      is_active: true
+                    email_verified_at: '2025-01-01T00:00:00.000000Z'
+                    is_email_verified: true
+                    two_factor:
+                      enabled: true
+                      confirmed_at: '2025-01-01T00:00:00.000000Z'
+                    login_info:
+                      last_login_at: '2025-01-07T10:00:00.000000Z'
+                      last_login_ip: 192.168.1.100
+                      login_attempts: 0
+                      is_locked: false
+                      locked_until: null
+                    roles:
+                      -
+                        id: 1
+                        name: admin
+                        display_name: 管理員
+                        level: 100
+                        color: primary
+                    permissions:
+                      - users.view
+                      - users.create
+                      - users.update
+                    avatar:
+                      url: 'https://example.com/avatars/1.jpg'
+                      thumbnail_url: 'https://example.com/avatars/1-thumb.jpg'
+                      has_avatar: true
+                    statistics:
+                      media_count: 5
+                      tokens_count: 3
+                      activities_count: 150
+                      created_users_count: 25
+                    audit:
+                      created_at: '2025-01-01T00:00:00.000000Z'
+                      updated_at: '2025-01-07T10:00:00.000000Z'
+                      created_by:
+                        id: 1
+                        name: 系統管理員
+                    actions:
+                      can_update: true
+                      can_delete: false
+                      can_reset_password: true
+                      can_toggle_2fa: true
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 取得使用者詳情成功
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: admin
+                      name:
+                        type: string
+                        example: 管理員
+                      email:
+                        type: string
+                        example: admin@lomis.com
+                      store_id:
+                        type: integer
+                        example: 1
+                      store:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          name:
+                            type: string
+                            example: 總店
+                          code:
+                            type: string
+                            example: STORE001
+                      phone:
+                        type: string
+                        example: '0912345678'
+                      status:
+                        type: object
+                        properties:
+                          value:
+                            type: string
+                            example: active
+                          label:
+                            type: string
+                            example: 啟用
+                          color:
+                            type: string
+                            example: success
+                          is_active:
+                            type: boolean
+                            example: true
+                      email_verified_at:
+                        type: string
+                        example: '2025-01-01T00:00:00.000000Z'
+                      is_email_verified:
+                        type: boolean
+                        example: true
+                      two_factor:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: true
+                          confirmed_at:
+                            type: string
+                            example: '2025-01-01T00:00:00.000000Z'
+                      login_info:
+                        type: object
+                        properties:
+                          last_login_at:
+                            type: string
+                            example: '2025-01-07T10:00:00.000000Z'
+                          last_login_ip:
+                            type: string
+                            example: 192.168.1.100
+                          login_attempts:
+                            type: integer
+                            example: 0
+                          is_locked:
+                            type: boolean
+                            example: false
+                          locked_until:
+                            type: string
+                            example: null
+                      roles:
+                        type: array
+                        example:
+                          -
+                            id: 1
+                            name: admin
+                            display_name: 管理員
+                            level: 100
+                            color: primary
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            name:
+                              type: string
+                              example: admin
+                            display_name:
+                              type: string
+                              example: 管理員
+                            level:
+                              type: integer
+                              example: 100
+                            color:
+                              type: string
+                              example: primary
+                      permissions:
+                        type: array
+                        example:
+                          - users.view
+                          - users.create
+                          - users.update
+                        items:
+                          type: string
+                      avatar:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            example: 'https://example.com/avatars/1.jpg'
+                          thumbnail_url:
+                            type: string
+                            example: 'https://example.com/avatars/1-thumb.jpg'
+                          has_avatar:
+                            type: boolean
+                            example: true
+                      statistics:
+                        type: object
+                        properties:
+                          media_count:
+                            type: integer
+                            example: 5
+                          tokens_count:
+                            type: integer
+                            example: 3
+                          activities_count:
+                            type: integer
+                            example: 150
+                          created_users_count:
+                            type: integer
+                            example: 25
+                      audit:
+                        type: object
+                        properties:
+                          created_at:
+                            type: string
+                            example: '2025-01-01T00:00:00.000000Z'
+                          updated_at:
+                            type: string
+                            example: '2025-01-07T10:00:00.000000Z'
+                          created_by:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                                example: 1
+                              name:
+                                type: string
+                                example: 系統管理員
+                      actions:
+                        type: object
+                        properties:
+                          can_update:
+                            type: boolean
+                            example: true
+                          can_delete:
+                            type: boolean
+                            example: false
+                          can_reset_password:
+                            type: boolean
+                            example: true
+                          can_toggle_2fa:
+                            type: boolean
+                            example: true
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 權限不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 權限不足
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 使用者不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 使用者不存在
+      tags:
+        - 使用者管理
+      security: []
+    delete:
+      summary: 刪除使用者
+      operationId: ''
+      description: 軟刪除使用者帳號。刪除後使用者無法登入，但資料保留以供審計。
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 刪除使用者成功
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 刪除使用者成功
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 權限不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 權限不足
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 使用者不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 使用者不存在
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 無法刪除自己的帳號
+                  error_code: USER_DELETE_FAILED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 無法刪除自己的帳號
+                  error_code:
+                    type: string
+                    example: USER_DELETE_FAILED
+      tags:
+        - 使用者管理
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the user.'
+        example: 1
+        required: true
+        schema:
+          type: integer
+      -
+        in: path
+        name: user
+        description: 使用者ID
+        example: 1
+        required: true
+        schema:
+          type: integer
+  '/api/users/{user_id}/reset-password':
+    patch:
+      summary: 重設密碼
+      operationId: ''
+      description: 管理員重設使用者密碼，可選擇自動生成或指定密碼
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 密碼重設成功
+                  data:
+                    password_sent_to_email: true
+                    temporary_password: TempPass123!
+                    force_change_required: true
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 密碼重設成功
+                  data:
+                    type: object
+                    properties:
+                      password_sent_to_email:
+                        type: boolean
+                        example: true
+                      temporary_password:
+                        type: string
+                        example: TempPass123!
+                      force_change_required:
+                        type: boolean
+                        example: true
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 權限不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 權限不足
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 使用者不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 使用者不存在
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 不能重設自己的密碼
+                  error_code: PASSWORD_RESET_FAILED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 不能重設自己的密碼
+                  error_code:
+                    type: string
+                    example: PASSWORD_RESET_FAILED
+      tags:
+        - 使用者管理
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: 新密碼（留空則自動生成）
+                  example: NewPassword123!
+                  nullable: false
+                password_confirmation:
+                  type: string
+                  description: 確認密碼（當指定密碼時必填）
+                  example: NewPassword123!
+                  nullable: false
+                auto_generate:
+                  type: boolean
+                  description: 是否自動生成密碼（預設false）
+                  example: true
+                  nullable: false
+                send_email:
+                  type: boolean
+                  description: 是否發送密碼重設通知（預設true）
+                  example: true
+                  nullable: false
+                force_change:
+                  type: boolean
+                  description: 是否強制下次登入修改密碼（預設true）
+                  example: true
+                  nullable: false
+      security: []
+    parameters:
+      -
+        in: path
+        name: user_id
+        description: 'The ID of the user.'
+        example: 1
+        required: true
+        schema:
+          type: integer
+      -
+        in: path
+        name: user
+        description: 使用者ID
+        example: 1
+        required: true
+        schema:
+          type: integer
+  '/api/users/{user_id}/activities':
+    get:
+      summary: 使用者活動記錄
+      operationId: ''
+      description: 取得使用者的操作活動記錄，支援分頁和篩選
+      parameters:
+        -
+          in: query
+          name: page
+          description: 頁碼
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 頁碼
+            example: 1
+            nullable: false
+        -
+          in: query
+          name: per_page
+          description: 每頁項目數
+          example: 20
+          required: false
+          schema:
+            type: integer
+            description: 每頁項目數
+            example: 20
+            nullable: false
+        -
+          in: query
+          name: log_name
+          description: 活動類型篩選
+          example: user_login
+          required: false
+          schema:
+            type: string
+            description: 活動類型篩選
+            example: user_login
+            nullable: false
+        -
+          in: query
+          name: from_date
+          description: 開始日期
+          example: '2025-01-01'
+          required: false
+          schema:
+            type: string
+            description: 開始日期
+            example: '2025-01-01'
+            nullable: false
+        -
+          in: query
+          name: to_date
+          description: 結束日期
+          example: '2025-01-31'
+          required: false
+          schema:
+            type: string
+            description: 結束日期
+            example: '2025-01-31'
+            nullable: false
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 取得活動記錄成功
+                  data:
+                    data:
+                      -
+                        id: 1
+                        log_name: user_login
+                        description: 使用者登入成功
+                        properties:
+                          ip_address: 192.168.1.100
+                          user_agent: Mozilla/5.0...
+                          device_name: 'Chrome on Windows'
+                        created_at: '2025-01-07T10:00:00.000000Z'
+                      -
+                        id: 2
+                        log_name: user_update
+                        description: 使用者資料更新
+                        properties:
+                          updated_fields:
+                            - name
+                            - phone
+                          old_values:
+                            name: 舊名稱
+                          new_values:
+                            name: 新名稱
+                        created_at: '2025-01-07T09:30:00.000000Z'
+                    links:
+                      first: 'http://localhost/api/users/1/activities?page=1'
+                      last: 'http://localhost/api/users/1/activities?page=5'
+                      prev: null
+                      next: 'http://localhost/api/users/1/activities?page=2'
+                    meta:
+                      current_page: 1
+                      from: 1
+                      last_page: 5
+                      per_page: 20
+                      to: 20
+                      total: 100
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 取得活動記錄成功
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        example:
+                          -
+                            id: 1
+                            log_name: user_login
+                            description: 使用者登入成功
+                            properties:
+                              ip_address: 192.168.1.100
+                              user_agent: Mozilla/5.0...
+                              device_name: 'Chrome on Windows'
+                            created_at: '2025-01-07T10:00:00.000000Z'
+                          -
+                            id: 2
+                            log_name: user_update
+                            description: 使用者資料更新
+                            properties:
+                              updated_fields:
+                                - name
+                                - phone
+                              old_values:
+                                name: 舊名稱
+                              new_values:
+                                name: 新名稱
+                            created_at: '2025-01-07T09:30:00.000000Z'
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            log_name:
+                              type: string
+                              example: user_login
+                            description:
+                              type: string
+                              example: 使用者登入成功
+                            properties:
+                              type: object
+                              properties:
+                                ip_address:
+                                  type: string
+                                  example: 192.168.1.100
+                                user_agent:
+                                  type: string
+                                  example: Mozilla/5.0...
+                                device_name:
+                                  type: string
+                                  example: 'Chrome on Windows'
+                            created_at:
+                              type: string
+                              example: '2025-01-07T10:00:00.000000Z'
+                      links:
+                        type: object
+                        properties:
+                          first:
+                            type: string
+                            example: 'http://localhost/api/users/1/activities?page=1'
+                          last:
+                            type: string
+                            example: 'http://localhost/api/users/1/activities?page=5'
+                          prev:
+                            type: string
+                            example: null
+                          next:
+                            type: string
+                            example: 'http://localhost/api/users/1/activities?page=2'
+                      meta:
+                        type: object
+                        properties:
+                          current_page:
+                            type: integer
+                            example: 1
+                          from:
+                            type: integer
+                            example: 1
+                          last_page:
+                            type: integer
+                            example: 5
+                          per_page:
+                            type: integer
+                            example: 20
+                          to:
+                            type: integer
+                            example: 20
+                          total:
+                            type: integer
+                            example: 100
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 權限不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 權限不足
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 使用者不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 使用者不存在
+      tags:
+        - 使用者管理
+      security: []
+    parameters:
+      -
+        in: path
+        name: user_id
+        description: 'The ID of the user.'
+        example: 1
+        required: true
+        schema:
+          type: integer
+      -
+        in: path
+        name: user
+        description: 使用者ID
+        example: 1
+        required: true
+        schema:
+          type: integer
+  '/api/users/{user_id}/avatar':
+    delete:
+      summary: 刪除使用者頭像
+      operationId: ''
+      description: 移除使用者的頭像圖片
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 頭像刪除成功
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 頭像刪除成功
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 權限不足
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 權限不足
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 使用者不存在
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 使用者不存在
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 使用者沒有設定頭像
+                  error_code: AVATAR_DELETE_FAILED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 使用者沒有設定頭像
+                  error_code:
+                    type: string
+                    example: AVATAR_DELETE_FAILED
+      tags:
+        - 使用者管理
+      security: []
+    parameters:
+      -
+        in: path
+        name: user_id
+        description: 'The ID of the user.'
+        example: 1
+        required: true
+        schema:
+          type: integer
+      -
+        in: path
+        name: user
+        description: 使用者ID
+        example: 1
+        required: true
+        schema:
+          type: integer
+  /api/auth/login:
+    post:
+      summary: 使用者登入
+      operationId: ''
+      description: 處理使用者登入驗證，支援使用者名稱或信箱登入。具備節流保護、門市隔離、2FA檢查等安全機制。
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 登入成功
+                  data:
+                    user:
+                      id: 1
+                      username: admin
+                      name: 管理員
+                      email: admin@lomis.com
+                      store_id: 1
+                      status:
+                        value: active
+                        label: 啟用
+                        color: success
+                        is_active: true
+                      roles:
+                        -
+                          id: 1
+                          name: admin
+                          display_name: 管理員
+                          level: 100
+                          color: primary
+                      avatar:
+                        url: 'https://example.com/avatars/1.jpg'
+                        thumbnail_url: 'https://example.com/avatars/1-thumb.jpg'
+                        has_avatar: true
+                    token: 1|abcdef123456...
+                    expires_at: '2025-01-08T10:00:00.000000Z'
+                    permissions:
+                      - users.view
+                      - users.create
+                      - users.update
+                    store:
+                      id: 1
+                      name: 總店
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 登入成功
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          username:
+                            type: string
+                            example: admin
+                          name:
+                            type: string
+                            example: 管理員
+                          email:
+                            type: string
+                            example: admin@lomis.com
+                          store_id:
+                            type: integer
+                            example: 1
+                          status:
+                            type: object
+                            properties:
+                              value:
+                                type: string
+                                example: active
+                              label:
+                                type: string
+                                example: 啟用
+                              color:
+                                type: string
+                                example: success
+                              is_active:
+                                type: boolean
+                                example: true
+                          roles:
+                            type: array
+                            example:
+                              -
+                                id: 1
+                                name: admin
+                                display_name: 管理員
+                                level: 100
+                                color: primary
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 1
+                                name:
+                                  type: string
+                                  example: admin
+                                display_name:
+                                  type: string
+                                  example: 管理員
+                                level:
+                                  type: integer
+                                  example: 100
+                                color:
+                                  type: string
+                                  example: primary
+                          avatar:
+                            type: object
+                            properties:
+                              url:
+                                type: string
+                                example: 'https://example.com/avatars/1.jpg'
+                              thumbnail_url:
+                                type: string
+                                example: 'https://example.com/avatars/1-thumb.jpg'
+                              has_avatar:
+                                type: boolean
+                                example: true
+                      token:
+                        type: string
+                        example: 1|abcdef123456...
+                      expires_at:
+                        type: string
+                        example: '2025-01-08T10:00:00.000000Z'
+                      permissions:
+                        type: array
+                        example:
+                          - users.view
+                          - users.create
+                          - users.update
+                        items:
+                          type: string
+                      store:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          name:
+                            type: string
+                            example: 總店
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 登入失敗：帳號或密碼錯誤
+                  error_code: INVALID_CREDENTIALS
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 登入失敗：帳號或密碼錯誤
+                  error_code:
+                    type: string
+                    example: INVALID_CREDENTIALS
+        423:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 帳號已被鎖定
+                  error_code: ACCOUNT_LOCKED
+                  locked_until: '2025-01-07T11:00:00.000000Z'
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 帳號已被鎖定
+                  error_code:
+                    type: string
+                    example: ACCOUNT_LOCKED
+                  locked_until:
+                    type: string
+                    example: '2025-01-07T11:00:00.000000Z'
+        428:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 需要雙因子驗證
+                  requires_2fa: true
+                  user_id: 1
+                  error_code: TWO_FACTOR_REQUIRED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 需要雙因子驗證
+                  requires_2fa:
+                    type: boolean
+                    example: true
+                  user_id:
+                    type: integer
+                    example: 1
+                  error_code:
+                    type: string
+                    example: TWO_FACTOR_REQUIRED
+        429:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 登入嘗試過於頻繁，請稍後再試
+                  error_code: TOO_MANY_ATTEMPTS
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 登入嘗試過於頻繁，請稍後再試
+                  error_code:
+                    type: string
+                    example: TOO_MANY_ATTEMPTS
+      tags:
+        - 認證管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  description: 登入帳號（使用者名稱或信箱）
+                  example: admin@lomis.com
+                  nullable: false
+                password:
+                  type: string
+                  description: 密碼
+                  example: SecurePass123!
+                  nullable: false
+                device_name:
+                  type: string
+                  description: 裝置名稱（用於Token識別）
+                  example: 'Chrome on Windows'
+                  nullable: false
+                remember:
+                  type: boolean
+                  description: 記住我（延長Token有效期）
+                  example: true
+                  nullable: false
+                store_code:
+                  type: string
+                  description: 門市代碼（可選，用於門市特定登入）
+                  example: STORE001
+                  nullable: false
+              required:
+                - login
+                - password
+      security: []
+  /api/auth/2fa/challenge:
+    post:
+      summary: '2FA 挑戰驗證'
+      operationId: 2FA
+      description: '處理雙因子驗證代碼驗證，支援 TOTP 代碼和恢復代碼兩種驗證方式'
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 雙因子驗證成功
+                  data:
+                    user:
+                      id: 1
+                      username: admin
+                      name: 管理員
+                      email: admin@lomis.com
+                      store_id: 1
+                      roles:
+                        -
+                          id: 1
+                          name: admin
+                          display_name: 管理員
+                    token: 2|xyz789...
+                    expires_at: '2025-01-08T10:00:00.000000Z'
+                    permissions:
+                      - users.view
+                      - users.create
+                    store:
+                      id: 1
+                      name: 總店
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 雙因子驗證成功
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          username:
+                            type: string
+                            example: admin
+                          name:
+                            type: string
+                            example: 管理員
+                          email:
+                            type: string
+                            example: admin@lomis.com
+                          store_id:
+                            type: integer
+                            example: 1
+                          roles:
+                            type: array
+                            example:
+                              -
+                                id: 1
+                                name: admin
+                                display_name: 管理員
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 1
+                                name:
+                                  type: string
+                                  example: admin
+                                display_name:
+                                  type: string
+                                  example: 管理員
+                      token:
+                        type: string
+                        example: 2|xyz789...
+                      expires_at:
+                        type: string
+                        example: '2025-01-08T10:00:00.000000Z'
+                      permissions:
+                        type: array
+                        example:
+                          - users.view
+                          - users.create
+                        items:
+                          type: string
+                      store:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          name:
+                            type: string
+                            example: 總店
+        404:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 使用者不存在
+                  error_code: USER_NOT_FOUND
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 使用者不存在
+                  error_code:
+                    type: string
+                    example: USER_NOT_FOUND
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 驗證代碼錯誤
+                  error_code: INVALID_2FA_CODE
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 驗證代碼錯誤
+                  error_code:
+                    type: string
+                    example: INVALID_2FA_CODE
+        429:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 驗證嘗試過於頻繁
+                  error_code: TOO_MANY_ATTEMPTS
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 驗證嘗試過於頻繁
+                  error_code:
+                    type: string
+                    example: TOO_MANY_ATTEMPTS
+      tags:
+        - 認證管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                  description: 使用者ID（來自登入回應）
+                  example: 1
+                  nullable: false
+                code:
+                  type: string
+                  description: 6位數TOTP驗證碼（與recovery_code二選一）
+                  example: '123456'
+                  nullable: false
+                recovery_code:
+                  type: string
+                  description: 10字元恢復代碼（與code二選一）
+                  example: abc123defg
+                  nullable: false
+                device_name:
+                  type: string
+                  description: 裝置名稱
+                  example: 'Chrome on Windows'
+                  nullable: true
+              required:
+                - user_id
+      security: []
+  /api/auth/logout:
+    post:
+      summary: 登出
+      operationId: ''
+      description: '撤銷當前使用者的 Sanctum Token 並記錄登出活動'
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 登出成功
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 登出成功
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 未授權
+                  error_code: UNAUTHENTICATED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 未授權
+                  error_code:
+                    type: string
+                    example: UNAUTHENTICATED
+      tags:
+        - 認證管理
+      security: []
+  /api/auth/me:
+    get:
+      summary: 獲取當前認證使用者資訊
+      operationId: ''
+      description: '處理未認證情況，返回 JSON 錯誤而非重定向（符合純 Bearer Token API 設計原則）'
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 取得使用者資訊成功
+                  data:
+                    id: 1
+                    username: admin
+                    name: 管理員
+                    email: admin@lomis.com
+                    roles:
+                      - admin
+                    permissions:
+                      - users.view
+                      - users.create
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 取得使用者資訊成功
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: admin
+                      name:
+                        type: string
+                        example: 管理員
+                      email:
+                        type: string
+                        example: admin@lomis.com
+                      roles:
+                        type: array
+                        example:
+                          - admin
+                        items:
+                          type: string
+                      permissions:
+                        type: array
+                        example:
+                          - users.view
+                          - users.create
+                        items:
+                          type: string
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: Unauthenticated.
+                  error_code: UNAUTHENTICATED
+                  errors: null
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Unauthenticated.
+                  error_code:
+                    type: string
+                    example: UNAUTHENTICATED
+                  errors:
+                    type: string
+                    example: null
+      tags:
+        - 認證管理
+      security: []
+  /api/auth/refresh:
+    post:
+      summary: '刷新 Token'
+      operationId: Token
+      description: '刷新當前的 API Token，延長有效期限'
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 'Token 刷新成功'
+                  data:
+                    token: 3|newtoken123...
+                    expires_at: '2025-01-08T10:00:00.000000Z'
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Token 刷新成功'
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: 3|newtoken123...
+                      expires_at:
+                        type: string
+                        example: '2025-01-08T10:00:00.000000Z'
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 未授權
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 未授權
+      tags:
+        - 認證管理
+      security: []
+  /api/auth/2fa/enable:
+    post:
+      summary: 啟用雙因子驗證
+      operationId: ''
+      description: '為使用者帳號啟用2FA功能，生成QR Code供驗證器應用程式掃描'
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: '2FA 已啟用，請掃描 QR Code'
+                  data:
+                    qr_code: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+...'
+                    secret: ABCDEFGHIJKLMNOP
+                    recovery_codes:
+                      - abc123defg
+                      - hij456klmn
+                      - opq789rstu
+                    manual_entry_key: 'ABCD EFGH IJKL MNOP'
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: '2FA 已啟用，請掃描 QR Code'
+                  data:
+                    type: object
+                    properties:
+                      qr_code:
+                        type: string
+                        example: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+...'
+                      secret:
+                        type: string
+                        example: ABCDEFGHIJKLMNOP
+                      recovery_codes:
+                        type: array
+                        example:
+                          - abc123defg
+                          - hij456klmn
+                          - opq789rstu
+                        items:
+                          type: string
+                      manual_entry_key:
+                        type: string
+                        example: 'ABCD EFGH IJKL MNOP'
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 未授權
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 未授權
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 雙因子驗證已啟用
+                  error_code: 2FA_ALREADY_ENABLED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 雙因子驗證已啟用
+                  error_code:
+                    type: string
+                    example: 2FA_ALREADY_ENABLED
+      tags:
+        - 認證管理
+      security: []
+  /api/auth/2fa/confirm:
+    post:
+      summary: 確認雙因子驗證
+      operationId: ''
+      description: 使用驗證器應用程式產生的代碼確認2FA設定
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 雙因子驗證確認成功
+                  data:
+                    confirmed_at: '2025-01-07T10:00:00.000000Z'
+                    recovery_codes:
+                      - abc123defg
+                      - hij456klmn
+                      - opq789rstu
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 雙因子驗證確認成功
+                  data:
+                    type: object
+                    properties:
+                      confirmed_at:
+                        type: string
+                        example: '2025-01-07T10:00:00.000000Z'
+                      recovery_codes:
+                        type: array
+                        example:
+                          - abc123defg
+                          - hij456klmn
+                          - opq789rstu
+                        items:
+                          type: string
+        400:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 雙因子驗證尚未啟用
+                  error_code: 2FA_NOT_ENABLED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 雙因子驗證尚未啟用
+                  error_code:
+                    type: string
+                    example: 2FA_NOT_ENABLED
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 驗證碼錯誤
+                  error_code: INVALID_2FA_CODE
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 驗證碼錯誤
+                  error_code:
+                    type: string
+                    example: INVALID_2FA_CODE
+      tags:
+        - 認證管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: 6位數驗證碼
+                  example: '123456'
+                  nullable: false
+              required:
+                - code
+      security: []
+  /api/auth/2fa/disable:
+    post:
+      summary: 停用雙因子驗證
+      operationId: ''
+      description: 關閉使用者的2FA功能，需要密碼確認
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: true
+                  message: 雙因子驗證已停用
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 雙因子驗證已停用
+        400:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 雙因子驗證尚未啟用
+                  error_code: 2FA_NOT_ENABLED
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 雙因子驗證尚未啟用
+                  error_code:
+                    type: string
+                    example: 2FA_NOT_ENABLED
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  success: false
+                  message: 密碼錯誤
+                  error_code: INVALID_PASSWORD
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 密碼錯誤
+                  error_code:
+                    type: string
+                    example: INVALID_PASSWORD
+      tags:
+        - 認證管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: 使用者密碼
+                  example: CurrentPassword123!
+                  nullable: false
+              required:
+                - password
+      security: []

@@ -1,25 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Plus, AlertTriangle } from 'lucide-react';
 import { useFlowStateStore } from '@/stores/flowStateStore';
+import { useDebounce } from '@/hooks/common/use-debounce';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 
-import { UserTable } from '@/components/features/users/UserTable';
+import { UserTable } from '@/features/users/components/user-table';
 import { PermissionGuard } from '@/components/common/permission-guard';
 import { PageHeader } from '@/components/common/breadcrumb';
 import { ResponsiveContainer, ResponsiveGrid } from '@/components/common/responsive-container';
+import { useUsers } from '@/features/users/api/user-crud';
 import type { components } from '@/types/api';
 
 // API 類型定義
 type User = components['schemas']['User'];
 
 /**
- * 使用者列表頁面
- * 主要的使用者管理頁面，提供完整的CRUD功能
+ * 使用者列表頁面 (V4.0 - 搜尋邏輯重構)
+ * 
+ * @description 主要的使用者管理頁面，提供完整的CRUD功能
+ * 
+ * ✅ V4.0 重構記錄：
+ * - 將防抖邏輯從 UserTable 移回容器組件 (UsersPage)
+ * - 實現搜尋狀態與 API 查詢參數的分離管理
+ * - 提升整體效能，遵循單一職責原則
+ * - handleSearchChange 只負責更新即時搜尋狀態，防抖由 useEffect 處理
  */
 export function UsersPage() {
   const navigate = useNavigate();
@@ -27,6 +36,21 @@ export function UsersPage() {
   // 高亮狀態管理
   const [highlightedUserId, setHighlightedUserId] = useState<string | number | null>(null);
   const consumeHighlight = useFlowStateStore((state) => state.consumeHighlight);
+
+  // ✅ V4.0 重構：搜尋狀態與防抖管理
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300); // 防抖延遲 300ms
+
+  // ✅ 獲取使用者數據 (使用新的 API Hook)
+  const [queryParams, setQueryParams] = useState({
+    page: 1,
+    per_page: 50,
+    sort: 'created_at' as const,
+    order: 'desc' as const,
+    'filter[search]': undefined as string | undefined,
+  });
+  
+  const { data: usersData, isLoading: isUsersLoading } = useUsers(queryParams);
 
   // 處理高亮狀態消費
   useEffect(() => {
@@ -38,28 +62,81 @@ export function UsersPage() {
     }
   }, [consumeHighlight]);
 
+  // ✅ V4.0 重構：監聽防抖搜尋詞，更新 API 查詢參數
+  useEffect(() => {
+    // 當防抖後的搜尋詞變化時，才去更新真正的 API 查詢參數
+    setQueryParams(prev => ({
+      ...prev,
+      page: 1,
+      'filter[search]': debouncedSearchTerm || undefined,
+    }));
+  }, [debouncedSearchTerm]); // 依賴項只有 debouncedSearchTerm
+
+  // 🔧 診斷：API 數據載入狀態追蹤
+  useEffect(() => {
+    console.log('🚀 UsersPage 初始化 - API 狀態:', {
+      isLoading: isUsersLoading,
+      hasData: !!usersData,
+      dataStructure: usersData ? Object.keys(usersData) : null,
+      dataContent: usersData?.data ? `Array(${usersData.data.length})` : null,
+      queryParams,
+    });
+  }, [isUsersLoading, usersData, queryParams]);
+
   /**
-   * 處理新增使用者
+   * 處理新增使用者 (useCallback 穩定化)
    */
-  const handleCreateUser = () => {
+  const handleCreateUser = useCallback(() => {
     navigate('/users/create');
-  };
+  }, [navigate]);
 
   /**
-   * 處理使用者選擇變更
+   * 處理使用者選擇變更 (useCallback 穩定化)
    */
-  const handleSelectionChange = (selectedKeys: string[], selectedUsers: User[]) => {
+  const handleSelectionChange = useCallback((selectedKeys: string[], selectedUsers: User[]) => {
     // 可以在這裡處理選擇狀態變更，比如更新頁面狀態
-    console.log('選中的使用者:', selectedKeys, selectedUsers);
-  };
+    console.log('📋 選中的使用者:', selectedKeys, selectedUsers);
+  }, []);
 
   /**
-   * 處理批次操作成功
+   * 處理編輯使用者 (useCallback 穩定化)
    */
-  const handleBatchSuccess = (action: string, count: number) => {
+  const handleEditUser = useCallback((user: User) => {
+    console.log('✏️ 編輯使用者:', user);
+    navigate(`/users/${user.id}/edit`);
+  }, [navigate]);
+
+  /**
+   * 處理檢視使用者 (useCallback 穩定化)
+   */
+  const handleViewUser = useCallback((user: User) => {
+    console.log('👁️ 檢視使用者:', user);
+    navigate(`/users/${user.id}`);
+  }, [navigate]);
+
+  /**
+   * 處理刪除使用者 (useCallback 穩定化)
+   */
+  const handleDeleteUser = useCallback((user: User) => {
+    // 處理刪除邏輯，可以在這裡實現刪除確認
+    console.log('🗑️ 刪除使用者:', user);
+  }, []);
+
+  /**
+   * 處理搜尋變更 (V4.0 重構 - useCallback 穩定化)
+   * @description UserTable 傳回的 onSearchChange 回調，現在只負責更新即時的搜尋詞狀態
+   */
+  const handleSearchChange = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
+
+  /**
+   * 處理批次操作成功 (useCallback 穩定化)
+   */
+  const handleBatchSuccess = useCallback((action: string, count: number) => {
     // 顯示批次操作成功訊息 (Sonner API)
     toast.success(`已成功${action} ${count} 個使用者`);
-  };
+  }, []);
 
   return (
     <ResponsiveContainer maxWidth="7xl" padding="default">
@@ -111,24 +188,14 @@ export function UsersPage() {
           </CardHeader>
           <CardContent>
             <UserTable
-              title=""
-              showToolbar={true}
-              showBatchActions={true}
-              showSearch={true}
-              showFilters={true}
-              highlightedUserId={highlightedUserId}
+              users={usersData?.data?.data || []}
+              isLoading={isUsersLoading}
               onSelectionChange={handleSelectionChange}
-              customActions={[
-                // 可以在這裡添加自訂操作，例如：
-                // {
-                //   key: 'export-user',
-                //   label: '匯出資料',
-                //   icon: <Download className="h-4 w-4" />,
-                //   onClick: (user) => {
-                //     // 處理匯出邏輯
-                //   },
-                // },
-              ]}
+              onCreateUser={handleCreateUser}
+              onEditUser={handleEditUser}
+              onViewUser={handleViewUser}
+              onDeleteUser={handleDeleteUser}
+              onSearchChange={handleSearchChange}
             />
           </CardContent>
         </Card>

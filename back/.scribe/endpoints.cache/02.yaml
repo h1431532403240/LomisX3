@@ -186,7 +186,7 @@ endpoints:
         name: force
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -200,7 +200,7 @@ endpoints:
       status: null
       reason: mqeopfuudtdsufvyvddqa
       send_notification: true
-      force: false
+      force: true
     fileParameters: []
     responses:
       -
@@ -505,7 +505,7 @@ endpoints:
         name: status
         description: ''
         required: false
-        example: locked
+        example: active
         type: string
         enumValues:
           - active
@@ -549,7 +549,7 @@ endpoints:
         name: email_verified
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -559,7 +559,7 @@ endpoints:
         name: created_from
         description: 'Must be a valid date.'
         required: false
-        example: '2025-06-05T13:05:08'
+        example: '2025-06-07T14:07:57'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -569,7 +569,7 @@ endpoints:
         name: created_to
         description: 'Must be a valid date. Must be a date after or equal to <code>created_from</code>.'
         required: false
-        example: '2106-07-05'
+        example: '2106-07-07'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -579,7 +579,7 @@ endpoints:
         name: last_login_from
         description: 'Must be a valid date.'
         required: false
-        example: '2025-06-05T13:05:08'
+        example: '2025-06-07T14:07:57'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -589,7 +589,7 @@ endpoints:
         name: last_login_to
         description: 'Must be a valid date. Must be a date after or equal to <code>last_login_from</code>.'
         required: false
-        example: '2106-07-05'
+        example: '2106-07-07'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -599,7 +599,7 @@ endpoints:
         name: sort
         description: ''
         required: false
-        example: email
+        example: name
         type: string
         enumValues:
           - id
@@ -617,7 +617,7 @@ endpoints:
         name: order
         description: ''
         required: false
-        example: desc
+        example: asc
         type: string
         enumValues:
           - asc
@@ -639,7 +639,7 @@ endpoints:
         name: with_count
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -651,19 +651,19 @@ endpoints:
       cursor: consequatur
       search: mqeopfuudtdsufvyvddqa
       keyword: mniihfqcoynlazghdtqtq
-      status: locked
+      status: active
       store_id: 17
       role: consequatur
       has_2fa: false
-      email_verified: true
-      created_from: '2025-06-05T13:05:08'
-      created_to: '2106-07-05'
-      last_login_from: '2025-06-05T13:05:08'
-      last_login_to: '2106-07-05'
-      sort: email
-      order: desc
+      email_verified: false
+      created_from: '2025-06-07T14:07:57'
+      created_to: '2106-07-07'
+      last_login_from: '2025-06-07T14:07:57'
+      last_login_to: '2106-07-07'
+      sort: name
+      order: asc
       include: consequatur
-      with_count: true
+      with_count: false
     fileParameters: []
     responses:
       -
@@ -1038,7 +1038,7 @@ endpoints:
         name: id
         description: 'The ID of the user.'
         required: true
-        example: 17
+        example: 1
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -1055,7 +1055,7 @@ endpoints:
         nullable: false
         custom: []
     cleanUrlParameters:
-      id: 17
+      id: 1
       user: 1
     queryParameters: []
     cleanQueryParameters: []
@@ -1187,7 +1187,7 @@ endpoints:
         name: id
         description: 'The ID of the user.'
         required: true
-        example: 17
+        example: 1
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -1204,7 +1204,7 @@ endpoints:
         nullable: false
         custom: []
     cleanUrlParameters:
-      id: 17
+      id: 1
       user: 1
     queryParameters: []
     cleanQueryParameters: []
@@ -1280,7 +1280,7 @@ endpoints:
         name: user_id
         description: 'The ID of the user.'
         required: true
-        example: 17
+        example: 1
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -1297,7 +1297,7 @@ endpoints:
         nullable: false
         custom: []
     cleanUrlParameters:
-      user_id: 17
+      user_id: 1
       user: 1
     queryParameters: []
     cleanQueryParameters: []
@@ -1433,7 +1433,7 @@ endpoints:
         name: user_id
         description: 'The ID of the user.'
         required: true
-        example: 17
+        example: 1
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -1450,7 +1450,7 @@ endpoints:
         nullable: false
         custom: []
     cleanUrlParameters:
-      user_id: 17
+      user_id: 1
       user: 1
     queryParameters:
       page:
@@ -1610,7 +1610,7 @@ endpoints:
         name: user_id
         description: 'The ID of the user.'
         required: true
-        example: 17
+        example: 1
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -1627,7 +1627,7 @@ endpoints:
         nullable: false
         custom: []
     cleanUrlParameters:
-      user_id: 17
+      user_id: 1
       user: 1
     queryParameters: []
     cleanQueryParameters: []

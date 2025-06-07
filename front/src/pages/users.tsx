@@ -192,7 +192,7 @@ export const UsersPage: React.FC = () => {
           </CardHeader>
           <CardContent className="p-0">
             <UserTable
-              users={usersData?.data}
+              users={usersData?.data?.data || []}
               isLoading={isUsersLoading}
               onEditUser={handleEditUser}
               onViewUser={handleViewUser}

@@ -253,11 +253,13 @@ interface UserRepositoryInterface
 
     /**
      * 軟刪除使用者
+     * 
+     * V4.0 架構優化：接收 User 模型實例，避免重複查詢
      *
-     * @param int $id 使用者 ID
+     * @param User $user 使用者模型實例
      * @return bool
      */
-    public function delete(int $id): bool;
+    public function delete(User $user): bool;
 
     /**
      * 批次操作方法

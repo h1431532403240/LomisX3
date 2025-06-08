@@ -1,28 +1,17 @@
-Authentication (Tests\Feature\Authentication)
- [ ] Successful login
- [ ] Login with email
- [ ] Login with wrong password
- [ ] Login with nonexistent user
- [ ] Login with inactive account
- [ ] Login with locked account
- [ ] Login with pending account
- [ ] Login rate limiting
- [ ] Successful logout
- [ ] Get current user info
- [ ] Token refresh
- [ ] Enable 2fa
- [ ] Enable 2fa with wrong password
- [ ] Confirm 2fa
- [ ] Disable 2fa
- [ ] 2fa challenge
- [ ] 2fa challenge with wrong code
- [ ] 2fa challenge with recovery code
- [ ] Unauthenticated access to protected route
- [ ] Invalid token access
- [ ] Expired token access
- [ ] Login validation rules
- [ ] 2fa challenge validation rules
-
-User Management (Tests\Feature\UserManagement)
- [ ] Unauthenticated access
+User Service (Tests\Unit\UserService)
+ [x] Create user successfully
+ [x] Create user with duplicate username
+ [x] Create user with duplicate email
+ [x] Create user with weak password
+ [x] Password strength validation
+ [x] Update user successfully
+ [x] Batch status update successfully
+ [x] Batch status update with admin account
+ [x] Reset password successfully
+ [x] Store isolation check
+ [x] Update user get detail failure
+ [x] Cache clearing mechanism
+ [x] Transaction handling
+ [x] Invalid status handling
+ [x] Create user repository error
 

@@ -21,35 +21,16 @@ import {
   BarChart3, 
   PieChart,
   Activity,
-  DollarSign,
   Package,
   Users,
   Calendar,
   RefreshCw
 } from 'lucide-react';
-import { 
-  ChartContainer, 
-  ChartTooltip, 
-  ChartTooltipContent,
+import {
   type ChartConfig 
 } from '@/components/ui/chart';
-import { 
-  Area, 
-  AreaChart, 
-  Bar, 
-  BarChart, 
-  Line,
-  LineChart,
-  Pie,
-  PieChart as RechartsPieChart,
-  Cell,
-  CartesianGrid, 
-  ResponsiveContainer, 
-  XAxis, 
-  YAxis,
-  Legend
-} from 'recharts';
-import { PermissionGuard } from '@/components/common/permission-guard';
+
+
 
 /**
  * 圖表資料介面
@@ -159,7 +140,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
   /**
    * 渲染趨勢指標
    */
-  const renderTrend = (value: number, period: string = '較上月') => {
+  const renderTrend = (value: number, period = '較上月') => {
     if (!showTrends) return null;
 
     const isPositive = value > 0;

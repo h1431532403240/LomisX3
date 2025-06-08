@@ -39,7 +39,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 // 共用組件
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
-import { toast } from 'sonner';
 import { 
   useUpdateCategory, 
   useDeleteCategory, 

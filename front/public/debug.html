@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LomisX3 刪除用戶調試工具 V5.3</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 20px; margin: 10px 0; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 LomisX3 刪除用戶調試工具 V5.3</h1>
+    
+    <div class="debug-section">
+        <h2>1. 檢查用戶 ID 15 的實際狀態</h2>
+        <button onclick="checkUserStatus()">檢查用戶狀態</button>
+        <div id="userStatus"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>2. 執行刪除並監控過程</h2>
+        <button onclick="deleteUserWithDebug()">刪除用戶 ID 15</button>
+        <div id="deleteResult"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>3. 刪除後再次檢查狀態</h2>
+        <button onclick="checkAfterDelete()">刪除後檢查</button>
+        <div id="afterDeleteStatus"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        const authToken = localStorage.getItem('auth_token');
+        
+        if (!authToken) {
+            document.body.innerHTML = '<h2 class="error">❌ 未找到認證 Token，請先登入</h2>';
+        }
+
+        async function apiCall(method, url, body = null) {
+            const options = {
+                method,
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            };
+            
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            
+            const response = await fetch(url, options);
+            const data = await response.json();
+            
+            return {
+                status: response.status,
+                ok: response.ok,
+                data: data
+            };
+        }
+
+        async function checkUserStatus() {
+            const output = document.getElementById('userStatus');
+            output.innerHTML = '<p class="info">🔄 檢查中...</p>';
+            
+            try {
+                // 檢查用戶列表中是否存在
+                const listResult = await apiCall('GET', `${API_BASE}/users?per_page=100`);
+                const user15InList = listResult.data.data?.find(u => u.id === 15);
+                
+                // 嘗試直接獲取用戶詳情
+                const detailResult = await apiCall('GET', `${API_BASE}/users/15`);
+                
+                output.innerHTML = `
+                    <h3>📊 用戶 ID 15 狀態檢查：</h3>
+                    <pre>
+用戶列表中是否存在: ${user15InList ? '✅ 存在' : '❌ 不存在'}
+${user15InList ? `列表中的用戶資料: ${JSON.stringify(user15InList, null, 2)}` : ''}
+
+直接獲取詳情結果: ${detailResult.status} ${detailResult.ok ? '✅' : '❌'}
+詳情響應: ${JSON.stringify(detailResult.data, null, 2)}
+                    </pre>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ 檢查失敗: ${error.message}</p>`;
+            }
+        }
+
+        async function deleteUserWithDebug() {
+            const output = document.getElementById('deleteResult');
+            output.innerHTML = '<p class="info">🔄 執行刪除中...</p>';
+            
+            try {
+                console.log('🚀 開始刪除用戶 ID 15');
+                const startTime = Date.now();
+                
+                const result = await apiCall('DELETE', `${API_BASE}/users/15`);
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                output.innerHTML = `
+                    <h3>🗑️ 刪除操作結果：</h3>
+                    <pre>
+HTTP 狀態碼: ${result.status}
+操作成功: ${result.ok ? '✅ 是' : '❌ 否'}
+執行時間: ${duration}ms
+響應內容: ${JSON.stringify(result.data, null, 2)}
+                    </pre>
+                `;
+                
+                // 稍等片刻讓 Observer 處理完成
+                setTimeout(() => {
+                    output.innerHTML += '<p class="info">⏳ 等待 2 秒讓 Observer 和快取清除處理完成...</p>';
+                }, 1000);
+                
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ 刪除失敗: ${error.message}</p>`;
+            }
+        }
+
+        async function checkAfterDelete() {
+            const output = document.getElementById('afterDeleteStatus');
+            output.innerHTML = '<p class="info">🔄 檢查刪除後狀態...</p>';
+            
+            try {
+                // 再次檢查用戶列表
+                const listResult = await apiCall('GET', `${API_BASE}/users?per_page=100`);
+                const user15InList = listResult.data.data?.find(u => u.id === 15);
+                
+                // 嘗試直接獲取用戶詳情
+                const detailResult = await apiCall('GET', `${API_BASE}/users/15`);
+                
+                output.innerHTML = `
+                    <h3>🔍 刪除後狀態檢查：</h3>
+                    <pre>
+用戶是否還在列表中: ${user15InList ? '❌ 仍然存在' : '✅ 已移除'}
+${user15InList ? `列表中的用戶資料: ${JSON.stringify(user15InList, null, 2)}` : ''}
+
+直接獲取詳情結果: ${detailResult.status}
+- 404 表示已刪除 ✅
+- 200 表示仍存在 ❌
+詳情響應: ${JSON.stringify(detailResult.data, null, 2)}
+
+💡 分析：
+${!user15InList && detailResult.status === 404 ? 
+    '🎉 刪除成功！用戶已從列表和資料庫中移除。' : 
+    '⚠️  刪除可能失敗，用戶仍然存在於系統中。'}
+                    </pre>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ 檢查失敗: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

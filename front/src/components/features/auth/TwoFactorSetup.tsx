@@ -38,11 +38,8 @@ import {
   CheckCircle, 
   AlertCircle, 
   Download,
-  QrCode,
-  Settings,
-  Lock
+  QrCode
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 
 /**

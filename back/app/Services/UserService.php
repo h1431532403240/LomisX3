@@ -52,8 +52,8 @@ class UserService
     public function getList(array $filters, int $perPage = 20, bool $useCursor = false): LengthAwarePaginator|CursorPaginator
     {
         try {
-            // 應用門市隔離
-            if (!auth()->user()->hasRole('admin')) {
+            // 應用門市隔離：沒有跨店查看權限的使用者只能查看自己門市的使用者
+            if (auth()->user()->cannot('viewAcrossStores', User::class)) {
                 $filters['store_id'] = auth()->user()->store_id;
             }
 
@@ -108,8 +108,8 @@ class UserService
                     );
                 }
                 
-                // 檢查門市存取權限
-                if (!auth()->user()->hasRole('admin') && $user->store_id !== auth()->user()->store_id) {
+                // 檢查門市存取權限：沒有跨店查看權限且不是同一門市
+                if (auth()->user()->cannot('viewAcrossStores', User::class) && $user->store_id !== auth()->user()->store_id) {
                     throw new BusinessException(
                         UserErrorCode::STORE_ACCESS_DENIED->message(),
                         UserErrorCode::STORE_ACCESS_DENIED->value,
@@ -256,32 +256,35 @@ class UserService
      * @return bool
      * @throws BusinessException
      */
-    public function delete(int $id): bool
+    /**
+     * 刪除使用者（軟刪除）
+     * 
+     * ✅✅✅ V4.0 標準修復：信任鏈重構 ✅✅✅
+     * 不再重新獲取模型，直接信任從 Controller 傳來的、已授權的 User 模型實例
+     * 權限檢查已在 Controller 層完成，Service 層專注於「刪除」業務邏輯本身
+     * 
+     * @param User $user 已授權的使用者模型實例
+     * @return bool
+     * @throws BusinessException
+     */
+    public function delete(User $user): bool
     {
-        return $this->executeInTransaction(function () use ($id) {
-            $user = $this->getDetail($id);
+        return $this->executeInTransaction(function () use ($user) {
+            // ✅ 正確：直接使用已授權的 User 模型實例，無需重複驗證
+            // 權限檢查（包含「不能刪除自己」、「不能刪除管理員」等規則）已在 Controller@authorize() 完成
             
-            // 檢查是否為管理員
-            if ($user->hasRole('admin')) {
-                throw new BusinessException(
-                    UserErrorCode::CANNOT_DELETE_ADMIN->message(),
-                    UserErrorCode::CANNOT_DELETE_ADMIN->value,
-                    UserErrorCode::CANNOT_DELETE_ADMIN->httpStatus()
-                );
-            }
-            
-            $result = $this->repository->delete($id);
+            $result = $this->repository->delete($user);
             
             if ($result) {
                 // 撤銷所有 Token
                 $user->tokens()->delete();
                 
                 // 清除快取
-                Cache::forget("users:{$id}");
-                Cache::forget("user_accessible_stores_{$id}");
+                Cache::forget("users:{$user->id}");
+                Cache::forget("user_accessible_stores_{$user->id}");
                 
                 Log::info('User deleted', [
-                    'user_id' => $id,
+                    'user_id' => $user->id,
                     'deleted_by' => auth()->id()
                 ]);
             }

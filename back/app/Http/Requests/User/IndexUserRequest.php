@@ -104,9 +104,9 @@ class IndexUserRequest extends FormRequest
             ]);
         }
         
-        // 門市隔離：非管理員只能查看自己門市的使用者
-        if (auth()->check() && !auth()->user()->hasRole('admin')) {
-            $this->merge(['store_id' => auth()->user()->store_id]);
+        // 門市隔離：沒有跨店查看權限的使用者只能查看自己門市的使用者
+        if (auth()->check() && $this->user()->cannot('viewAcrossStores', \App\Models\User::class)) {
+            $this->merge(['store_id' => $this->user()->store_id]);
         }
     }
 

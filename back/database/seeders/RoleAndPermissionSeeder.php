@@ -14,7 +14,7 @@ use Spatie\Permission\Models\{Role, Permission};
  * 支援多租戶門市隔離和企業級權限控制
  * 
  * @author LomisX3 開發團隊
- * @version 1.0.0
+ * @version 5.1.0 - 新增跨域操作權限架構
  */
 class RoleAndPermissionSeeder extends Seeder
 {
@@ -74,6 +74,7 @@ class RoleAndPermissionSeeder extends Seeder
             'system.view_metrics',  // 檢視系統指標
             'system.backup',        // 系統備份
             'system.maintenance',   // 系統維護
+            'system.operate_across_stores', // 跨域操作權限（語義清晰的超級權限）
         ],
     ];
 
@@ -84,11 +85,15 @@ class RoleAndPermissionSeeder extends Seeder
      * @var array<string, array<string, mixed>>
      */
     private array $roles = [
+        'super_admin' => [
+            'display_name' => '超級管理員',
+            'description' => '系統最高權限，繞過所有權限檢查，僅限開發者和最高擁有者使用',
+            'permissions' => 'all', // 特殊標記：擁有所有權限
+        ],
         'admin' => [
             'display_name' => '系統管理員',
             'description' => '擁有系統所有權限，可跨門市操作',
             'permissions' => 'all', // 特殊標記：擁有所有權限
-            'level' => 100,
         ],
         'store_admin' => [
             'display_name' => '門市管理員',
@@ -100,7 +105,6 @@ class RoleAndPermissionSeeder extends Seeder
                 'categories.view', 'categories.create', 'categories.update', 'categories.delete',
                 'system.view_logs',
             ],
-            'level' => 80,
         ],
         'manager' => [
             'display_name' => '部門主管',
@@ -110,7 +114,6 @@ class RoleAndPermissionSeeder extends Seeder
                 'categories.view', 'categories.create', 'categories.update',
                 'stores.view',
             ],
-            'level' => 60,
         ],
         'staff' => [
             'display_name' => '一般員工',
@@ -120,7 +123,6 @@ class RoleAndPermissionSeeder extends Seeder
                 'categories.view',
                 'stores.view',
             ],
-            'level' => 40,
         ],
         'guest' => [
             'display_name' => '訪客',
@@ -128,7 +130,6 @@ class RoleAndPermissionSeeder extends Seeder
             'permissions' => [
                 'categories.view',
             ],
-            'level' => 20,
         ],
     ];
 
@@ -141,14 +142,20 @@ class RoleAndPermissionSeeder extends Seeder
     {
         $this->command->info('🚀 開始建立角色權限種子資料...');
         
-        // 1. 建立權限
+        // 1. 重設快取
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
+        // 2. 建立權限
         $this->createPermissions();
         
-        // 2. 建立角色
+        // 3. 建立角色
         $this->createRoles();
         
-        // 3. 指派權限給角色
+        // 4. 指派權限給角色
         $this->assignPermissionsToRoles();
+        
+        // 5. 分配超級管理員角色給第一個使用者
+        $this->assignSuperAdminRole();
         
         $this->command->info('✅ 角色權限種子資料建立完成！');
         $this->printSummary();
@@ -234,6 +241,55 @@ class RoleAndPermissionSeeder extends Seeder
     }
 
     /**
+     * 分配超級管理員角色給創始管理員
+     * 
+     * @return void
+     */
+    private function assignSuperAdminRole(): void
+    {
+        $this->command->info('👑 分配超級管理員角色...');
+        
+        // ✅ SRP 修復：使用穩定的 email 查找，替代脆弱的 User::find(1)
+        $superAdminUser = \App\Models\User::where('email', 'admin@lomisx3.com')->first();
+        
+        if ($superAdminUser) {
+            // 使用 syncRoles 確保角色唯一且正確
+            $superAdminUser->syncRoles(['super_admin']);
+            $this->command->line("  ✅ 使用者 '{$superAdminUser->name}' ({$superAdminUser->email}) 已設為超級管理員");
+        } else {
+            $this->command->warn("  ⚠️  找不到 admin@lomisx3.com 使用者，請確認 UserSeeder 已正確執行");
+        }
+        
+        // 額外為其他用戶分配預設角色（基於 email 識別）
+        $this->assignDefaultRoles();
+    }
+
+    /**
+     * 為其他用戶分配預設角色
+     * 
+     * @return void
+     */
+    private function assignDefaultRoles(): void
+    {
+        $this->command->info('🔗 分配其他使用者角色...');
+        
+        $userRoleMap = [
+            'north.manager@lomisx3.com' => 'store_admin',
+            'taipei.manager@lomisx3.com' => 'manager',
+            'taipei.staff1@lomisx3.com' => 'staff',
+            'testuser@lomisx3.com' => 'guest',
+        ];
+        
+        foreach ($userRoleMap as $email => $role) {
+            $user = \App\Models\User::where('email', $email)->first();
+            if ($user) {
+                $user->syncRoles([$role]);
+                $this->command->line("  ✅ {$user->name} ({$email}) → {$role}");
+            }
+        }
+    }
+
+    /**
      * 顯示建立摘要
      * 
      * @return void
@@ -257,7 +313,7 @@ class RoleAndPermissionSeeder extends Seeder
         $this->command->info('');
         $this->command->info('🎯 角色階層架構:');
         foreach ($this->roles as $roleName => $roleData) {
-            $this->command->line("  Level {$roleData['level']}: {$roleData['display_name']} - {$roleData['description']}");
+            $this->command->line("  {$roleData['display_name']} ({$roleName}): {$roleData['description']}");
         }
         
         $this->command->info('');

@@ -1,23 +1,35 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, AlertTriangle } from 'lucide-react';
+import { Plus, AlertTriangle } from 'lucide-react';
 import { useFlowStateStore } from '@/stores/flowStateStore';
 import { useDebounce } from '@/hooks/common/use-debounce';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 import { UserTable } from '@/features/users/components/user-table';
 import { PermissionGuard } from '@/components/common/permission-guard';
 import { PageHeader } from '@/components/common/breadcrumb';
-import { ResponsiveContainer, ResponsiveGrid } from '@/components/common/responsive-container';
-import { useUsers } from '@/features/users/api/user-crud';
-import type { components } from '@/types/api';
+import { ResponsiveContainer } from '@/components/common/responsive-container';
 
-// API 類型定義
-type User = components['schemas']['User'];
+// ✅ V4.0 統一戰爭成果：只從正統架構導入
+import { 
+  useGetUsers, 
+  useDeleteUser,  // ✅ 導入我們的「刪除武器」
+  type User 
+} from '@/hooks/api/users';
 
 /**
  * 使用者列表頁面 (V4.0 - 搜尋邏輯重構)
@@ -37,6 +49,10 @@ export function UsersPage() {
   const [highlightedUserId, setHighlightedUserId] = useState<string | number | null>(null);
   const consumeHighlight = useFlowStateStore((state) => state.consumeHighlight);
 
+  // ✅ 刪除確認對話框狀態管理
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+
   // ✅ V4.0 重構：搜尋狀態與防抖管理
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300); // 防抖延遲 300ms
@@ -47,10 +63,13 @@ export function UsersPage() {
     per_page: 50,
     sort: 'created_at' as const,
     order: 'desc' as const,
-    'filter[search]': undefined as string | undefined,
+    search: undefined as string | undefined,
   });
   
-  const { data: usersData, isLoading: isUsersLoading } = useUsers(queryParams);
+  const { data: usersData, isLoading: isUsersLoading } = useGetUsers(queryParams);
+  
+  // ✅ 實例化我們的「刪除武器」
+  const deleteUserMutation = useDeleteUser();
 
   // 處理高亮狀態消費
   useEffect(() => {
@@ -68,7 +87,7 @@ export function UsersPage() {
     setQueryParams(prev => ({
       ...prev,
       page: 1,
-      'filter[search]': debouncedSearchTerm || undefined,
+      search: debouncedSearchTerm || undefined,
     }));
   }, [debouncedSearchTerm]); // 依賴項只有 debouncedSearchTerm
 
@@ -78,7 +97,7 @@ export function UsersPage() {
       isLoading: isUsersLoading,
       hasData: !!usersData,
       dataStructure: usersData ? Object.keys(usersData) : null,
-      dataContent: usersData?.data ? `Array(${usersData.data.length})` : null,
+      dataContent: (usersData as any)?.data ? `Array(${(usersData as any).data.length})` : null,
       queryParams,
     });
   }, [isUsersLoading, usersData, queryParams]);
@@ -115,12 +134,49 @@ export function UsersPage() {
   }, [navigate]);
 
   /**
-   * 處理刪除使用者 (useCallback 穩定化)
+   * 處理刪除使用者 - 觸發確認對話框
+   * ✅ V4.0 升級：使用 shadcn/ui AlertDialog 替代原生 confirm
    */
   const handleDeleteUser = useCallback((user: User) => {
-    // 處理刪除邏輯，可以在這裡實現刪除確認
-    console.log('🗑️ 刪除使用者:', user);
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
   }, []);
+
+  /**
+   * 確認刪除使用者 - 實際執行刪除操作
+   */
+  const confirmDeleteUser = useCallback(() => {
+    if (!userToDelete) return;
+    
+    // 下達開火指令！
+    deleteUserMutation.mutate(userToDelete.id, {
+      onSuccess: () => {
+        // 成功後的提示
+        toast.success(`✅ 使用者「${userToDelete.name || userToDelete.email}」已成功刪除`);
+        console.log(`✅ 使用者 ID: ${userToDelete.id} 刪除成功`);
+        // 關閉對話框並清理狀態
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
+        // TanStack Query 會自動刷新相關數據
+      },
+      onError: (error) => {
+        // 錯誤處理
+        const errorMessage = error instanceof Error ? error.message : '刪除操作失敗';
+        toast.error(`❌ 刪除使用者失敗：${errorMessage}`);
+        console.error(`❌ 刪除使用者 ID: ${userToDelete.id} 失敗`, error);
+        // 關閉對話框但保持用戶信息用於重試
+        setDeleteDialogOpen(false);
+      }
+    });
+  }, [userToDelete, deleteUserMutation]);
+
+  /**
+   * 取消刪除操作
+   */
+  const cancelDeleteUser = useCallback(() => {
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
+  }, []); // 依賴項是穩定的 mutation 函數
 
   /**
    * 處理搜尋變更 (V4.0 重構 - useCallback 穩定化)
@@ -188,7 +244,7 @@ export function UsersPage() {
           </CardHeader>
           <CardContent>
             <UserTable
-              users={usersData?.data?.data || []}
+              users={(usersData as any)?.data || []}
               isLoading={isUsersLoading}
               onSelectionChange={handleSelectionChange}
               onCreateUser={handleCreateUser}
@@ -253,6 +309,33 @@ export function UsersPage() {
         </CardContent>
       </Card>
     </div>
+
+    {/* ✅ 刪除確認對話框 - shadcn/ui AlertDialog */}
+    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>刪除使用者確認</AlertDialogTitle>
+          <AlertDialogDescription>
+            您確定要刪除使用者「<strong>{userToDelete?.name || userToDelete?.email}</strong>」嗎？
+            <br />
+            <br />
+            此操作無法復原，該使用者的所有數據將被永久刪除。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={cancelDeleteUser}>
+            取消
+          </AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={confirmDeleteUser}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={deleteUserMutation.isPending}
+          >
+            {deleteUserMutation.isPending ? '刪除中...' : '確認刪除'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </ResponsiveContainer>
   );
 } 

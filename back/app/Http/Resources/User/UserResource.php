@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\Store\StoreResource;
 use App\Enums\{UserStatus, UserRole};
+use Spatie\Permission\Models\Permission;
 
 /**
  * 使用者資源回應格式 (V2.0 - API 純數據原則)
@@ -86,7 +87,12 @@ class UserResource extends JsonResource
             // 角色與權限
             'roles' => $this->getRoleNames(),
             
-            'permissions' => $this->getAllPermissions()->pluck('name'),
+            // ✅ V4.2 SUPER ADMIN UI FIX: 修正權限宣告邏輯
+            // 如果是 super_admin，則宣告擁有所有權限，以確保前端 UI 正確渲染
+            // 如果是其他角色，則返回其被明確授予的權限
+            'permissions' => $this->hasRole('super_admin') 
+                ? Permission::all()->pluck('name')  // 返回系統中定義的所有權限
+                : $this->getAllPermissions()->pluck('name'), // 維持原有邏輯
             
             'all_permissions' => $this->when(
                 $request->has('include_all_permissions'),

@@ -122,7 +122,7 @@ export class BusinessException extends Error {
   constructor(
     message: string,
     code: ErrorCode = GeneralErrorCode.GENERAL_BUSINESS_ERROR,
-    statusCode: number = 400,
+    statusCode = 400,
     details: ErrorDetails[] = []
   ) {
     super(message);
@@ -234,7 +234,7 @@ export class BusinessException extends Error {
   /**
    * 網路錯誤
    */
-  static networkError(message: string = '網路連線錯誤'): BusinessException {
+  static networkError(message = '網路連線錯誤'): BusinessException {
     return new BusinessException(
       message,
       GeneralErrorCode.NETWORK_ERROR,
@@ -475,7 +475,7 @@ export class ValidationException extends BusinessException {
  * 認證例外
  */
 export class AuthenticationException extends BusinessException {
-  constructor(message: string = '認證失敗', errorCode: ErrorCode = GeneralErrorCode.AUTHENTICATION_ERROR) {
+  constructor(message = '認證失敗', errorCode: ErrorCode = GeneralErrorCode.AUTHENTICATION_ERROR) {
     super(message, errorCode, 401);
     this.name = 'AuthenticationException';
   }
@@ -485,7 +485,7 @@ export class AuthenticationException extends BusinessException {
  * 授權例外
  */
 export class AuthorizationException extends BusinessException {
-  constructor(message: string = '沒有權限執行此操作', errorCode: ErrorCode = GeneralErrorCode.AUTHORIZATION_ERROR) {
+  constructor(message = '沒有權限執行此操作', errorCode: ErrorCode = GeneralErrorCode.AUTHORIZATION_ERROR) {
     super(message, errorCode, 403);
     this.name = 'AuthorizationException';
   }
@@ -495,7 +495,7 @@ export class AuthorizationException extends BusinessException {
  * 資源未找到例外
  */
 export class NotFoundException extends BusinessException {
-  constructor(message: string = '資源未找到', errorCode: ErrorCode = GeneralErrorCode.NOT_FOUND_ERROR) {
+  constructor(message = '資源未找到', errorCode: ErrorCode = GeneralErrorCode.NOT_FOUND_ERROR) {
     super(message, errorCode, 404);
     this.name = 'NotFoundException';
   }
@@ -505,7 +505,7 @@ export class NotFoundException extends BusinessException {
  * 伺服器錯誤例外
  */
 export class ServerException extends BusinessException {
-  constructor(message: string = '伺服器內部錯誤', errorCode: ErrorCode = GeneralErrorCode.SERVER_ERROR) {
+  constructor(message = '伺服器內部錯誤', errorCode: ErrorCode = GeneralErrorCode.SERVER_ERROR) {
     super(message, errorCode, 500);
     this.name = 'ServerException';
   }

@@ -17,12 +17,9 @@ import {
   useCategoryTree,
   useCategoryStatistics,
 } from '@/hooks/use-product-categories';
-import type { CategoryListParams as ApiCategoryListParams, ProductCategory as ApiProductCategory } from '@/services/product-categories';
 import type { CategoryListParams, ProductCategory } from '@/types/api.fallback';
 import { AdvancedFilters } from '@/components/categories/AdvancedFilters';
-import { CategoryListView } from '@/components/categories/CategoryListView';
 import { CategoryForm } from '@/components/categories/CategoryForm';
-import { DragDropTreeView } from '@/components/categories/DragDropTreeView';
 
 /**
  * 分類管理主頁面

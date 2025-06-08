@@ -31,9 +31,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Eye, Trash2 } from 'lucide-react';
 import { PermissionGuard } from '@/components/common/permission-guard';
-import type { components } from '@/types/api';
-
-type User = components['schemas']['User'];
+// ✅ V4.0 統一戰爭成果：使用正統架構型別
+import type { User } from '@/hooks/api/users';
 
 interface UserTableProps {
   users?: User[];
@@ -95,7 +94,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   const formatRole = (roles?: string[]): string => {
     if (!roles || roles.length === 0) return '無角色';
     
-    const roleMap: { [key: string]: string } = {
+    const roleMap: Record<string, string> = {
       'admin': '系統管理員',
       'store_admin': '門市管理員',
       'manager': '經理',

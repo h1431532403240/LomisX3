@@ -500,8 +500,15 @@ class UserController extends Controller
      */
     public function destroy(User $user): JsonResponse
     {
+        // ✅✅✅ V4.0 標準修復：添加權限檢查 ✅✅✅
+        // 在執行任何操作之前，先使用 UserPolicy 驗證當前使用者是否有權刪除目標使用者。
+        // 這會觸發 UserPolicy@delete 方法，執行例如「不能刪除自己」等業務規則。
+        $this->authorize('delete', $user);
+
         try {
-            $this->service->delete($user->id);
+            // ✅ V4.0 信任模式重構：直接傳遞已授權的 User 模型實例
+            // 權限檢查已在 authorize() 完成，Service 層信任並直接執行業務邏輯
+            $this->service->delete($user);
             
             return response()->json([
                 'success' => true,

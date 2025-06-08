@@ -37,7 +37,6 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import {
   Eye,
   EyeOff,
@@ -45,19 +44,11 @@ import {
   Mail,
   Phone,
   Lock,
-  Building,
   Shield,
-  Check,
-  AlertCircle,
 } from 'lucide-react';
 
 import { toast } from 'sonner';
-import { useCreateUser, useUpdateUser } from '@/features/users/api/user-crud';
-import type { 
-  User as UserType, 
-  CreateUserRequest, 
-  UpdateUserRequest 
-} from '@/features/users/api/user-crud';
+import { useCreateUser, useUpdateUser, type User as UserType } from '@/hooks/api/users';
 
 /**
  * 密碼強度檢查

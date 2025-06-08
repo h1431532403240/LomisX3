@@ -42,8 +42,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { PermissionGuard } from '@/components/common/permission-guard';
-import { useUser } from '@/features/users/api/user-crud';
-import type { User } from '@/features/users/api/user-crud';
+import { useGetUser, type User } from '@/hooks/api/users';
 
 /**
  * 格式化最後登入時間
@@ -132,7 +131,7 @@ export const UserDetailPage: React.FC = () => {
   const userId = Number(id);
 
   // API Hooks
-  const { data: user, isLoading, error } = useUser(userId);
+  const { data: user, isLoading, error } = useGetUser(userId);
 
   // 處理返回
   const handleGoBack = () => {

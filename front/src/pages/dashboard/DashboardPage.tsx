@@ -12,13 +12,10 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { 
   Activity
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 // 導入新創建的組件
 import { DashboardStats } from '@/components/features/dashboard/DashboardStats';

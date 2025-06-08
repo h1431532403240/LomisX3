@@ -51,35 +51,23 @@
         </style>
     </head>
     <body>
-        <h2>Authentication (Tests\Feature\Authentication)</h2>
+        <h2>User Service (Tests\Unit\UserService)</h2>
         <ul>
-            <li class="defect">Successful login</li>
-            <li class="defect">Login with email</li>
-            <li class="defect">Login with wrong password</li>
-            <li class="defect">Login with nonexistent user</li>
-            <li class="defect">Login with inactive account</li>
-            <li class="defect">Login with locked account</li>
-            <li class="defect">Login with pending account</li>
-            <li class="defect">Login rate limiting</li>
-            <li class="defect">Successful logout</li>
-            <li class="defect">Get current user info</li>
-            <li class="defect">Token refresh</li>
-            <li class="defect">Enable 2fa</li>
-            <li class="defect">Enable 2fa with wrong password</li>
-            <li class="defect">Confirm 2fa</li>
-            <li class="defect">Disable 2fa</li>
-            <li class="defect">2fa challenge</li>
-            <li class="defect">2fa challenge with wrong code</li>
-            <li class="defect">2fa challenge with recovery code</li>
-            <li class="defect">Unauthenticated access to protected route</li>
-            <li class="defect">Invalid token access</li>
-            <li class="defect">Expired token access</li>
-            <li class="defect">Login validation rules</li>
-            <li class="defect">2fa challenge validation rules</li>
-        </ul>
-        <h2>User Management (Tests\Feature\UserManagement)</h2>
-        <ul>
-            <li class="defect">Unauthenticated access</li>
+            <li class="success">Create user successfully</li>
+            <li class="success">Create user with duplicate username</li>
+            <li class="success">Create user with duplicate email</li>
+            <li class="success">Create user with weak password</li>
+            <li class="success">Password strength validation</li>
+            <li class="success">Update user successfully</li>
+            <li class="success">Batch status update successfully</li>
+            <li class="success">Batch status update with admin account</li>
+            <li class="success">Reset password successfully</li>
+            <li class="success">Store isolation check</li>
+            <li class="success">Update user get detail failure</li>
+            <li class="success">Cache clearing mechanism</li>
+            <li class="success">Transaction handling</li>
+            <li class="success">Invalid status handling</li>
+            <li class="success">Create user repository error</li>
         </ul>
     </body>
 </html>

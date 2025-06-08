@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LomisX3 AlertDialog 測試</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .check-icon {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #10b981;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .vs-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .vs-old, .vs-new {
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+        }
+        
+        .vs-old {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .vs-new {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 LomisX3 AlertDialog 刪除確認功能測試</h1>
+            <p>使用 shadcn/ui AlertDialog 替代原生 confirm 的完整升級</p>
+        </div>
+        
+        <div class="content">
+            <div class="test-section">
+                <h2>🎯 升級完成檢查</h2>
+                <ul class="checklist">
+                    <li>
+                        <div class="check-icon">✓</div>
+                        <strong>導入 AlertDialog 組件</strong> - 所有必要的組件都已正確導入
+                    </li>
+                    <li>
+                        <div class="check-icon">✓</div>
+                        <strong>狀態管理</strong> - 添加 deleteDialogOpen 和 userToDelete 狀態
+                    </li>
+                    <li>
+                        <div class="check-icon">✓</div>
+                        <strong>處理函數重構</strong> - handleDeleteUser 觸發對話框而非直接刪除
+                    </li>
+                    <li>
+                        <div class="check-icon">✓</div>
+                        <strong>確認邏輯分離</strong> - confirmDeleteUser 負責實際刪除操作
+                    </li>
+                    <li>
+                        <div class="check-icon">✓</div>
+                        <strong>UI 組件渲染</strong> - AlertDialog JSX 正確添加到 return 中
+                    </li>
+                </ul>
+            </div>
+
+            <div class="vs-comparison">
+                <div class="vs-old">
+                    <h3>❌ 舊版 (原生 confirm)</h3>
+                    <ul>
+                        <li>• 瀏覽器預設樣式，無法自定義</li>
+                        <li>• 阻塞性對話框，用戶體驗差</li>
+                        <li>• 無載入狀態指示</li>
+                        <li>• 不支援主題切換</li>
+                    </ul>
+                </div>
+                <div class="vs-new">
+                    <h3>✅ 新版 (shadcn/ui AlertDialog)</h3>
+                    <ul>
+                        <li>• 美觀的自定義樣式</li>
+                        <li>• 流暢的動畫效果</li>
+                        <li>• 載入狀態顯示 (刪除中...)</li>
+                        <li>• 自動主題適配</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h2>🧪 測試指引</h2>
+                <ul class="checklist">
+                    <li>
+                        <div class="check-icon">1</div>
+                        啟動開發伺服器：<code>npm run dev</code>
+                    </li>
+                    <li>
+                        <div class="check-icon">2</div>
+                        前往使用者列表頁面：<code>/users</code>
+                    </li>
+                    <li>
+                        <div class="check-icon">3</div>
+                        點擊任一使用者的「刪除」按鈕
+                    </li>
+                    <li>
+                        <div class="check-icon">4</div>
+                        觀察 AlertDialog 彈出，確認樣式和動畫
+                    </li>
+                    <li>
+                        <div class="check-icon">5</div>
+                        測試「取消」和「確認刪除」按鈕功能
+                    </li>
+                </ul>
+            </div>
+
+            <div class="success">
+                🎉 恭喜！您已成功升級到現代化的 AlertDialog 刪除確認系統！
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

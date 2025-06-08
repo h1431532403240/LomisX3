@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { 
   Select,
   SelectContent,
@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { 
   Crown, 
   Shield, 
@@ -39,7 +38,6 @@ import {
   X
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import type { UserRole } from '@/types/user';
 
 /**
  * 角色選項介面
@@ -84,7 +82,7 @@ interface RoleSelectorProps {
   /** 最大選擇數量（多選模式） */
   maxSelections?: number;
   /** 角色層級限制 */
-  allowedLevels?: Array<'admin' | 'manager' | 'staff' | 'guest'>;
+  allowedLevels?: ('admin' | 'manager' | 'staff' | 'guest')[];
 }
 
 /**

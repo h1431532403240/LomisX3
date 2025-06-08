@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { openapi, safeApiCall } from '@/lib/openapi-client';
-import type { paths } from '@/types/api';
 
 /**
  * 系統配置類型定義

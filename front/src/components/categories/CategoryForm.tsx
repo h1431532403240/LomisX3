@@ -90,7 +90,7 @@ export function CategoryForm({ category, onSuccess, onCancel }: CategoryFormProp
   };
 
   const onSubmit = (data: CategoryFormData) => {
-    if (category && category.id) {
+    if (category?.id) {
       const apiData: UpdateCategoryRequest = { ...data };
       updateCategoryMutation.mutate({ id: category.id, data: apiData }, { onSuccess: handleSuccess, onError: handleError });
     } else {
@@ -111,7 +111,7 @@ export function CategoryForm({ category, onSuccess, onCancel }: CategoryFormProp
   const availableParentCategories = React.useMemo(() => {
     if (!categoryTree) return [];
     const flatCategories = flattenTree(categoryTree);
-    if (!category || !category.id) return flatCategories;
+    if (!category?.id) return flatCategories;
     
     const descendantIds = new Set<number>();
     const getDescendants = (catId: number) => {

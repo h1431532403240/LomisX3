@@ -5,10 +5,9 @@ import { TrendingUp, ShoppingCart, Star, ArrowUpRight, ArrowDownRight, BarChart3
 import { 
   ChartContainer, 
   ChartTooltip, 
-  ChartTooltipContent,
-  type ChartConfig 
+  ChartTooltipContent 
 } from '@/components/ui/chart';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 /**
  * Dashboard 統計卡片資料介面

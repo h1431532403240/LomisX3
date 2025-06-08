@@ -16,13 +16,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -36,7 +33,6 @@ import {
   ChevronUp,
   MoreHorizontal,
   Search,
-  Filter,
   X,
   ChevronLeft,
   ChevronRight,
@@ -67,7 +63,7 @@ export interface DataTableColumn<T = any> {
   /** 是否固定欄位 */
   fixed?: 'left' | 'right';
   /** 篩選選項 */
-  filterOptions?: Array<{ label: string; value: any }>;
+  filterOptions?: { label: string; value: any }[];
 }
 
 /**

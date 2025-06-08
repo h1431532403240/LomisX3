@@ -37,8 +37,10 @@ interface UserServiceInterface
 
     /**
      * 刪除使用者（軟刪除）
+     * 
+     * V4.0 架構優化：接收 User 模型實例，信任 Controller 層權限檢查
      */
-    public function delete(int $id): bool;
+    public function delete(User $user): bool;
 
     /**
      * 批次更新使用者狀態

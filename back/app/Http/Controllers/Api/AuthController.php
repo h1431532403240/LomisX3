@@ -176,8 +176,12 @@ class AuthController extends Controller
             $deviceName = $request->input('device_name', 'unknown-device');
             $rememberMe = $request->boolean('remember', false);
             
-            // 設定 Token 能力（基於角色的細粒度權限）
-            $abilities = $user->getAllPermissions()->pluck('name')->toArray();
+            // ✅ V4.2 SUPER ADMIN UI FIX: 取得正確的權限列表
+            // 如果是 super_admin，需要使用所有權限；否則使用已分配的權限
+            $abilities = $user->hasRole('super_admin') 
+                ? \Spatie\Permission\Models\Permission::all()->pluck('name')->toArray()
+                : $user->getAllPermissions()->pluck('name')->toArray();
+            
             $token = $user->createToken($deviceName, $abilities);
 
             // 📝 記錄成功登入
@@ -190,13 +194,13 @@ class AuthController extends Controller
             $userData = new UserResource($user);
 
             // 🎉 回傳完整的認證資訊
+            // 注意：不需要再次設定 permissions，因為 UserResource 已經正確處理了
             return $this->apiSuccess([
                 'user' => $userData,
                 'token' => $token->plainTextToken,
                 'expires_at' => $rememberMe ? 
                     now()->addDays(30)->toISOString() : 
                     now()->addHours(8)->toISOString(),
-                'permissions' => $abilities,
                 'store' => $user->store ? [
                     'id' => $user->store->id,
                     'name' => $user->store->name,
@@ -772,18 +776,12 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            // 載入必要的關聯
-            $user->load(['store']);
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'user' => $user,
-                    'store' => $user->store,
-                    'permissions' => $user->getAllPermissions()->pluck('name'),
-                    'roles' => $user->getRoleNames()
-                ]
-            ]);
+            // ✅ V4.2 SUPER ADMIN UI FIX - 最終環節
+            // 關鍵修復點！確保 /me 端點也使用標準的 UserResource
+            // 這將保證無論是登入還是刷新頁面，獲取到的使用者資訊結構都是一致且完整的
+            return $this->apiSuccess(
+                new UserResource($user->load('roles', 'permissions')) // 使用 UserResource 包裝
+            );
         } catch (\Exception $e) {
             \Log::error('獲取用戶資訊失敗', [
                 'error' => $e->getMessage(),

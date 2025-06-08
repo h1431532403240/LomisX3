@@ -534,22 +534,68 @@ class UserRepository implements UserRepositoryInterface
     }
 
     /**
-     * 刪除使用者 (軟刪除)
+     * 刪除指定的使用者模型。
      *
-     * @param int $id 使用者 ID
+     * @param User $user
      * @return bool
      */
-    public function delete(int $id): bool
+    public function delete(User $user): bool
     {
-        $user = $this->findOrFail($id);
+        // 在執行任何操作前，先保存必要的資訊
         $storeId = $user->store_id;
+        $userId = $user->id;
         
-        $result = $user->delete();
+        Log::info('🔄 [Debug] UserRepository::delete() 開始執行', [
+            'user_id' => $userId,
+            'username' => $user->username,
+            'store_id' => $storeId,
+            'user_deleted_at_before' => $user->deleted_at,
+            'user_exists' => $user->exists,
+            'auth_user_id' => auth()->id()
+        ]);
+        
+        // ✅ V5.4 調試版本：詳細追蹤刪除過程
+        $result = (bool) $user->delete();
+        
+        Log::info('🔍 [Debug] $user->delete() 執行結果', [
+            'user_id' => $userId,
+            'delete_result' => $result,
+            'user_deleted_at_after' => $user->fresh() ? $user->fresh()->deleted_at : 'user_not_found',
+            'delete_result_type' => gettype($result)
+        ]);
+        
+        // 檢查實際的資料庫狀態
+        $userFromDb = $this->model->withTrashed()->find($userId);
+        Log::info('🗄️ [Debug] 資料庫檢查結果', [
+            'user_id' => $userId,
+            'db_user_exists' => $userFromDb ? 'yes' : 'no',
+            'db_deleted_at' => $userFromDb ? $userFromDb->deleted_at : 'null',
+            'is_soft_deleted' => ($userFromDb && $userFromDb->trashed()) ? 'yes' : 'no'
+        ]);
         
         if ($result) {
-            $this->clearUserCache($id);
+            Log::info('🧹 [Debug] 清除快取開始', [
+                'user_id' => $userId,
+                'store_id' => $storeId
+            ]);
+            
+            $this->clearUserCache($userId);
             $this->clearStoreUsersCache($storeId);
+            
+            Log::info('✅ [Debug] 快取清除完成', [
+                'user_id' => $userId,
+                'store_id' => $storeId
+            ]);
+        } else {
+            Log::warning('⚠️ [Debug] delete() 返回 false，跳過快取清除', [
+                'user_id' => $userId
+            ]);
         }
+        
+        Log::info('🎯 [Debug] UserRepository::delete() 執行完成', [
+            'user_id' => $userId,
+            'final_result' => $result
+        ]);
         
         return $result;
     }

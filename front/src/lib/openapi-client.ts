@@ -85,7 +85,7 @@ openapi.use(errorResponseMiddleware);
  */
 export async function safeApiCall<T>(
   apiCall: () => Promise<T>,
-  maxRetries: number = 2
+  maxRetries = 2
 ): Promise<T> {
   let lastError: Error | null = null;
 

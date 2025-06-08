@@ -56,12 +56,13 @@ class UserServiceTest extends TestCase
     /**
      * 建立認證使用者 Mock
      */
-    private function mockAuthUser(int $storeId = 1, bool $canAccessAllStores = true): void
+    private function mockAuthUser(int $storeId = 1, bool $canAccessAllStores = true, bool $canViewAcrossStores = false): void
     {
         $authUser = Mockery::mock(User::class);
         $authUser->shouldReceive('canAccessStore')->andReturn($canAccessAllStores);
         $authUser->shouldReceive('getAttribute')->with('store_id')->andReturn($storeId);
-        $authUser->shouldReceive('hasRole')->with('admin')->andReturn(false);
+        $authUser->shouldReceive('hasRole')->with('admin')->andReturn(false); // 保持舊的檢查以防其他地方需要
+        $authUser->shouldReceive('cannot')->with('viewAcrossStores', User::class)->andReturn(!$canViewAcrossStores);
         
         Auth::shouldReceive('user')->andReturn($authUser);
         Auth::shouldReceive('id')->andReturn(999);
@@ -100,7 +101,7 @@ class UserServiceTest extends TestCase
         $expectedUser = $this->mockUser(['id' => 1, 'username' => 'new_user']);
 
         // Mock 認證使用者
-        $this->mockAuthUser();
+        $this->mockAuthUser(1, true, false); // 門市1, 可存取, 無跨店權限
 
         // Mock DB::transaction - 直接執行 callback
         DB::shouldReceive('transaction')
@@ -167,7 +168,7 @@ class UserServiceTest extends TestCase
         $existingUser = $this->mockUser(['id' => 2, 'username' => 'existing_user']);
 
         // Mock 認證使用者
-        $this->mockAuthUser();
+        $this->mockAuthUser(1, true, false); // 門市1, 可存取, 無跨店權限
 
         // Mock DB::transaction
         DB::shouldReceive('transaction')
@@ -204,7 +205,7 @@ class UserServiceTest extends TestCase
         $existingUser = $this->mockUser(['id' => 3, 'email' => 'existing@example.com']);
 
         // Mock 認證使用者
-        $this->mockAuthUser();
+        $this->mockAuthUser(1, true, false); // 門市1, 可存取, 無跨店權限
 
         // Mock DB::transaction
         DB::shouldReceive('transaction')
@@ -243,7 +244,7 @@ class UserServiceTest extends TestCase
         ];
 
         // Mock 認證使用者
-        $this->mockAuthUser();
+        $this->mockAuthUser(1, true, false); // 門市1, 可存取, 無跨店權限
 
         // Mock DB::transaction
         DB::shouldReceive('transaction')
@@ -284,7 +285,7 @@ class UserServiceTest extends TestCase
         $expectedUser = $this->mockUser(['id' => 1, 'username' => 'new_user']);
 
         // Mock 認證使用者
-        $this->mockAuthUser();
+        $this->mockAuthUser(1, true, false); // 門市1, 可存取, 無跨店權限
 
         // Mock DB::transaction
         DB::shouldReceive('transaction')
@@ -323,6 +324,7 @@ class UserServiceTest extends TestCase
         $authUser = Mockery::mock(User::class);
         $authUser->shouldReceive('hasRole')->with('admin')->andReturn(false);
         $authUser->shouldReceive('getAttribute')->with('store_id')->andReturn(1);
+        $authUser->shouldReceive('cannot')->with('viewAcrossStores', User::class)->andReturn(true);
         
         Auth::shouldReceive('user')->andReturn($authUser);
         Auth::shouldReceive('id')->andReturn(999);
@@ -388,7 +390,7 @@ class UserServiceTest extends TestCase
         ]);
 
         // Mock 認證使用者
-        $this->mockAuthUser();
+        $this->mockAuthUser(1, true, false); // 門市1, 可存取, 無跨店權限
 
         // Mock DB::transaction
         DB::shouldReceive('transaction')
@@ -467,6 +469,7 @@ class UserServiceTest extends TestCase
         $authUser = Mockery::mock(User::class);
         $authUser->shouldReceive('hasRole')->with('admin')->andReturn(false);
         $authUser->shouldReceive('getAttribute')->with('store_id')->andReturn(1);
+        $authUser->shouldReceive('cannot')->with('viewAcrossStores', User::class)->andReturn(true);
         
         Auth::shouldReceive('user')->andReturn($authUser);
         Auth::shouldReceive('id')->andReturn(999);
@@ -524,10 +527,11 @@ class UserServiceTest extends TestCase
         // 建立不同門市的使用者
         $otherStoreUser = $this->mockUser(['id' => $userId, 'store_id' => 999]);
 
-        // Mock 認證使用者 (門市1, 非管理員)
+        // Mock 認證使用者 (門市1, 無跨店查看權限)
         $authUser = Mockery::mock(User::class);
         $authUser->shouldReceive('hasRole')->with('admin')->andReturn(false);
         $authUser->shouldReceive('getAttribute')->with('store_id')->andReturn(1);
+        $authUser->shouldReceive('cannot')->with('viewAcrossStores', User::class)->andReturn(true); // 無跨店權限
         
         Auth::shouldReceive('user')->andReturn($authUser);
         Auth::shouldReceive('id')->andReturn(888);
@@ -563,6 +567,7 @@ class UserServiceTest extends TestCase
         $authUser = Mockery::mock(User::class);
         $authUser->shouldReceive('hasRole')->with('admin')->andReturn(false);
         $authUser->shouldReceive('getAttribute')->with('store_id')->andReturn(1);
+        $authUser->shouldReceive('cannot')->with('viewAcrossStores', User::class)->andReturn(true);
         
         Auth::shouldReceive('user')->andReturn($authUser);
         Auth::shouldReceive('id')->andReturn(999);
@@ -611,6 +616,7 @@ class UserServiceTest extends TestCase
         $authUser = Mockery::mock(User::class);
         $authUser->shouldReceive('hasRole')->with('admin')->andReturn(false);
         $authUser->shouldReceive('getAttribute')->with('store_id')->andReturn(1);
+        $authUser->shouldReceive('cannot')->with('viewAcrossStores', User::class)->andReturn(true);
         
         Auth::shouldReceive('user')->andReturn($authUser);
         Auth::shouldReceive('id')->andReturn(999);
@@ -678,7 +684,7 @@ class UserServiceTest extends TestCase
         ];
 
         // Mock 認證使用者
-        $this->mockAuthUser();
+        $this->mockAuthUser(1, true, false); // 門市1, 可存取, 無跨店權限
 
         // Mock DB::transaction - 拋出例外模擬事務失敗
         DB::shouldReceive('transaction')
@@ -725,7 +731,7 @@ class UserServiceTest extends TestCase
         ];
 
         // Mock 認證使用者
-        $this->mockAuthUser();
+        $this->mockAuthUser(1, true, false); // 門市1, 可存取, 無跨店權限
 
         // Mock DB::transaction - Repository 拋出例外
         DB::shouldReceive('transaction')

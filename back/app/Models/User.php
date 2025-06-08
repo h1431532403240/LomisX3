@@ -161,25 +161,22 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * 門市存取權限檢查
-     * 
-     * 支援管理員跨門市存取
+     * 檢查使用者是否有權限訪問指定的門市
+     * 這是判斷門市訪問權限的唯一、權威的來源
      *
      * @param int $targetStoreId 目標門市 ID
      * @return bool
      */
     public function canAccessStore(int $targetStoreId): bool
     {
-        // 系統管理員可存取所有門市
-        if ($this->hasRole('admin')) {
+        // ✅ V5.1 權限驅動改造：
+        // 不再關心用戶是什麼角色，只關心他是否被授予了「跨店操作」的權限
+        if ($this->can('system.operate_across_stores')) {
             return true;
         }
-
-        return Cache::remember(
-            "user_accessible_stores_{$this->id}",
-            300,
-            fn() => $this->getAccessibleStoreIds()->contains($targetStoreId)
-        );
+        
+        // 對於沒有此權限的所有其他使用者，檢查是否屬於相同門市
+        return $this->store_id === $targetStoreId;
     }
 
     /**
@@ -189,8 +186,8 @@ class User extends Authenticatable implements HasMedia
      */
     public function getAccessibleStoreIds(): \Illuminate\Support\Collection
     {
-        // 系統管理員可存取所有門市
-        if ($this->hasRole('admin')) {
+        // ✅ V5.1 權限驅動改造：使用跨域操作權限檢查
+        if ($this->can('system.operate_across_stores')) {
             return \App\Models\Store::pluck('id');
         }
 
@@ -337,7 +334,7 @@ class User extends Authenticatable implements HasMedia
     /**
      * 條件性門市隔離查詢範圍
      * 
-     * 支援管理員跨門市查詢
+     * 支援擁有跨域權限的使用者進行跨門市查詢
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param int|null $storeId 指定門市 ID
@@ -348,8 +345,8 @@ class User extends Authenticatable implements HasMedia
         if ($storeId || (auth()->check() && auth()->user()->store_id)) {
             $targetStoreId = $storeId ?? auth()->user()->store_id;
             
-            // 系統管理員可查詢所有門市
-            if (auth()->check() && auth()->user()->hasRole('admin')) {
+            // ✅ V5.1 權限驅動改造：使用跨域操作權限檢查
+            if (auth()->check() && auth()->user()->can('system.operate_across_stores')) {
                 return $query;
             }
             

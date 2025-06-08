@@ -65,6 +65,54 @@ Route::prefix('auth')->name('auth.')->group(function () {
  * 使用者管理 API 路由
  * 支援門市隔離、權限控制、批次操作
  */
+
+// ✅✅✅ V5.5 最終修復：為 'user' 參數定義一個明確的、帶有權限檢查的綁定 ✅✅✅
+Route::bind('user', function ($value) {
+    \Illuminate\Support\Facades\Log::info('🔍 [Route::bind] 開始解析 user 參數', [
+        'requested_user_id' => $value,
+        'auth_check' => auth()->check(),
+        'auth_user_id' => auth()->check() ? auth()->id() : null,
+        'has_cross_store_permission' => auth()->check() ? auth()->user()->can('system.operate_across_stores') : false
+    ]);
+    
+    // 如果當前用戶已認證，並且擁有跨越門市操作的權限...
+    if (auth()->check() && auth()->user()->can('system.operate_across_stores')) {
+        \Illuminate\Support\Facades\Log::info('✅ [Route::bind] 使用跨門市權限查詢', ['user_id' => $value]);
+        // ...我們就繞過所有的全域範圍(Global Scopes)來查找目標用戶。
+        $user = \App\Models\User::withTrashed()->withoutGlobalScopes()->find($value);
+        
+        if ($user) {
+            \Illuminate\Support\Facades\Log::info('✅ [Route::bind] 成功找到用戶 (跨門市)', [
+                'found_user_id' => $user->id,
+                'found_username' => $user->username,
+                'found_store_id' => $user->store_id,
+                'found_deleted_at' => $user->deleted_at
+            ]);
+            return $user;
+        } else {
+            \Illuminate\Support\Facades\Log::warning('❌ [Route::bind] 找不到用戶 (跨門市)', ['user_id' => $value]);
+            abort(404, '使用者不存在');
+        }
+    }
+    
+    // 對於沒有特殊權限的使用者，遵循正常的模型查找規則（會自動應用門市隔離範圍）。
+    \Illuminate\Support\Facades\Log::info('🔒 [Route::bind] 使用門市隔離查詢', ['user_id' => $value]);
+    $user = \App\Models\User::withTrashed()->find($value);
+    
+    if ($user) {
+        \Illuminate\Support\Facades\Log::info('✅ [Route::bind] 成功找到用戶 (門市隔離)', [
+            'found_user_id' => $user->id,
+            'found_username' => $user->username,
+            'found_store_id' => $user->store_id,
+            'found_deleted_at' => $user->deleted_at
+        ]);
+        return $user;
+    } else {
+        \Illuminate\Support\Facades\Log::warning('❌ [Route::bind] 找不到用戶 (門市隔離)', ['user_id' => $value]);
+        abort(404, '使用者不存在');
+    }
+});
+
 Route::prefix('users')->name('users.')->middleware(['auth:sanctum'])->group(function () {
     // 統計資訊 (必須在 {user} 路由之前)
     Route::get('/statistics', [UserController::class, 'statistics'])->name('statistics');
@@ -78,10 +126,14 @@ Route::prefix('users')->name('users.')->middleware(['auth:sanctum'])->group(func
     Route::get('/{user}', [UserController::class, 'show'])->name('show');
     Route::put('/{user}', [UserController::class, 'update'])->name('update');
     
-    // ✅ V6.1 移除 missing() 讓自定義路由綁定正常工作
+    // 使用 Route::delete(...) 的標準寫法，但為其添加一個自定義的綁定邏輯
     Route::delete('/{user}', [UserController::class, 'destroy'])
-        ->name('destroy')
-        ->where('user', '[0-9]+'); // 保持數字約束
+        ->name('destroy') // 保持命名不變
+        ->where('user', '[0-9]+') // 添加數字約束，更安全
+        ->missing(function () {
+            // 如果找不到用戶，返回標準的 404 JSON 回應
+            return response()->json(['success' => false, 'message' => '使用者不存在。'], 404);
+        });
     
     // 密碼管理
     Route::patch('/{user}/reset-password', [UserController::class, 'resetPassword'])->name('reset-password');

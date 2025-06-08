@@ -7,7 +7,7 @@ namespace Database\Seeders;
 use App\Models\{User, Store};
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\{DB, Hash};
-use Spatie\Permission\Models\Role;
+// ✅ SRP 修復：移除 Role 引用，UserSeeder 不再管理角色
 
 /**
  * 使用者種子檔案
@@ -189,8 +189,8 @@ class UserSeeder extends Seeder
         // 檢查必要的門市是否存在
         $this->validateStoresExist();
         
-        // 檢查必要的角色是否存在
-        $this->validateRolesExist();
+        // ✅ SRP 修復：移除角色驗證，UserSeeder 不再負責角色管理
+        // 原：$this->validateRolesExist(); // 已移除
         
         DB::transaction(function () {
             $this->createUsers();
@@ -224,29 +224,7 @@ class UserSeeder extends Seeder
         $this->command->info("  ✅ 已找到 " . count($existingStoreCodes) . " 個必要門市");
     }
 
-    /**
-     * 驗證角色是否存在
-     * 
-     * @return void
-     */
-    private function validateRolesExist(): void
-    {
-        $this->command->info('🔍 檢查角色資料...');
-        
-        $requiredRoles = array_unique(array_column($this->userData, 'role'));
-        $existingRoles = Role::whereIn('name', $requiredRoles)->pluck('name')->toArray();
-        $missingRoles = array_diff($requiredRoles, $existingRoles);
-        
-        if (!empty($missingRoles)) {
-            $this->command->error('❌ 缺少必要的角色資料，請先執行 RoleAndPermissionSeeder:');
-            foreach ($missingRoles as $role) {
-                $this->command->line("  - {$role}");
-            }
-            throw new \Exception('請先執行 php artisan db:seed --class=RoleAndPermissionSeeder');
-        }
-        
-        $this->command->info("  ✅ 已找到 " . count($existingRoles) . " 個必要角色");
-    }
+    // ✅ SRP 修復：移除角色驗證方法，UserSeeder 不再負責角色管理
 
     /**
      * 建立使用者資料
@@ -259,11 +237,10 @@ class UserSeeder extends Seeder
         
         foreach ($this->userData as $userKey => $userData) {
             $store = Store::where('code', $userData['store_code'])->first();
-            $role = Role::where('name', $userData['role'])->first();
             
             $this->command->line("  建立使用者: {$userData['name']} ({$userData['username']})");
             
-            // 建立或更新使用者
+            // 建立或更新使用者 - 只負責用戶實體創建，不分配角色
             $user = User::updateOrCreate(
                 [
                     'username' => $userData['username'],
@@ -288,10 +265,10 @@ class UserSeeder extends Seeder
                 ]
             );
             
-            // 指派角色
-            $user->syncRoles([$role]);
+            // ✅ SRP 修復：移除角色分配邏輯，由 RoleAndPermissionSeeder 統一管理
+            // 原：$user->syncRoles([$role]); // 已移除
             
-            $this->command->line("    ✅ 角色: {$role->name} | 門市: {$store->name}");
+            $this->command->line("    ✅ 用戶已創建 | 門市: {$store->name}");
         }
     }
 
@@ -347,12 +324,6 @@ class UserSeeder extends Seeder
     private function printSummary(): void
     {
         $totalUsers = User::count();
-        $usersByRole = User::join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->selectRaw('roles.name, COUNT(*) as count')
-            ->groupBy('roles.name')
-            ->pluck('count', 'name')
-            ->toArray();
         
         $usersByStore = User::join('stores', 'users.store_id', '=', 'stores.id')
             ->selectRaw('stores.name, COUNT(*) as count')
@@ -365,12 +336,7 @@ class UserSeeder extends Seeder
         $this->command->table(
             ['項目', '數量', '說明'],
             [
-                ['使用者總數', $totalUsers, '完整組織使用者'],
-                ['系統管理員', $usersByRole['admin'] ?? 0, '超級管理員'],
-                ['門市管理員', $usersByRole['store_admin'] ?? 0, '門市/區域管理'],
-                ['部門主管', $usersByRole['manager'] ?? 0, '門市店長'],
-                ['一般員工', $usersByRole['staff'] ?? 0, '日常營運'],
-                ['訪客', $usersByRole['guest'] ?? 0, '展示/測試'],
+                ['使用者總數', $totalUsers, '完整組織使用者（角色由 RoleAndPermissionSeeder 分配）'],
             ]
         );
         
@@ -383,13 +349,13 @@ class UserSeeder extends Seeder
         $this->command->info('');
         $this->command->info('🔑 重要帳號資訊:');
         $this->command->table(
-            ['使用者名稱', '帳號', '角色', '門市', '說明'],
+            ['使用者名稱', '帳號', '門市', '說明'],
             [
-                ['系統管理員', 'admin', 'admin', 'LomisX3 總公司', '最高權限'],
-                ['北區經理', 'north.manager', 'store_admin', '北區營運中心', '區域管理'],
-                ['台北店長', 'taipei.manager', 'manager', '台北旗艦店', '門市管理'],
-                ['台北員工A', 'taipei.staff1', 'staff', '台北旗艦店', '日常營運'],
-                ['測試使用者', 'testuser', 'guest', '台北旗艦店', '系統測試'],
+                ['系統管理員', 'admin', 'LomisX3 總公司', '創始管理員（角色由 RoleAndPermissionSeeder 分配）'],
+                ['北區經理', 'north.manager', '北區營運中心', '區域管理'],
+                ['台北店長', 'taipei.manager', '台北旗艦店', '門市管理'],
+                ['台北員工A', 'taipei.staff1', '台北旗艦店', '日常營運'],
+                ['測試使用者', 'testuser', '台北旗艦店', '系統測試'],
             ]
         );
         

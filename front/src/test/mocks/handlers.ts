@@ -102,7 +102,7 @@ export const categoryHandlers = [
     if (search) {
       filteredCategories = filteredCategories.filter(cat =>
         cat.name.toLowerCase().includes(search.toLowerCase()) ??
-        (cat.description && cat.description.toLowerCase().includes(search.toLowerCase()))
+        (cat.description?.toLowerCase().includes(search.toLowerCase()))
       );
     }
 

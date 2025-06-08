@@ -8,6 +8,7 @@ use App\Http\Controllers\BaseController;
 use App\Enums\{UserStatus, UserRole};
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 /**
  * 系統配置 API 控制器
@@ -16,7 +17,7 @@ use Illuminate\Http\JsonResponse;
  * 符合 LomisX3 V4.0 配置驅動UI架構標準
  * 
  * @author LomisX3 開發團隊
- * @version V1.0
+ * @version V1.1 - 標準化修復
  */
 class SystemController extends BaseController
 {
@@ -25,31 +26,19 @@ class SystemController extends BaseController
      * 
      * 包含所有枚舉值的本地化文本，實現配置驅動UI
      * 
-     * @param Request $request
      * @return JsonResponse
      */
-    public function getConfigs(Request $request): JsonResponse
+    public function getConfigs(): JsonResponse
     {
         try {
             $configs = [
-                // 使用者狀態配置
-                'user_statuses' => $this->getUserStatusConfigs(),
-                
-                // 使用者角色配置  
-                'user_roles' => $this->getUserRoleConfigs(),
-                
-                // 系統元資訊
-                'meta' => [
-                    'version' => config('app.version', '1.0.0'),
-                    'generated_at' => now()->toISOString(),
-                    'locale' => app()->getLocale(),
-                ]
+                'roles' => UserRole::toSelectArray(),
+                // 未來可以添加更多系統級配置
             ];
-
-            return $this->successResponse($configs, '系統配置取得成功');
-            
+            return $this->apiSuccess($configs, '系統配置取得成功');
         } catch (\Exception $e) {
-            return $this->errorResponse('系統配置取得失敗', 500, 'SYSTEM_CONFIG_ERROR');
+            Log::error('獲取系統配置失敗', ['error' => $e->getMessage()]);
+            return $this->apiError('系統配置取得失敗', 500, 'SYSTEM_CONFIG_ERROR');
         }
     }
 
@@ -94,11 +83,10 @@ class SystemController extends BaseController
     /**
      * 取得特定枚舉配置
      * 
-     * @param Request $request
      * @param string $type
      * @return JsonResponse
      */
-    public function getEnumConfig(Request $request, string $type): JsonResponse
+    public function getEnumConfig(string $type): JsonResponse
     {
         try {
             $config = match($type) {
@@ -107,12 +95,12 @@ class SystemController extends BaseController
                 default => throw new \InvalidArgumentException("不支援的枚舉類型: {$type}")
             };
 
-            return $this->successResponse($config, "枚舉配置 {$type} 取得成功");
+            return $this->apiSuccess($config, "枚舉配置 {$type} 取得成功");
             
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 400, 'INVALID_ENUM_TYPE');
+            return $this->apiError($e->getMessage(), 400, 'INVALID_ENUM_TYPE');
         } catch (\Exception $e) {
-            return $this->errorResponse('枚舉配置取得失敗', 500, 'ENUM_CONFIG_ERROR');
+            return $this->apiError('枚舉配置取得失敗', 500, 'ENUM_CONFIG_ERROR');
         }
     }
 } 

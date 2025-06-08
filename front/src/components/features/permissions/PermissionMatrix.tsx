@@ -26,16 +26,12 @@ import { Input } from '@/components/ui/input';
 import { 
   Shield, 
   Settings, 
-  Eye, 
   Edit, 
-  Trash2, 
-  Plus, 
   Save,
   Search,
   Filter,
   RotateCcw
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { PermissionGuard } from '@/components/common/permission-guard';
 
 /**

@@ -144,7 +144,7 @@ class DatabaseSeeder extends Seeder
         $this->command->line('   ✅ 測試門市隔離功能');
         
         $this->command->info('');
-        $this->command->success('🎊 歡迎使用 LomisX3 企業級管理系統！');
+        $this->command->info('🎊 歡迎使用 LomisX3 企業級管理系統！');
     }
 
     /**

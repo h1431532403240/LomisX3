@@ -43,7 +43,6 @@ import {
   Trees,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 type ProductCategory = components['schemas']['ProductCategory'];
 type SortPayload = components['schemas']['SortCategoriesRequest']['categories'];

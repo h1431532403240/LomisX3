@@ -96,30 +96,22 @@ class Handler extends ExceptionHandler
         return parent::render($request, $e);
     }
 
-    /**
-     * 處理未認證的請求
-     * 
-     * 重要：防止 API 請求被重導向到登入頁面，避免 CORS 錯誤
-     * 符合 SPA 設計原則，API 請求應該返回 JSON 錯誤而非重定向
-     * 
-     * @param Request $request
-     * @param AuthenticationException $exception
-     * @return JsonResponse|Response
+   /**
+     * Convert an authentication exception into a response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Auth\AuthenticationException  $exception
+     * @return \Illuminate\Http\JsonResponse
      */
-    protected function unauthenticated($request, AuthenticationException $exception): JsonResponse|Response
+    protected function unauthenticated($request, AuthenticationException $exception): \Illuminate\Http\JsonResponse
     {
-        // 檢查請求是否期望 JSON 回應 (通常 API 請求都是)
-        if ($request->expectsJson() || $request->is('api/*')) {
-            // 返回一個符合我們架構手冊規範的 401 JSON 錯誤
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.',
-                'error_code' => 'UNAUTHENTICATED',
-                'errors' => null
-            ], 401);
-        }
-
-        // 對於非 API 的網頁請求，保留原始的重定向行為
-        return redirect()->guest($exception->redirectTo() ?? route('login'));
+        // V4.0 架構修正：強制所有未認證的請求返回標準的 JSON 401 回應。
+        // 這徹底禁用了 Laravel 預設的、嘗試重定向到 'login' 命名路由的行為，
+        // 使我們的純 API 後端行為完全可預測，並與前端 SPA 的認證流程兼容。
+        return response()->json([
+            'success'    => false,
+            'message'    => $exception->getMessage() ?: 'Unauthenticated.',
+            'error_code' => 'UNAUTHENTICATED',
+        ], 401);
     }
 }

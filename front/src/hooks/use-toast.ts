@@ -182,7 +182,10 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+    // The listener should only be registered once on mount and cleaned up on
+    // unmount. "setState" is stable, so an empty dependency array is correct
+    // here and prevents unnecessary add/remove cycles.
+  }, [])
 
   return {
     ...state,

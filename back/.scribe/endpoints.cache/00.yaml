@@ -16,7 +16,7 @@ endpoints:
         取得認證用戶資訊的路由
         需要 Sanctum 認證
       description: ''
-      authenticated: false
+      authenticated: true
       custom: []
     headers:
       Content-Type: application/json

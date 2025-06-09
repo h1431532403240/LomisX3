@@ -2,6 +2,7 @@
 
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 
@@ -12,6 +13,12 @@ import { Button } from "@/components/ui/button"
  */
 export function ModeToggle() {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // 等待組件掛載完成，避免 hydration 錯誤
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   /**
    * 切換主題函數
@@ -19,6 +26,21 @@ export function ModeToggle() {
    */
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
+  }
+
+  // 如果尚未掛載，顯示預設狀態避免 hydration 不匹配
+  if (!mounted) {
+    return (
+      <Button 
+        variant="outline" 
+        size="icon"
+        className="h-8 w-8"
+        disabled
+      >
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <span className="sr-only">載入中...</span>
+      </Button>
+    )
   }
 
   return (

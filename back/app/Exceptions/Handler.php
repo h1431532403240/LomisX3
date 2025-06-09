@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -93,5 +94,24 @@ class Handler extends ExceptionHandler
         }
 
         return parent::render($request, $e);
+    }
+
+   /**
+     * Convert an authentication exception into a response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Auth\AuthenticationException  $exception
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function unauthenticated($request, AuthenticationException $exception): \Illuminate\Http\JsonResponse
+    {
+        // V4.0 架構修正：強制所有未認證的請求返回標準的 JSON 401 回應。
+        // 這徹底禁用了 Laravel 預設的、嘗試重定向到 'login' 命名路由的行為，
+        // 使我們的純 API 後端行為完全可預測，並與前端 SPA 的認證流程兼容。
+        return response()->json([
+            'success'    => false,
+            'message'    => $exception->getMessage() ?: 'Unauthenticated.',
+            'error_code' => 'UNAUTHENTICATED',
+        ], 401);
     }
 }

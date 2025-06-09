@@ -13,7 +13,7 @@ namespace App\Enums;
  * - 員工 (STAFF)
  * - 訪客 (GUEST)
  */
-enum Role: string
+enum Role: string implements \JsonSerializable
 {
     /**
      * 超級管理員 - 擁有所有權限
@@ -66,6 +66,16 @@ enum Role: string
      * 檢查是否為管理員等級
      */
     public function isAdmin(): bool
+    {
+        return $this === self::ADMIN;
+    }
+
+    /**
+     * 檢查是否為管理員等級或以上
+     * 
+     * ── 新增：P2.8 Role Enum 強化
+     */
+    public function isAdminOrAbove(): bool
     {
         return $this === self::ADMIN;
     }
@@ -124,5 +134,27 @@ enum Role: string
     public static function isValid(string $role): bool
     {
         return self::fromString($role) !== null;
+    }
+
+    /**
+     * JSON 序列化支援
+     * 
+     * ── 新增：P2.8 Role Enum 強化
+     * 
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'value' => $this->value,
+            'label' => $this->getLabel(),
+            'level' => $this->getLevel(),
+            'permissions' => [
+                'is_admin' => $this->isAdmin(),
+                'is_admin_or_above' => $this->isAdminOrAbove(),
+                'is_manager_or_above' => $this->isManagerOrAbove(),
+                'is_staff_or_above' => $this->isStaffOrAbove(),
+            ],
+        ];
     }
 }

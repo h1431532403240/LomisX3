@@ -67,12 +67,12 @@ class ProductCategoryCollection extends ResourceCollection
 
         return [
             'type' => 'cursor',
-            'per_page' => $paginator->perPage(),
-            'has_more_pages' => $paginator->hasMorePages(),
-            'has_previous_pages' => ! is_null($paginator->previousCursor()),
+            'path' => $paginator->path(),
+            'per_page' => (int) $paginator->perPage(),
             'next_cursor' => $paginator->nextCursor()?->encode(),
             'prev_cursor' => $paginator->previousCursor()?->encode(),
-            'path' => $paginator->path(),
+            'has_more_pages' => $paginator->hasMorePages(),
+            'has_previous_pages' => ! is_null($paginator->previousCursor()),
             'next_page_url' => $paginator->nextPageUrl(),
             'prev_page_url' => $paginator->previousPageUrl(),
         ];

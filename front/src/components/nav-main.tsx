@@ -1,5 +1,6 @@
 import { ChevronRight, type LucideIcon } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
+import { PermissionGuard } from "@/components/common/permission-guard"
 
 import {
   Collapsible,
@@ -30,9 +31,11 @@ export function NavMain({
     url: string
     icon?: LucideIcon
     isActive?: boolean
+    permission?: string
     items?: {
       title: string
       url: string
+      permission?: string
     }[]
   }[]
 }) {
@@ -48,7 +51,7 @@ export function NavMain({
               location.pathname.startsWith(item.url + '/') ||
               item.items?.some(subItem => location.pathname === subItem.url)
 
-            return (
+            const menuItem = (
               <Collapsible
                 key={item.title}
                 asChild
@@ -69,14 +72,27 @@ export function NavMain({
                         <SidebarMenuSub>
                           {item.items.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton 
-                                asChild
-                                isActive={location.pathname === subItem.url}
-                              >
-                                <Link to={subItem.url}>
-                                  <span>{subItem.title}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
+                              {subItem.permission ? (
+                                <PermissionGuard permission={subItem.permission}>
+                                  <SidebarMenuSubButton 
+                                    asChild
+                                    isActive={location.pathname === subItem.url}
+                                  >
+                                    <Link to={subItem.url}>
+                                      <span>{subItem.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </PermissionGuard>
+                              ) : (
+                                <SidebarMenuSubButton 
+                                  asChild
+                                  isActive={location.pathname === subItem.url}
+                                >
+                                  <Link to={subItem.url}>
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              )}
                             </SidebarMenuSubItem>
                           ))}
                         </SidebarMenuSub>
@@ -96,6 +112,15 @@ export function NavMain({
                   )}
                 </SidebarMenuItem>
               </Collapsible>
+            )
+
+            // 🔒 V6.8 權限檢查：為主選單項目添加權限控制
+            return item.permission ? (
+              <PermissionGuard key={`${item.title}-guard`} permission={item.permission}>
+                {menuItem}
+              </PermissionGuard>
+            ) : (
+              menuItem
             )
           })}
         </SidebarMenu>

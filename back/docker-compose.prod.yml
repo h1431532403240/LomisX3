@@ -1,0 +1,376 @@
+version: '3.8'
+
+# LomisX3 商品分類模組 - 生產環境部署配置
+# 包含 Laravel 應用、Redis 集群、MySQL、監控等服務
+
+services:
+  # Laravel 應用服務
+  app:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: production
+    image: lomis-x3/product-category:latest
+    container_name: lomis-x3-app
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis-master
+      - redis-slave-1
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY}
+      - APP_URL=${APP_URL}
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-master
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - LOG_CHANNEL=stack
+      - LOG_LEVEL=info
+      # OpenTelemetry 配置
+      - OTEL_SERVICE_NAME=lomis-x3-product-category
+      - OTEL_SERVICE_VERSION=2.0.0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:14268/api/traces
+      # 監控配置
+      - PROMETHEUS_METRICS_ENABLED=true
+      - PROMETHEUS_METRICS_PORT=9090
+    ports:
+      - "8000:8000"
+      - "9090:9090"  # Prometheus metrics
+    volumes:
+      - ./storage/logs:/var/www/html/storage/logs
+      - app-storage:/var/www/html/storage/app
+    networks:
+      - lomis-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Laravel Octane Worker (高效能)
+  octane:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: octane
+    image: lomis-x3/octane:latest
+    container_name: lomis-x3-octane
+    restart: unless-stopped
+    depends_on:
+      - app
+      - redis-master
+    environment:
+      - APP_ENV=production
+      - OCTANE_SERVER=roadrunner
+      - OCTANE_WORKERS=4
+      - OCTANE_MAX_REQUESTS=1000
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./storage/logs:/var/www/html/storage/logs
+    networks:
+      - lomis-network
+    command: php artisan octane:start --server=roadrunner --host=0.0.0.0 --port=8080
+
+  # MySQL 資料庫服務
+  mysql:
+    image: mysql:8.0
+    container_name: lomis-x3-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_INNODB_BUFFER_POOL_SIZE=1G
+      - MYSQL_INNODB_LOG_FILE_SIZE=256M
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/production.cnf:/etc/mysql/conf.d/production.cnf
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - lomis-network
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis Master (主節點)
+  redis-master:
+    image: redis:7-alpine
+    container_name: lomis-x3-redis-master
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-master-data:/data
+      - ./docker/redis/redis-master.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - lomis-network
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Slave 1 (從節點)
+  redis-slave-1:
+    image: redis:7-alpine
+    container_name: lomis-x3-redis-slave-1
+    restart: unless-stopped
+    depends_on:
+      - redis-master
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-slave1-data:/data
+      - ./docker/redis/redis-slave.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - lomis-network
+    command: redis-server /usr/local/etc/redis/redis.conf --replicaof redis-master 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Slave 2 (從節點)
+  redis-slave-2:
+    image: redis:7-alpine
+    container_name: lomis-x3-redis-slave-2
+    restart: unless-stopped
+    depends_on:
+      - redis-master
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-slave2-data:/data
+      - ./docker/redis/redis-slave.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - lomis-network
+    command: redis-server /usr/local/etc/redis/redis.conf --replicaof redis-master 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: lomis-x3-nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+      - octane
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/production.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/sites-available:/etc/nginx/sites-available
+      - ./docker/ssl:/etc/ssl/certs
+      - ./public:/var/www/html/public:ro
+    networks:
+      - lomis-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus 監控服務
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: lomis-x3-prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/alert.rules:/etc/prometheus/alert.rules
+      - prometheus-data:/prometheus
+    networks:
+      - lomis-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  # Grafana 視覺化服務
+  grafana:
+    image: grafana/grafana:latest
+    container_name: lomis-x3-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - lomis-network
+
+  # Jaeger 分散式追蹤
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: lomis-x3-jaeger
+    restart: unless-stopped
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "14268:14268"  # HTTP collector
+      - "16686:16686"  # Web UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+    volumes:
+      - jaeger-data:/tmp
+    networks:
+      - lomis-network
+
+  # Node Exporter (系統監控)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: lomis-x3-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - lomis-network
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  # Redis Exporter (Redis 監控)
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: lomis-x3-redis-exporter
+    restart: unless-stopped
+    depends_on:
+      - redis-master
+    environment:
+      - REDIS_ADDR=redis://redis-master:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "9121:9121"
+    networks:
+      - lomis-network
+
+  # MySQL Exporter (MySQL 監控)
+  mysql-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: lomis-x3-mysql-exporter
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      - DATA_SOURCE_NAME=${DB_USERNAME}:${DB_PASSWORD}@(mysql:3306)/${DB_DATABASE}
+    ports:
+      - "9104:9104"
+    networks:
+      - lomis-network
+
+  # Laravel Queue Worker
+  queue-worker:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: production
+    image: lomis-x3/product-category:latest
+    container_name: lomis-x3-queue-worker
+    restart: unless-stopped
+    depends_on:
+      - app
+      - redis-master
+    environment:
+      - APP_ENV=production
+      - QUEUE_CONNECTION=redis
+      - REDIS_HOST=redis-master
+    volumes:
+      - ./storage/logs:/var/www/html/storage/logs
+    networks:
+      - lomis-network
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+
+  # Laravel Scheduler
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: production
+    image: lomis-x3/product-category:latest
+    container_name: lomis-x3-scheduler
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      - APP_ENV=production
+    volumes:
+      - ./storage/logs:/var/www/html/storage/logs
+    networks:
+      - lomis-network
+    command: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
+
+# 網路配置
+networks:
+  lomis-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 永久化儲存
+volumes:
+  mysql-data:
+    driver: local
+  redis-master-data:
+    driver: local
+  redis-slave1-data:
+    driver: local
+  redis-slave2-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  jaeger-data:
+    driver: local
+  app-storage:
+    driver: local 

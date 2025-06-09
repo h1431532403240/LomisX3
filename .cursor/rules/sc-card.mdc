@@ -1,0 +1,70 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 🚨 LomisX3 架構約束規則 (Cursor 開發者約束卡)
+
+## ⛔ 絕對禁止建立以下檔案（會破壞共用架構）
+
+/src/services/apiClient.ts
+/src/services/typeSafeApiClient.ts
+/src/services/cacheService.ts
+/src/lib/api.ts
+/src/types/api.ts
+> 理由：這些功能皆已由系統統一實作，不得自行複製或重建。
+---
+## ✅ 指定使用的共用元件（不可自行開發）
+
+- ✅ API 客戶端：  
+  `import { apiClient } from '@/lib/api-client';`
+- ✅ 快取服務基類：  
+  `import { BaseCacheService } from '@/services/BaseCacheService';`
+- ✅ 業務邏輯服務基類：  
+  `import { BaseService } from '@/services/BaseService';`
+- ✅ 型別來源：  
+  `import type { paths } from '@/types/api';`（透過 openapi-typescript 自動生成）
+---
+
+## 🎯 模組開發原則（強制遵守）
+
+1. **檢查既有模組與服務**，嚴禁重複命名或功能。
+2. **擴展既有服務**，一律使用繼承（extends）或組合（composition）模式。
+3. **禁止非模組化邏輯散落於各處**，一切邏輯須聚焦於特定模組。
+
+---
+
+## 🧠 新檔案建立前必答三問（否則停止開發）
+
+1. **此功能是否已有實作？是否與其他模組重複？**
+2. **是否能擴展 `BaseService` / `BaseCacheService` 來實現？**
+3. **你建立的檔案是否在「禁止清單」中？**
+
+> ❗ 若以上任一問題未確認，必須停止提交並聯繫架構負責人。
+
+---
+
+## 📌 補充：遇到新需求該怎麼辦？
+
+- 先確認「是否為所有模組都可共用」的邏輯？若是 → 考慮加入共用層。
+- 若是個別模組邏輯 → 請命名為 `use{Module}Xxx` 或 `{Module}Service`，並置於模組目錄下。
+- 所有新 hook/service 建立後，**必須更新該模組 README 註記其用途與來源**。
+
+---
+
+### ✅ 建議加入 `cursor-rules.json` 中的 key word tag：
+```json
+{
+  "rules": {
+    "always": true,
+    "prompt": "建立任何前端服務前，必須使用 apiClient/BaseService/BaseCacheService，禁止自行實作 apiClient、cacheService 或重複檔案。",
+    "blockPatterns": [
+      "src/lib/api.ts",
+      "src/lib/apiClient.ts",
+      "src/services/apiClient.ts",
+      "src/services/cacheService.ts",
+      "src/types/api.ts"
+    ]
+  }
+
+}

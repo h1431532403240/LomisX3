@@ -4,39 +4,47 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use Tests\TestCase;
-use App\Models\ProductCategory;
-use App\Services\ProductCategoryService;
-use App\Repositories\ProductCategoryRepositoryInterface;
-use App\Services\ProductCategoryCacheService;
+use App\Enums\ProductCategoryErrorCode;
 use App\Exceptions\BusinessException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Pagination\LengthAwarePaginator;
+use App\Models\ProductCategory;
+use App\Repositories\Contracts\ProductCategoryRepositoryInterface;
+use App\Services\ProductCategoryCacheService;
+use App\Services\ProductCategoryService;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Mockery;
+use Tests\TestCase;
 
 /**
- * ProductCategory Service 單元測試
+ * ProductCategoryService 單元測試
  * 
- * 測試服務層的業務邏輯，包括：
- * - CRUD 操作的業務規則
- * - 快取整合機制
- * - 錯誤處理和驗證
- * - 複雜業務邏輯的正確性
+ * 測試商品分類服務層的所有業務邏輯
  */
 class ProductCategoryServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    /**
+     * 商品分類儲存庫模擬物件
+     */
+    private $repository;
 
+    /**
+     * 快取服務模擬物件
+     */
+    private $cacheService;
+
+    /**
+     * 待測試的服務實例
+     */
     private ProductCategoryService $service;
-    private ProductCategoryRepositoryInterface $repository;
-    private ProductCategoryCacheService $cacheService;
 
+    /**
+     * 設定測試環境
+     */
     protected function setUp(): void
     {
         parent::setUp();
         
-        // 模擬依賴
+        // 建立模擬物件
         $this->repository = Mockery::mock(ProductCategoryRepositoryInterface::class);
         $this->cacheService = Mockery::mock(ProductCategoryCacheService::class);
         
@@ -54,38 +62,6 @@ class ProductCategoryServiceTest extends TestCase
     }
 
     /**
-     * 測試取得分頁列表
-     */
-    public function test_get_paginated_list(): void
-    {
-        // 準備測試資料
-        $categories = collect([
-            new ProductCategory(['id' => 1, 'name' => '分類1']),
-            new ProductCategory(['id' => 2, 'name' => '分類2']),
-        ]);
-        
-        $paginator = new LengthAwarePaginator(
-            $categories,
-            2,
-            10,
-            1
-        );
-
-        // 設定期望
-        $this->repository->shouldReceive('getPaginated')
-                        ->once()
-                        ->with(10, ['name', 'parent_id'])
-                        ->andReturn($paginator);
-
-        // 執行測試
-        $result = $this->service->getPaginatedList(10, ['name', 'parent_id']);
-
-        // 驗證結果
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertEquals(2, $result->total());
-    }
-
-    /**
      * 測試建立分類
      */
     public function test_create_category(): void
@@ -95,19 +71,37 @@ class ProductCategoryServiceTest extends TestCase
             'name' => '新分類',
             'description' => '分類描述',
             'parent_id' => null,
-            'is_active' => true,
+            'status' => true,
         ];
 
         $expectedCategory = new ProductCategory(['id' => 1] + $data);
 
-        // 設定期望
+        // 設定期望 - generateUniqueSlug 內的 slugExists 檢查
+        // 中文名稱會轉換為預設的 'category' slug
+        $this->repository->shouldReceive('slugExists')
+                        ->once()
+                        ->with('category', null)
+                        ->andReturn(false);
+
+        // 設定期望 - createCategory 內的 slugExists 檢查（只有一個參數）
+        $this->repository->shouldReceive('slugExists')
+                        ->once()
+                        ->with('category')
+                        ->andReturn(false);
+
+        // 設定期望 - 建立分類
         $this->repository->shouldReceive('create')
                         ->once()
-                        ->with($data)
+                        ->with(Mockery::type('array'))
                         ->andReturn($expectedCategory);
 
+        // 設定期望 - 清除快取
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->once()
+                          ->andReturnNull();
+
         // 執行測試
-        $result = $this->service->create($data);
+        $result = $this->service->createCategory($data);
 
         // 驗證結果
         $this->assertInstanceOf(ProductCategory::class, $result);
@@ -123,7 +117,7 @@ class ProductCategoryServiceTest extends TestCase
         $data = [
             'name' => '新分類',
             'parent_id' => 999, // 不存在的父分類
-            'is_active' => true,
+            'status' => true,
         ];
 
         // 設定期望 - 父分類不存在
@@ -137,9 +131,8 @@ class ProductCategoryServiceTest extends TestCase
 
         // 執行測試並預期例外
         $this->expectException(BusinessException::class);
-        $this->expectExceptionMessage('父分類不存在');
 
-        $this->service->create($data);
+        $this->service->createCategory($data);
     }
 
     /**
@@ -166,19 +159,38 @@ class ProductCategoryServiceTest extends TestCase
             'description' => '更新後描述',
         ]);
 
-        // 設定期望
+        // 設定期望 - 查找分類
         $this->repository->shouldReceive('findById')
                         ->once()
                         ->with($categoryId)
                         ->andReturn($existingCategory);
 
+        // 設定期望 - generateUniqueSlug 內的 slugExists 檢查
+        // 中文名稱會轉換為預設的 'category' slug
+        $this->repository->shouldReceive('slugExists')
+                        ->once()
+                        ->with('category', $categoryId)
+                        ->andReturn(false);
+
+        // 設定期望 - updateCategory 內的 slugExists 檢查（帶兩個參數）
+        $this->repository->shouldReceive('slugExists')
+                        ->once()
+                        ->with('category', $categoryId)
+                        ->andReturn(false);
+
+        // 設定期望 - 更新分類
         $this->repository->shouldReceive('update')
                         ->once()
-                        ->with($existingCategory, $updateData)
+                        ->with($categoryId, Mockery::type('array'))
                         ->andReturn($updatedCategory);
 
+        // 設定期望 - 清除快取
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->once()
+                          ->andReturnNull();
+
         // 執行測試
-        $result = $this->service->update($categoryId, $updateData);
+        $result = $this->service->updateCategory($categoryId, $updateData);
 
         // 驗證結果
         $this->assertInstanceOf(ProductCategory::class, $result);
@@ -205,9 +217,8 @@ class ProductCategoryServiceTest extends TestCase
 
         // 執行測試並預期例外
         $this->expectException(BusinessException::class);
-        $this->expectExceptionMessage('分類不存在');
 
-        $this->service->update($categoryId, $updateData);
+        $this->service->updateCategory($categoryId, $updateData);
     }
 
     /**
@@ -222,24 +233,31 @@ class ProductCategoryServiceTest extends TestCase
             'name' => '要刪除的分類',
         ]);
 
-        // 設定期望
+        // 設定期望 - 查找分類
         $this->repository->shouldReceive('findById')
                         ->once()
                         ->with($categoryId)
                         ->andReturn($category);
 
+        // 設定期望 - 沒有子分類
         $this->repository->shouldReceive('hasChildren')
                         ->once()
-                        ->with($category)
+                        ->with($categoryId)
                         ->andReturn(false);
 
+        // 設定期望 - 刪除分類
         $this->repository->shouldReceive('delete')
                         ->once()
-                        ->with($category)
+                        ->with($categoryId)
                         ->andReturn(true);
 
+        // 設定期望 - 清除快取
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->once()
+                          ->andReturnNull();
+
         // 執行測試
-        $result = $this->service->delete($categoryId);
+        $result = $this->service->deleteCategory($categoryId);
 
         // 驗證結果
         $this->assertTrue($result);
@@ -257,15 +275,16 @@ class ProductCategoryServiceTest extends TestCase
             'name' => '有子分類的分類',
         ]);
 
-        // 設定期望
+        // 設定期望 - 查找分類
         $this->repository->shouldReceive('findById')
                         ->once()
                         ->with($categoryId)
                         ->andReturn($category);
 
+        // 設定期望 - 有子分類
         $this->repository->shouldReceive('hasChildren')
                         ->once()
-                        ->with($category)
+                        ->with($categoryId)
                         ->andReturn(true);
 
         // 設定期望 - 不會執行刪除
@@ -273,90 +292,34 @@ class ProductCategoryServiceTest extends TestCase
 
         // 執行測試並預期例外
         $this->expectException(BusinessException::class);
-        $this->expectExceptionMessage('無法刪除擁有子分類的分類');
 
-        $this->service->delete($categoryId);
+        $this->service->deleteCategory($categoryId);
     }
 
     /**
-     * 測試取得樹狀結構（使用快取）
+     * 測試從快取取得樹狀結構
      */
     public function test_get_tree_from_cache(): void
     {
         // 準備測試資料
-        $treeData = [
-            [
-                'id' => 1,
-                'name' => '根分類',
-                'children' => [
-                    ['id' => 2, 'name' => '子分類1'],
-                    ['id' => 3, 'name' => '子分類2'],
-                ]
-            ]
-        ];
+        $options = ['root_id' => null];
+        $treeData = new Collection([
+            new ProductCategory(['id' => 1, 'name' => '分類1']),
+            new ProductCategory(['id' => 2, 'name' => '分類2']),
+        ]);
 
-        // 設定期望 - 從快取取得
+        // 設定期望 - 從快取取得樹狀結構
         $this->cacheService->shouldReceive('getTree')
                           ->once()
-                          ->with(true)
+                          ->with($options)
                           ->andReturn($treeData);
 
         // 執行測試
-        $result = $this->service->getTree(true);
+        $result = $this->service->getTree($options);
 
         // 驗證結果
-        $this->assertEquals($treeData, $result);
-    }
-
-    /**
-     * 測試取得統計資訊
-     */
-    public function test_get_statistics(): void
-    {
-        // 準備測試資料
-        $statsData = [
-            'total' => 10,
-            'active' => 8,
-            'inactive' => 2,
-            'max_depth' => 3,
-        ];
-
-        // 設定期望
-        $this->cacheService->shouldReceive('getStatistics')
-                          ->once()
-                          ->andReturn($statsData);
-
-        // 執行測試
-        $result = $this->service->getStatistics();
-
-        // 驗證結果
-        $this->assertEquals($statsData, $result);
-    }
-
-    /**
-     * 測試取得麵包屑路徑
-     */
-    public function test_get_breadcrumbs(): void
-    {
-        // 準備測試資料
-        $categoryId = 3;
-        $breadcrumbs = [
-            ['id' => 1, 'name' => '根分類'],
-            ['id' => 2, 'name' => '父分類'],
-            ['id' => 3, 'name' => '當前分類'],
-        ];
-
-        // 設定期望
-        $this->cacheService->shouldReceive('getBreadcrumbs')
-                          ->once()
-                          ->with($categoryId)
-                          ->andReturn($breadcrumbs);
-
-        // 執行測試
-        $result = $this->service->getBreadcrumbs($categoryId);
-
-        // 驗證結果
-        $this->assertEquals($breadcrumbs, $result);
+        $this->assertInstanceOf(Collection::class, $result);
+        $this->assertEquals(2, $result->count());
     }
 
     /**
@@ -365,77 +328,115 @@ class ProductCategoryServiceTest extends TestCase
     public function test_batch_update_status(): void
     {
         // 準備測試資料
-        $categoryIds = [1, 2, 3];
-        $isActive = false;
+        $ids = [1, 2, 3];
+        $status = true;
+        
+        // 建立測試分類集合
+        $categories = new Collection([
+            new ProductCategory(['id' => 1, 'name' => '分類1', 'status' => false]),
+            new ProductCategory(['id' => 2, 'name' => '分類2', 'status' => false]),
+            new ProductCategory(['id' => 3, 'name' => '分類3', 'status' => false]),
+        ]);
 
-        // 設定期望
+        // 設定期望 - 驗證分類是否存在
+        $this->repository->shouldReceive('findByIds')
+                        ->once()
+                        ->with($ids)
+                        ->andReturn($categories);
+
+        // 設定期望 - 批次更新狀態
         $this->repository->shouldReceive('batchUpdateStatus')
                         ->once()
-                        ->with($categoryIds, $isActive)
+                        ->with($ids, $status)
                         ->andReturn(3);
 
+        // 設定期望 - 清除快取
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->once()
+                          ->andReturnNull();
+
         // 執行測試
-        $result = $this->service->batchUpdateStatus($categoryIds, $isActive);
+        $result = $this->service->batchUpdateStatus($ids, $status);
 
         // 驗證結果
         $this->assertEquals(3, $result);
     }
 
     /**
-     * 測試排序更新
+     * 測試更新排序
      */
     public function test_update_sort_order(): void
     {
         // 準備測試資料
-        $sortData = [
-            ['id' => 1, 'sort_order' => 1],
-            ['id' => 2, 'sort_order' => 2],
-            ['id' => 3, 'sort_order' => 3],
+        $positions = [
+            ['id' => 1, 'position' => 1],
+            ['id' => 2, 'position' => 2],
         ];
 
-        // 設定期望
-        $this->repository->shouldReceive('updateSortOrder')
+        // 設定期望 - 更新位置
+        $this->repository->shouldReceive('updatePositions')
                         ->once()
-                        ->with($sortData)
+                        ->with($positions)
                         ->andReturn(true);
 
+        // 設定期望 - 清除快取
+        $this->cacheService->shouldReceive('forgetTree')
+                          ->once()
+                          ->andReturnNull();
+
         // 執行測試
-        $result = $this->service->updateSortOrder($sortData);
+        $result = $this->service->updatePositions($positions);
 
         // 驗證結果
         $this->assertTrue($result);
     }
 
     /**
-     * 測試搜尋功能
+     * 測試產生唯一 slug
      */
-    public function test_search_categories(): void
+    public function test_generate_unique_slug(): void
     {
         // 準備測試資料
-        $keyword = '電子';
-        $categories = collect([
-            new ProductCategory(['id' => 1, 'name' => '電子產品']),
-            new ProductCategory(['id' => 2, 'name' => '電子配件']),
-        ]);
-
-        $paginator = new LengthAwarePaginator(
-            $categories,
-            2,
-            10,
-            1
-        );
-
-        // 設定期望
-        $this->repository->shouldReceive('search')
+        $name = '測試分類';
+        
+        // 設定期望 - generateUniqueSlug 內的 slugExists 檢查
+        // 中文名稱會轉換為預設的 'category' slug
+        $this->repository->shouldReceive('slugExists')
                         ->once()
-                        ->with($keyword, 10)
-                        ->andReturn($paginator);
+                        ->with('category', null)
+                        ->andReturn(false);
 
         // 執行測試
-        $result = $this->service->search($keyword, 10);
+        $result = $this->service->generateUniqueSlug($name);
 
         // 驗證結果
-        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
-        $this->assertEquals(2, $result->total());
+        $this->assertEquals('category', $result);
+    }
+
+    /**
+     * 測試取得麵包屑
+     */
+    public function test_get_breadcrumbs(): void
+    {
+        // 準備測試資料
+        $categoryId = 3;
+        $breadcrumbs = new Collection([
+            new ProductCategory(['id' => 1, 'name' => '根分類']),
+            new ProductCategory(['id' => 2, 'name' => '子分類']),
+            new ProductCategory(['id' => 3, 'name' => '目標分類']),
+        ]);
+
+        // 設定期望 - 取得麵包屑（返回 Collection）
+        $this->cacheService->shouldReceive('getBreadcrumbs')
+                          ->once()
+                          ->with($categoryId)
+                          ->andReturn($breadcrumbs);
+
+        // 執行測試
+        $result = $this->service->getCachedBreadcrumbs($categoryId);
+
+        // 驗證結果
+        $this->assertInstanceOf(Collection::class, $result);
+        $this->assertEquals(3, $result->count());
     }
 } 

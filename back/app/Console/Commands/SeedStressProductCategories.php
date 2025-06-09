@@ -36,19 +36,14 @@ class SeedStressProductCategories extends Command
                             {--siblings=5 : 每個父分類的平均子分類數量}
                             {--chunk=2000 : 批次插入的大小}
                             {--distribution=balanced : 分佈策略 (balanced|random|linear)}
-                            {--dry-run : 乾跑模式，僅顯示將要執行的操作並生成預覽}
+                            {--dry-run : 乾跑模式，僅顯示將要執行的操作並生成 JSON 結構預覽}
                             {--clean : 執行前清空現有分類資料}
                             {--preview-only : 僅生成預覽圖表，不執行實際種子}';
 
     /**
      * 指令描述
      */
-    protected $description = '使用 BFS 演算法生成平衡樹狀分類結構，支援多種分佈策略和 Mermaid 預覽';
-
-    /**
-     * BFS 佇列用於階層生成
-     */
-    private Collection $bfsQueue;
+    protected $description = '使用 BFS 演算法生成平衡樹狀分類結構，支援多種分佈策略和 JSON 結構預覽';
 
     /**
      * 生成的分類資料
@@ -123,9 +118,6 @@ class SeedStressProductCategories extends Command
         $this->isDryRun = (bool) $this->option('dry-run');
         $this->shouldClean = (bool) $this->option('clean');
         $this->previewOnly = (bool) $this->option('preview-only');
-
-        // 初始化 BFS 佇列
-        $this->bfsQueue = collect();
 
         // ── 新增: 參數驗證強化
         if ($this->totalCount <= 0) {
@@ -225,49 +217,137 @@ class SeedStressProductCategories extends Command
     }
 
     /**
-     * 使用 BFS 演算法生成分類結構
+     * 使用記憶體優化的 BFS 演算法生成分類結構
+     * 
+     * 使用 yield generator 和分層 chunk 策略，大幅降低記憶體峰值
      */
     private function generateCategoriesWithBFS(): void
     {
-        $this->info("🔄 使用 {$this->distribution} 分佈策略生成分類結構...");
+        $this->info("🔄 使用記憶體優化的 {$this->distribution} 分佈策略生成分類結構...");
 
-        $currentId = 1;
         $generated = 0;
+        $memoryStart = memory_get_usage(true);
 
-        // ── 修改: 根據分佈策略選擇生成方法
+        // 根據分佈策略選擇生成方法（使用 generator）
         switch ($this->distribution) {
             case 'balanced':
-                $generated = $this->generateBalancedDistribution($currentId, $generated);
+                $generator = $this->generateBalancedDistributionWithGenerator();
                 break;
             case 'random':
-                $generated = $this->generateRandomDistribution($currentId, $generated);
+                $generator = $this->generateRandomDistributionWithGenerator();
                 break;
             case 'linear':
-                $generated = $this->generateLinearDistribution($currentId, $generated);
+                $generator = $this->generateLinearDistributionWithGenerator();
                 break;
+            default:
+                $generator = $this->generateBalancedDistributionWithGenerator();
+        }
+
+        // 分批處理生成的分類，控制記憶體使用
+        $chunkSize = config('product_category.seeder_chunk_size', 1000);
+        $currentChunk = [];
+        
+        foreach ($generator as $category) {
+            $currentChunk[] = $category;
+            $generated++;
+            
+            // 達到 chunk 大小或生成完成時處理
+            if (count($currentChunk) >= $chunkSize || $generated >= $this->totalCount) {
+                $this->processChunk($currentChunk, $generated);
+                $currentChunk = [];
+                
+                // 記憶體監控和垃圾回收
+                $this->monitorMemoryUsage($generated, $memoryStart);
+                
+                if ($generated >= $this->totalCount) {
+                    break;
+                }
+            }
+        }
+        
+        // 處理剩餘的分類
+        if (!empty($currentChunk)) {
+            $this->processChunk($currentChunk, $generated);
         }
 
         $this->stats['generated'] = $generated;
         $this->info("✅ {$this->distribution} 分佈生成完成，共生成 {$generated} 個分類");
         
-        // ── 新增: 驗證無孤兒節點
+        // 驗證無孤兒節點
         $this->validateNoOrphanNodes();
     }
 
     /**
-     * ── 新增: 平衡分佈生成（原 BFS 邏輯）
+     * 處理分類 chunk
+     * 
+     * @param array<mixed> $chunk 當前批次的分類
+     * @param int $totalGenerated 總計生成數量
      */
-    private function generateBalancedDistribution(int $currentId, int $generated): int
+    private function processChunk(array $chunk, int $totalGenerated): void
     {
+        // 將當前 chunk 加入到生成的分類中
+        $this->generatedCategories = array_merge($this->generatedCategories, $chunk);
+        
+        // 顯示進度
+        $progress = round(($totalGenerated / $this->totalCount) * 100, 1);
+        $memoryMB = round(memory_get_usage(true) / 1024 / 1024, 1);
+        
+        $this->info("📦 處理批次: {$totalGenerated}/{$this->totalCount} ({$progress}%) | 記憶體: {$memoryMB}MB");
+    }
+
+    /**
+     * 監控記憶體使用量並在必要時執行垃圾回收
+     * 
+     * @param int $generated 已生成數量
+     * @param int $memoryStart 開始時的記憶體使用量
+     */
+    private function monitorMemoryUsage(int $generated, int $memoryStart): void
+    {
+        $currentMemory = memory_get_usage(true);
+        $memoryIncrease = $currentMemory - $memoryStart;
+        $memoryLimitMB = 1024; // 1GB 警告閾值
+        
+        if ($currentMemory > $memoryLimitMB * 1024 * 1024) {
+            $this->warn("⚠️ 記憶體使用量超過 {$memoryLimitMB}MB，執行垃圾回收");
+            gc_collect_cycles();
+            
+            $afterGC = memory_get_usage(true);
+            $saved = round(($currentMemory - $afterGC) / 1024 / 1024, 1);
+            $this->info("♻️ 垃圾回收完成，釋放 {$saved}MB 記憶體");
+        }
+        
+        // 每1000個分類檢查一次記憶體效率
+        if ($generated % 1000 === 0) {
+            $avgMemoryPerCategory = $memoryIncrease / $generated;
+            $estimatedTotal = $avgMemoryPerCategory * $this->totalCount;
+            $estimatedTotalMB = round($estimatedTotal / 1024 / 1024, 1);
+            
+            if ($estimatedTotalMB > 2048) { // 超過2GB估計時警告
+                $this->warn("⚠️ 估計總記憶體需求: {$estimatedTotalMB}MB，建議降低 totalCount 或啟用更積極的分片");
+            }
+        }
+    }
+
+    /**
+     * 記憶體優化的平衡分佈生成器
+     */
+    private function generateBalancedDistributionWithGenerator(): \Generator
+    {
+        $currentId = 1;
+        $generated = 0;
+        
         // 初始化：計算根分類數量
         $rootCount = $this->calculateRootCount();
+        $bfsQueue = collect(); // 使用 Collection 代替原本的 bfsQueue
         
-        // 生成根分類並加入 BFS 佇列
+        // 生成根分類
         for ($i = 0; $i < $rootCount && $generated < $this->totalCount; $i++) {
             $category = $this->createCategory($currentId, null, 0, $i);
-            $this->generatedCategories[] = $category;
-            $this->bfsQueue->push([
-                'category' => $category,
+            
+            yield $category;
+            
+            $bfsQueue->push([
+                'id' => $currentId,
                 'depth' => 0,
                 'children_generated' => 0,
                 'max_children' => $this->avgSiblings,
@@ -278,35 +358,32 @@ class SeedStressProductCategories extends Command
             $this->incrementLevelStats(0);
         }
 
-        $this->info("✅ 已生成 {$rootCount} 個根分類");
-
-        // BFS 主循環：逐層生成子分類
+        // BFS 主循環：使用 generator 逐個產生
         $currentDepth = 0;
-        while ($this->bfsQueue->isNotEmpty() && $generated < $this->totalCount && $currentDepth < $this->maxDepth) {
-            $currentLevelSize = $this->bfsQueue->count();
-            $this->info("🔸 正在處理深度 {$currentDepth}，佇列中有 {$currentLevelSize} 個節點");
-
-            // 處理當前層級的所有節點
-            for ($i = 0; $i < $currentLevelSize && $generated < $this->totalCount; $i++) {
-                $node = $this->bfsQueue->shift();
+        while ($bfsQueue->isNotEmpty() && $generated < $this->totalCount && $currentDepth < $this->maxDepth) {
+            $currentLevelSize = $bfsQueue->count();
+            $levelNodes = $bfsQueue->splice(0, $currentLevelSize); // 取出當前層級的所有節點
+            
+            foreach ($levelNodes as $node) {
+                if ($generated >= $this->totalCount) break;
                 
                 // 為當前節點生成子分類
-                $childrenToGenerate = $this->calculateChildrenCount($node, $generated);
+                $childrenToGenerate = $this->calculateChildrenCountForNode($node, $generated);
                 
                 for ($j = 0; $j < $childrenToGenerate && $generated < $this->totalCount; $j++) {
                     $childCategory = $this->createCategory(
                         $currentId,
-                        $node['category']['id'],
+                        $node['id'],
                         $node['depth'] + 1,
                         $j
                     );
                     
-                    $this->generatedCategories[] = $childCategory;
+                    yield $childCategory;
                     
                     // 如果未達最大深度，將子分類加入佇列
                     if ($node['depth'] + 1 < $this->maxDepth - 1) {
-                        $this->bfsQueue->push([
-                            'category' => $childCategory,
+                        $bfsQueue->push([
+                            'id' => $currentId,
                             'depth' => $node['depth'] + 1,
                             'children_generated' => 0,
                             'max_children' => $this->avgSiblings,
@@ -320,24 +397,56 @@ class SeedStressProductCategories extends Command
             }
 
             $currentDepth++;
+            
+            // 每層結束後檢查記憶體並清理
+            if ($currentDepth % 2 === 0) { // 每2層清理一次
+                gc_collect_cycles();
+            }
         }
+    }
 
-        return $generated;
+    /**
+     * 計算節點的子分類數量（記憶體優化版本）
+     * 
+     * @param array{id: int, depth: int, children_generated: int, max_children: int} $node 節點資訊
+     * @param int $currentGenerated 當前已生成數量
+     * @return int
+     */
+    private function calculateChildrenCountForNode(array $node, int $currentGenerated): int
+    {
+        $remaining = $this->totalCount - $currentGenerated;
+        
+        if ($remaining <= 0) {
+            return 0;
+        }
+        
+        // 基於深度和剩餘數量動態調整子分類數量
+        $baseChildren = $this->avgSiblings;
+        $depthFactor = max(0.5, 1 - ($node['depth'] * 0.2)); // 深度越深，子分類越少
+        $remainingFactor = min(1, $remaining / 100); // 剩餘數量較少時降低子分類數量
+        
+        $adjustedChildren = intval($baseChildren * $depthFactor * $remainingFactor);
+        
+        return max(1, min($adjustedChildren, $remaining, $this->avgSiblings * 2));
     }
 
     /**
      * ── 新增: 隨機分佈生成
      */
-    private function generateRandomDistribution(int $currentId, int $generated): int
+    private function generateRandomDistributionWithGenerator(): \Generator
     {
-        // 生成根分類
-        $rootCount = max(1, min(10, intval($this->totalCount * 0.15))); // 15% 作為根分類
+        $currentId = 1;
+        $generated = 0;
+        
+        // 生成根分類（限制數量以控制記憶體）
+        $rootCount = max(1, min(10, intval($this->totalCount * 0.15)));
         $availableParents = [];
 
         // 建立根分類
         for ($i = 0; $i < $rootCount && $generated < $this->totalCount; $i++) {
             $category = $this->createCategory($currentId, null, 0, $i);
-            $this->generatedCategories[] = $category;
+            yield $category;
+            
             $availableParents[] = ['id' => $currentId, 'depth' => 0];
             
             $currentId++;
@@ -345,6 +454,9 @@ class SeedStressProductCategories extends Command
             $this->incrementLevelStats(0);
         }
 
+        // 限制 availableParents 最大數量以控制記憶體
+        $maxParents = 500;
+        
         // 隨機生成剩餘分類
         while ($generated < $this->totalCount && !empty($availableParents)) {
             // 隨機選擇父分類
@@ -370,10 +482,12 @@ class SeedStressProductCategories extends Command
                     $j
                 );
 
-                $this->generatedCategories[] = $childCategory;
+                yield $childCategory;
                 
-                // 有 50% 機率成為潛在父分類
-                if (rand(0, 1) && $parent['depth'] + 1 < $this->maxDepth - 1) {
+                // 控制 availableParents 數量
+                if (count($availableParents) < $maxParents && 
+                    rand(0, 1) && 
+                    $parent['depth'] + 1 < $this->maxDepth - 1) {
                     $availableParents[] = ['id' => $currentId, 'depth' => $parent['depth'] + 1];
                 }
 
@@ -382,89 +496,55 @@ class SeedStressProductCategories extends Command
                 $this->incrementLevelStats($parent['depth'] + 1);
             }
 
-            // 偶爾移除已用過的父分類以避免過度集中
-            if (rand(0, 100) < 30) { // 30% 機率移除
+            // 定期清理 availableParents 以控制記憶體
+            if (count($availableParents) > $maxParents || rand(0, 100) < 30) {
                 unset($availableParents[$parentIndex]);
                 $availableParents = array_values($availableParents);
             }
         }
-
-        return $generated;
     }
 
     /**
      * ── 新增: 線性遞減分佈生成
      */
-    private function generateLinearDistribution(int $currentId, int $generated): int
+    private function generateLinearDistributionWithGenerator(): \Generator
     {
-        $depthFactors = [];
+        $currentId = 1;
+        $generated = 0;
         
-        // 計算每層的權重（線性遞減）
-        for ($d = 0; $d < $this->maxDepth; $d++) {
-            $depthFactors[$d] = $this->maxDepth - $d; // 權重從最大深度遞減到1
+        // 簡化的線性遞減實作，減少記憶體使用
+        $rootCount = $this->calculateRootCount();
+        
+        // 計算每層的分類數量（線性遞減）
+        $layerCounts = [];
+        $totalForLayers = $this->totalCount - $rootCount;
+        
+        for ($depth = 1; $depth < $this->maxDepth && $totalForLayers > 0; $depth++) {
+            $layerCount = max(1, intval($totalForLayers / ($this->maxDepth - $depth + 1)));
+            $layerCounts[$depth] = min($layerCount, $totalForLayers);
+            $totalForLayers -= $layerCounts[$depth];
         }
         
-        $totalWeight = array_sum($depthFactors);
+        // 生成根分類
+        for ($i = 0; $i < $rootCount && $generated < $this->totalCount; $i++) {
+            yield $this->createCategory($currentId, null, 0, $i);
+            $currentId++;
+            $generated++;
+            $this->incrementLevelStats(0);
+        }
         
-        // 根據權重分配每層的分類數量
-        $targetPerDepth = [];
-        $allocated = 0;
-        
-        for ($d = 0; $d < $this->maxDepth; $d++) {
-            if ($d === $this->maxDepth - 1) {
-                // 最後一層分配剩餘的
-                $targetPerDepth[$d] = $this->totalCount - $allocated;
-            } else {
-                $targetPerDepth[$d] = intval(($depthFactors[$d] / $totalWeight) * $this->totalCount);
-                $allocated += $targetPerDepth[$d];
+        // 為每層生成分類
+        foreach ($layerCounts as $depth => $count) {
+            for ($i = 0; $i < $count && $generated < $this->totalCount; $i++) {
+                // 隨機選擇父分類（從可用的父節點中）
+                $parentId = rand(1, $currentId - 1);
+                
+                yield $this->createCategory($currentId, $parentId, $depth, $i);
+                $currentId++;
+                $generated++;
+                $this->incrementLevelStats($depth);
             }
         }
-
-        // 逐層生成
-        $parentNodes = [];
-        
-        for ($depth = 0; $depth < $this->maxDepth && $generated < $this->totalCount; $depth++) {
-            $targetCount = min($targetPerDepth[$depth], $this->totalCount - $generated);
-            
-            if ($depth === 0) {
-                // 根分類
-                for ($i = 0; $i < $targetCount; $i++) {
-                    $category = $this->createCategory($currentId, null, 0, $i);
-                    $this->generatedCategories[] = $category;
-                    $parentNodes[] = ['id' => $currentId, 'depth' => 0];
-                    
-                    $currentId++;
-                    $generated++;
-                    $this->incrementLevelStats(0);
-                }
-            } else {
-                // 子分類
-                $availableParents = array_filter($parentNodes, fn($p) => $p['depth'] === $depth - 1);
-                
-                if (empty($availableParents)) {
-                    break; // 沒有可用的父分類
-                }
-                
-                $childrenPerParent = intval($targetCount / count($availableParents));
-                $remainder = $targetCount % count($availableParents);
-                
-                foreach ($availableParents as $index => $parent) {
-                    $childrenCount = $childrenPerParent + ($index < $remainder ? 1 : 0);
-                    
-                    for ($j = 0; $j < $childrenCount && $generated < $this->totalCount; $j++) {
-                        $category = $this->createCategory($currentId, $parent['id'], $depth, $j);
-                        $this->generatedCategories[] = $category;
-                        $parentNodes[] = ['id' => $currentId, 'depth' => $depth];
-                        
-                        $currentId++;
-                        $generated++;
-                        $this->incrementLevelStats($depth);
-                    }
-                }
-            }
-        }
-
-        return $generated;
     }
 
     /**
@@ -516,31 +596,6 @@ class SeedStressProductCategories extends Command
         
         // 限制根分類數量在合理範圍內
         return min($rootCount, max(1, (int) ($this->totalCount * 0.2)));
-    }
-
-    /**
-     * 計算節點應生成的子分類數量
-     */
-    private function calculateChildrenCount(array $node, int $currentGenerated): int
-    {
-        $remaining = $this->totalCount - $currentGenerated;
-        
-        if ($remaining <= 0) {
-            return 0;
-        }
-        
-        // 基於剩餘數量和當前深度調整子分類數量
-        $baseChildren = $this->avgSiblings;
-        
-        // 如果接近目標數量，減少分支
-        if ($remaining < $baseChildren * 2) {
-            return min($baseChildren, $remaining);
-        }
-        
-        // 根據深度調整：較深層級的分支稍微減少
-        $depthFactor = max(0.5, 1 - ($node['depth'] * 0.1));
-        
-        return min($baseChildren, max(1, (int) ($baseChildren * $depthFactor)));
     }
 
     /**

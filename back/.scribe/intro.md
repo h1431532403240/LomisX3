@@ -3,7 +3,7 @@
 商品分類模組的完整 RESTful API 文檔，包含分頁、篩選、樹狀結構等功能
 
 <aside>
-    <strong>Base URL</strong>: <code>http://localhost</code>
+    <strong>Base URL</strong>: <code>http://localhost:8000</code>
 </aside>
 
     This documentation aims to provide all the information you need to work with our API.

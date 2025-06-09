@@ -9,6 +9,8 @@ use App\Repositories\Contracts\ProductCategoryRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Activity;
 
 /**
  * 商品分類服務層
@@ -46,7 +48,7 @@ class ProductCategoryService
 
         // 生成唯一 slug（如果未提供）
         if (empty($data['slug'])) {
-            $data['slug'] = $this->generateUniqueSlug($data['name']);
+            $data['slug'] = $this->generateSlugForCreate($data);
         }
 
         // 檢查 slug 唯一性
@@ -102,7 +104,7 @@ class ProductCategoryService
 
         // 生成唯一 slug（如果名稱有變更且未提供 slug）
         if (isset($data['name']) && ! isset($data['slug'])) {
-            $data['slug'] = $this->generateUniqueSlug($data['name'], $id);
+            $data['slug'] = $this->generateSlugForUpdate($data, $id);
         }
 
         // 檢查 slug 唯一性
@@ -198,26 +200,99 @@ class ProductCategoryService
      * @param bool  $status 狀態值
      *
      * @throws BusinessException
-     *
-     * @return int 影響的筆數
      */
     public function batchUpdateStatus(array $ids, bool $status): int
     {
         if (empty($ids)) {
+            return 0;
+        }
+
+        // 驗證所有分類是否存在
+        $categories = $this->repository->findByIds($ids);
+        if ($categories->count() !== count($ids)) {
             throw BusinessException::fromErrorCode(
-                ProductCategoryErrorCode::BATCH_OPERATION_FAILED,
-                '未提供有效的分類 ID'
+                ProductCategoryErrorCode::CATEGORY_NOT_FOUND,
+                '部分分類不存在'
             );
         }
 
         try {
-            $affectedRows = $this->repository->batchUpdateStatus($ids, $status);
-            if ($affectedRows > 0) {
-                $this->cacheService->forgetTree();
-            }
+            return DB::transaction(function () use ($ids, $status, $categories) {
+                // 使用批次 UUID 記錄活動日誌
+                $batchUuid = \Illuminate\Support\Str::uuid()->toString();
+                
+                // 記錄批次操作開始
+                activity()
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'batch_uuid' => $batchUuid,
+                        'operation_type' => 'batch_status_update',
+                        'target_ids' => $ids,
+                        'new_status' => $status,
+                        'affected_count' => count($ids),
+                        'categories_info' => $categories->map(function ($category) {
+                            return [
+                                'id' => $category->id,
+                                'name' => $category->name,
+                                'current_status' => $category->status,
+                                'depth' => $category->depth,
+                            ];
+                        })->toArray()
+                    ])
+                    ->useLog('product_categories')
+                    ->log('開始批次更新商品分類狀態');
 
-            return $affectedRows;
+                $result = $this->repository->batchUpdateStatus($ids, $status);
+                
+                if ($result > 0) {
+                    $this->cacheService->forgetTree();
+                    
+                    // 記錄每個分類的狀態變更
+                    foreach ($categories as $category) {
+                        if ($category->status !== $status) {
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($category)
+                                ->withProperties([
+                                    'batch_uuid' => $batchUuid,
+                                    'operation_type' => 'status_change',
+                                    'old_status' => $category->status,
+                                    'new_status' => $status,
+                                    'status_label' => $status ? '啟用' : '停用',
+                                ])
+                                ->useLog('product_categories')
+                                ->event('status_changed')
+                                ->log('批次更新狀態');
+                        }
+                    }
+                    
+                    // 記錄批次操作完成
+                    activity()
+                        ->causedBy(auth()->user())
+                        ->withProperties([
+                            'batch_uuid' => $batchUuid,
+                            'operation_type' => 'batch_status_update_completed',
+                            'success_count' => $result,
+                            'new_status' => $status,
+                        ])
+                        ->useLog('product_categories')
+                        ->log("批次狀態更新完成，成功更新 {$result} 個分類");
+                }
+
+                return $result;
+            });
         } catch (\Exception $e) {
+            // 記錄批次操作失敗
+            activity()
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'operation_type' => 'batch_status_update_failed',
+                    'target_ids' => $ids,
+                    'error_message' => $e->getMessage(),
+                ])
+                ->useLog('product_categories')
+                ->log('批次狀態更新失敗');
+                
             throw BusinessException::fromErrorCode(
                 ProductCategoryErrorCode::BATCH_OPERATION_FAILED,
                 '批次狀態更新失敗：' . $e->getMessage()
@@ -226,43 +301,109 @@ class ProductCategoryService
     }
 
     /**
-     * 批次刪除
+     * 批次刪除分類
      *
      * @param array $ids 分類 ID 陣列
      *
      * @throws BusinessException
-     *
-     * @return int 影響的筆數
      */
     public function batchDelete(array $ids): int
     {
         if (empty($ids)) {
+            return 0;
+        }
+
+        // 驗證所有分類是否存在
+        $categories = $this->repository->findByIds($ids);
+        if ($categories->count() !== count($ids)) {
             throw BusinessException::fromErrorCode(
-                ProductCategoryErrorCode::BATCH_OPERATION_FAILED,
-                '未提供有效的分類 ID'
+                ProductCategoryErrorCode::CATEGORY_NOT_FOUND,
+                '部分分類不存在'
             );
         }
 
-        // 檢查每個分類是否有子分類
-        foreach ($ids as $id) {
-            if ($this->repository->hasChildren($id)) {
-                $category = $this->repository->findById($id);
-
+        // 檢查是否有分類包含子分類
+        foreach ($categories as $category) {
+            if ($this->repository->hasChildren($category->id)) {
                 throw BusinessException::fromErrorCode(
                     ProductCategoryErrorCode::CATEGORY_HAS_CHILDREN,
-                    $category ? "分類「{$category->name}」下還有子分類，無法刪除" : '部分分類下還有子分類，無法刪除'
+                    "分類 '{$category->name}' 包含子分類，無法刪除"
                 );
             }
         }
 
         try {
-            $affectedRows = $this->repository->batchDelete($ids);
-            if ($affectedRows > 0) {
-                $this->cacheService->forgetTree();
-            }
+            return DB::transaction(function () use ($ids, $categories) {
+                // 使用批次 UUID 記錄活動日誌
+                $batchUuid = \Illuminate\Support\Str::uuid()->toString();
+                
+                // 記錄批次操作開始
+                activity()
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'batch_uuid' => $batchUuid,
+                        'operation_type' => 'batch_delete',
+                        'target_ids' => $ids,
+                        'affected_count' => count($ids),
+                        'categories_info' => $categories->map(function ($category) {
+                            return [
+                                'id' => $category->id,
+                                'name' => $category->name,
+                                'slug' => $category->slug,
+                                'depth' => $category->depth,
+                                'parent_id' => $category->parent_id,
+                            ];
+                        })->toArray()
+                    ])
+                    ->useLog('product_categories')
+                    ->log('開始批次刪除商品分類');
 
-            return $affectedRows;
+                $result = $this->repository->batchDelete($ids);
+                
+                if ($result > 0) {
+                    $this->cacheService->forgetTree();
+                    
+                    // 記錄每個分類的刪除
+                    foreach ($categories as $category) {
+                        activity()
+                            ->causedBy(auth()->user())
+                            ->performedOn($category)
+                            ->withProperties([
+                                'batch_uuid' => $batchUuid,
+                                'operation_type' => 'soft_delete',
+                                'deletion_reason' => 'batch_operation',
+                            ])
+                            ->useLog('product_categories')
+                            ->event('deleted')
+                            ->log('批次刪除操作');
+                    }
+                    
+                    // 記錄批次操作完成
+                    activity()
+                        ->causedBy(auth()->user())
+                        ->withProperties([
+                            'batch_uuid' => $batchUuid,
+                            'operation_type' => 'batch_delete_completed',
+                            'success_count' => $result,
+                        ])
+                        ->useLog('product_categories')
+                        ->log("批次刪除完成，成功刪除 {$result} 個分類");
+                }
+
+                return $result;
+            });
         } catch (\Exception $e) {
+            // 記錄批次操作失敗
+            activity()
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'operation_type' => 'batch_delete_failed',
+                    'target_ids' => $ids,
+                    'error_message' => $e->getMessage(),
+                ])
+                ->useLog('product_categories')
+                ->log('批次刪除失敗');
+                
             throw BusinessException::fromErrorCode(
                 ProductCategoryErrorCode::BATCH_OPERATION_FAILED,
                 '批次刪除失敗：' . $e->getMessage()
@@ -271,17 +412,20 @@ class ProductCategoryService
     }
 
     /**
-     * 產生唯一的 slug
-     * 根據 Phase 2.3 P0.2 需求：最多嘗試 3 次產生唯一 slug
+     * 產生唯一的 slug（SEO 優化版本）
      * 
-     * ── 修改：加入空字串和特殊字元處理邏輯
+     * 使用智能混合策略避免破壞 SEO：
+     * 1. 基本重試機制（最多3次）
+     * 2. 啟用分類：使用日期碼+隨機確保 SEO 友善 
+     * 3. 草稿/隱藏分類：可使用純隨機字串
      *
      * @param string   $name      分類名稱
      * @param int|null $excludeId 排除的 ID
+     * @param bool     $isActive  是否為啟用狀態（預設 true）
      */
-    public function generateUniqueSlug(string $name, ?int $excludeId = null): string
+    public function generateUniqueSlug(string $name, ?int $excludeId = null, bool $isActive = true): string
     {
-        // ── 修改：處理空字串和只有特殊字元的情況
+        // 處理空字串和只有特殊字元的情況
         $baseSlug = Str::slug($name);
         
         // 如果轉換後的 slug 是空的，使用預設 slug
@@ -293,7 +437,7 @@ class ProductCategoryService
         $counter = 2;
         $maxAttempts = config('product_category.slug_retry_max', 3);
 
-        // ── 修改：限制最大嘗試次數，符合 P0.2 需求
+        // 基本重試機制
         $attempts = 1;
         while ($attempts <= $maxAttempts && $this->repository->slugExists($slug, $excludeId)) {
             $slug = $baseSlug . '-' . $counter;
@@ -301,12 +445,125 @@ class ProductCategoryService
             $attempts++;
         }
 
-        // 如果達到最大嘗試次數仍有衝突，加入時間戳確保唯一性
+        // Phase 3.1 SEO 智能策略：根據分類狀態選擇後備方案
         if ($attempts > $maxAttempts && $this->repository->slugExists($slug, $excludeId)) {
-            $slug = $baseSlug . '-' . time();
+            return $this->generateFallbackSlug($baseSlug, $isActive, $excludeId);
         }
 
         return $slug;
+    }
+
+    /**
+     * 產生後備 slug（根據分類狀態智能選擇策略）
+     * 
+     * @param string   $baseSlug  基礎 slug
+     * @param bool     $isActive  是否為啟用狀態
+     * @param int|null $excludeId 排除的 ID
+     * @return string
+     */
+    private function generateFallbackSlug(string $baseSlug, bool $isActive, ?int $excludeId = null): string
+    {
+        if (!$isActive) {
+            // 草稿或隱藏分類：可使用隨機字串
+            return $this->generateRandomSlug($baseSlug, $excludeId);
+        }
+        
+        // 啟用分類：使用 SEO 友善的日期碼格式
+        return $this->generateSeoFriendlySlug($baseSlug, $excludeId);
+    }
+
+    /**
+     * 產生 SEO 友善的日期碼 slug
+     * 
+     * 格式：baseSlug-yyyyMMdd-xxxx
+     * 兼具可讀性和唯一性
+     * 
+     * @param string   $baseSlug  基礎 slug
+     * @param int|null $excludeId 排除的 ID
+     * @return string
+     */
+    private function generateSeoFriendlySlug(string $baseSlug, ?int $excludeId = null): string
+    {
+        $dateCode = date('Ymd'); // 20250107 格式
+        $randomSuffix = strtolower(Str::random(4));
+        
+        $slug = "{$baseSlug}-{$dateCode}-{$randomSuffix}";
+        
+        // 最終檢查：極低機率的衝突處理
+        $retryCount = 0;
+        while ($this->repository->slugExists($slug, $excludeId) && $retryCount < 5) {
+            $randomSuffix = strtolower(Str::random(4));
+            $slug = "{$baseSlug}-{$dateCode}-{$randomSuffix}";
+            $retryCount++;
+        }
+        
+        // 如果還是衝突，加入時間戳作為最終保障
+        if ($this->repository->slugExists($slug, $excludeId)) {
+            $timeStamp = substr((string) time(), -4); // 取時間戳後4位
+            $slug = "{$baseSlug}-{$dateCode}-{$timeStamp}";
+        }
+
+        Log::info('生成 SEO 友善的 slug', [
+            'base_slug' => $baseSlug,
+            'final_slug' => $slug,
+            'date_code' => $dateCode,
+            'random_suffix' => $randomSuffix,
+            'seo_impact' => 'minimal - 保持可讀性',
+        ]);
+
+        return $slug;
+    }
+
+    /**
+     * 產生隨機 slug（僅用於草稿/隱藏分類）
+     * 
+     * @param string   $baseSlug  基礎 slug
+     * @param int|null $excludeId 排除的 ID
+     * @return string
+     */
+    private function generateRandomSlug(string $baseSlug, ?int $excludeId = null): string
+    {
+        $randomSuffix = Str::random(4);
+        $slug = "{$baseSlug}-{$randomSuffix}";
+        
+        // 最後檢查：如果還是衝突，使用時間戳作為最終保障
+        if ($this->repository->slugExists($slug, $excludeId)) {
+            $slug = "{$baseSlug}-" . time() . '-' . Str::random(2);
+        }
+
+        Log::info('生成隨機 slug（非啟用分類）', [
+            'base_slug' => $baseSlug,
+            'final_slug' => $slug,
+            'random_suffix' => $randomSuffix,
+            'seo_impact' => 'none - 隱藏分類',
+        ]);
+
+        return $slug;
+    }
+
+    /**
+     * 更新 createCategory 方法中的 slug 生成邏輯
+     * 
+     * @param array<string, mixed> $data 分類資料
+     * @return string
+     */
+    private function generateSlugForCreate(array $data): string
+    {
+        $isActive = $data['status'] ?? true;
+        return $this->generateUniqueSlug($data['name'], null, $isActive);
+    }
+
+    /**
+     * 更新 updateCategory 方法中的 slug 生成邏輯
+     * 
+     * @param array<string, mixed> $data 分類資料
+     * @param int $excludeId 排除的 ID
+     * @return string
+     */
+    private function generateSlugForUpdate(array $data, int $excludeId): string
+    {
+        $isActive = $data['status'] ?? true;
+        return $this->generateUniqueSlug($data['name'], $excludeId, $isActive);
     }
 
     /**

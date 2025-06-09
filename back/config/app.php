@@ -86,6 +86,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Charset
+    |--------------------------------------------------------------------------
+    |
+    | This value determines the default character encoding used by the
+    | framework. You should not change this unless you know what you
+    | are doing.
+    |
+    */
+
+    'charset' => 'UTF-8', // ✅ 必須為 'UTF-8'
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

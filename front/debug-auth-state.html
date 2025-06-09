@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LomisX3 認證狀態調試工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .error { border-left-color: #dc3545; background-color: #f8d7da; }
+        .success { border-left-color: #28a745; background-color: #d4edda; }
+        .warning { border-left-color: #ffc107; background-color: #fff3cd; }
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .refresh-btn { background: #28a745; }
+        .clear-btn { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 LomisX3 認證狀態調試工具</h1>
+        <p>此工具用於檢查當前的認證狀態，幫助診斷權限和選單顯示問題。</p>
+        
+        <div>
+            <button onclick="checkAuthState()" class="refresh-btn">🔄 檢查認證狀態</button>
+            <button onclick="clearLocalStorage()" class="clear-btn">🗑️ 清除本地存儲</button>
+            <button onclick="testPermissions()">🔐 測試權限檢查</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function checkAuthState() {
+            const results = document.getElementById('results');
+            let html = '<h3>📊 認證狀態檢查結果</h3>';
+            
+            try {
+                // 檢查 localStorage
+                html += '<h4>📦 LocalStorage 檢查</h4>';
+                const authToken = localStorage.getItem('auth_token');
+                html += `<div class="status-item ${authToken ? 'success' : 'error'}">
+                    <strong>認證 Token:</strong> ${authToken ? 
+                        authToken.substring(0, 30) + '...' : 
+                        '❌ 未找到'}
+                </div>`;
+
+                // 檢查 Zustand persist storage
+                html += '<h4>💾 Zustand Persist 存儲檢查</h4>';
+                const authStorage = localStorage.getItem('auth-storage');
+                if (authStorage) {
+                    try {
+                        const parsedAuth = JSON.parse(authStorage);
+                        const state = parsedAuth.state || {};
+                        
+                        html += `<div class="status-item ${state.user ? 'success' : 'error'}">
+                            <strong>使用者資訊:</strong> ${state.user ? 
+                                `✅ ${state.user.display_name || state.user.username} (ID: ${state.user.id})` : 
+                                '❌ 未找到'}
+                        </div>`;
+                        
+                        html += `<div class="status-item ${state.token ? 'success' : 'error'}">
+                            <strong>存儲的 Token:</strong> ${state.token ? 
+                                '✅ ' + state.token.substring(0, 30) + '...' : 
+                                '❌ 未找到'}
+                        </div>`;
+                        
+                        html += `<div class="status-item ${state.permissions && state.permissions.length > 0 ? 'success' : 'warning'}">
+                            <strong>權限:</strong> ${state.permissions ? 
+                                `${state.permissions.length} 個權限` : 
+                                '❌ 未找到'}
+                        </div>`;
+                        
+                        if (state.permissions && state.permissions.length > 0) {
+                            html += `<div class="code">${JSON.stringify(state.permissions, null, 2)}</div>`;
+                        }
+                        
+                        html += `<div class="status-item ${state.roles && state.roles.length > 0 ? 'success' : 'warning'}">
+                            <strong>角色:</strong> ${state.roles ? 
+                                state.roles.join(', ') : 
+                                '❌ 未找到'}
+                        </div>`;
+
+                        html += `<div class="status-item">
+                            <strong>完整狀態:</strong>
+                            <div class="code">${JSON.stringify(state, null, 2)}</div>
+                        </div>`;
+                        
+                    } catch (e) {
+                        html += `<div class="status-item error">
+                            <strong>解析錯誤:</strong> ${e.message}
+                        </div>`;
+                    }
+                } else {
+                    html += `<div class="status-item error">
+                        <strong>Zustand 存儲:</strong> ❌ 未找到
+                    </div>`;
+                }
+
+                // 檢查 cookies (如果有使用)
+                html += '<h4>🍪 Cookies 檢查</h4>';
+                const cookies = document.cookie.split(';').map(c => c.trim());
+                const authCookies = cookies.filter(c => 
+                    c.includes('token') || 
+                    c.includes('session') || 
+                    c.includes('auth')
+                );
+                
+                if (authCookies.length > 0) {
+                    authCookies.forEach(cookie => {
+                        html += `<div class="status-item success">
+                            <strong>Cookie:</strong> ${cookie.split('=')[0]}
+                        </div>`;
+                    });
+                } else {
+                    html += `<div class="status-item warning">
+                        <strong>認證相關 Cookies:</strong> 未找到
+                    </div>`;
+                }
+
+                // 檢查當前 URL 和路由
+                html += '<h4>🛣️ 路由檢查</h4>';
+                html += `<div class="status-item">
+                    <strong>當前 URL:</strong> ${window.location.href}
+                </div>`;
+                html += `<div class="status-item">
+                    <strong>Hash:</strong> ${window.location.hash || '無'}
+                </div>`;
+
+            } catch (error) {
+                html += `<div class="status-item error">
+                    <strong>檢查過程發生錯誤:</strong> ${error.message}
+                </div>`;
+            }
+
+            results.innerHTML = html;
+        }
+
+        function clearLocalStorage() {
+            if (confirm('確定要清除所有本地存儲數據嗎？這將會登出您的帳號。')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                alert('✅ 本地存儲已清除，請重新整理頁面');
+            }
+        }
+
+        function testPermissions() {
+            const results = document.getElementById('results');
+            let html = '<h3>🔐 權限測試結果</h3>';
+            
+            try {
+                // 測試常見權限
+                const testPermissions = [
+                    'dashboard.view',
+                    'users.view',
+                    'users.create',
+                    'users.update',
+                    'users.delete',
+                    'categories.view',
+                    'categories.create',
+                    'products.view',
+                    'orders.view'
+                ];
+
+                // 獲取當前狀態
+                const authStorage = localStorage.getItem('auth-storage');
+                if (authStorage) {
+                    const parsedAuth = JSON.parse(authStorage);
+                    const state = parsedAuth.state || {};
+                    const userPermissions = state.permissions || [];
+                    const userRole = state.user?.role;
+
+                    html += `<div class="status-item">
+                        <strong>當前角色:</strong> ${userRole || '未知'}
+                    </div>`;
+
+                    testPermissions.forEach(permission => {
+                        const hasPermission = userRole === 'admin' || userPermissions.includes(permission);
+                        html += `<div class="status-item ${hasPermission ? 'success' : 'error'}">
+                            <strong>${permission}:</strong> ${hasPermission ? '✅ 有權限' : '❌ 無權限'}
+                        </div>`;
+                    });
+
+                } else {
+                    html += `<div class="status-item error">
+                        <strong>無法測試權限:</strong> 未找到認證狀態
+                    </div>`;
+                }
+
+            } catch (error) {
+                html += `<div class="status-item error">
+                    <strong>權限測試失敗:</strong> ${error.message}
+                </div>`;
+            }
+
+            results.innerHTML = html;
+        }
+
+        // 頁面載入時自動檢查
+        window.onload = function() {
+            checkAuthState();
+        };
+    </script>
+</body>
+</html> 

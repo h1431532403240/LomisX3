@@ -98,7 +98,7 @@ class ProductCategoryResource extends JsonResource
     /**
      * 自訂資源包裝器
      */
-    public static function wrap(): ?string
+    public static function wrap($value): ?string
     {
         return 'category';
     }

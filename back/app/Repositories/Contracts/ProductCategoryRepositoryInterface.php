@@ -41,6 +41,13 @@ interface ProductCategoryRepositoryInterface
     public function findById(int $id): ?ProductCategory;
 
     /**
+     * 根據多個 ID 查找分類
+     *
+     * @param array $ids 分類 ID 陣列
+     */
+    public function findByIds(array $ids): Collection;
+
+    /**
      * 根據 ID 查找啟用的分類
      *
      * @param int $id 分類 ID

@@ -1,0 +1,711 @@
+name: 認證管理
+description: ''
+endpoints:
+  -
+    httpMethods:
+      - POST
+    uri: api/auth/login
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 使用者登入
+      description: 處理使用者登入驗證，支援使用者名稱或信箱登入。具備節流保護、門市隔離、2FA檢查等安全機制。
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      login:
+        name: login
+        description: 登入帳號（使用者名稱或信箱）
+        required: true
+        example: admin@lomis.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      password:
+        name: password
+        description: 密碼
+        required: true
+        example: SecurePass123!
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      device_name:
+        name: device_name
+        description: 裝置名稱（用於Token識別）
+        required: false
+        example: 'Chrome on Windows'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      remember:
+        name: remember
+        description: 記住我（延長Token有效期）
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      store_code:
+        name: store_code
+        description: 門市代碼（可選，用於門市特定登入）
+        required: false
+        example: STORE001
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+    cleanBodyParameters:
+      login: admin@lomis.com
+      password: SecurePass123!
+      device_name: 'Chrome on Windows'
+      remember: true
+      store_code: STORE001
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "登入成功",
+            "data": {
+              "user": {
+                "id": 1,
+                "username": "admin",
+                "name": "管理員",
+                "email": "admin@lomis.com",
+                "store_id": 1,
+                "status": {
+                  "value": "active",
+                  "label": "啟用",
+                  "color": "success",
+                  "is_active": true
+                },
+                "roles": [
+                  {
+                    "id": 1,
+                    "name": "admin",
+                    "display_name": "管理員",
+                    "level": 100,
+                    "color": "primary"
+                  }
+                ],
+                "avatar": {
+                  "url": "https://example.com/avatars/1.jpg",
+                  "thumbnail_url": "https://example.com/avatars/1-thumb.jpg",
+                  "has_avatar": true
+                }
+              },
+              "token": "1|abcdef123456...",
+              "expires_at": "2025-01-08T10:00:00.000000Z",
+              "permissions": ["users.view", "users.create", "users.update"],
+              "store": {
+                "id": 1,
+                "name": "總店"
+              }
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 422
+        content: |-
+          {
+            "success": false,
+            "message": "登入失敗：帳號或密碼錯誤",
+            "error_code": "INVALID_CREDENTIALS"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 423
+        content: |-
+          {
+            "success": false,
+            "message": "帳號已被鎖定",
+            "error_code": "ACCOUNT_LOCKED",
+            "locked_until": "2025-01-07T11:00:00.000000Z"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 428
+        content: |-
+          {
+            "success": false,
+            "message": "需要雙因子驗證",
+            "requires_2fa": true,
+            "user_id": 1,
+            "error_code": "TWO_FACTOR_REQUIRED"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 429
+        content: |-
+          {
+            "success": false,
+            "message": "登入嘗試過於頻繁，請稍後再試",
+            "error_code": "TOO_MANY_ATTEMPTS"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - POST
+    uri: api/auth/2fa/challenge
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: '2FA 挑戰驗證'
+      description: '處理雙因子驗證代碼驗證，支援 TOTP 代碼和恢復代碼兩種驗證方式'
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      user_id:
+        name: user_id
+        description: 使用者ID（來自登入回應）
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      code:
+        name: code
+        description: 6位數TOTP驗證碼（與recovery_code二選一）
+        required: false
+        example: '123456'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      recovery_code:
+        name: recovery_code
+        description: 10字元恢復代碼（與code二選一）
+        required: false
+        example: abc123defg
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      device_name:
+        name: device_name
+        description: 裝置名稱
+        required: false
+        example: 'Chrome on Windows'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+    cleanBodyParameters:
+      user_id: 1
+      code: '123456'
+      recovery_code: abc123defg
+      device_name: 'Chrome on Windows'
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "雙因子驗證成功",
+            "data": {
+              "user": {
+                "id": 1,
+                "username": "admin",
+                "name": "管理員",
+                "email": "admin@lomis.com",
+                "store_id": 1,
+                "roles": [
+                  {
+                    "id": 1,
+                    "name": "admin",
+                    "display_name": "管理員"
+                  }
+                ]
+              },
+              "token": "2|xyz789...",
+              "expires_at": "2025-01-08T10:00:00.000000Z",
+              "permissions": ["users.view", "users.create"],
+              "store": {
+                "id": 1,
+                "name": "總店"
+              }
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 404
+        content: |-
+          {
+            "success": false,
+            "message": "使用者不存在",
+            "error_code": "USER_NOT_FOUND"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 422
+        content: |-
+          {
+            "success": false,
+            "message": "驗證代碼錯誤",
+            "error_code": "INVALID_2FA_CODE"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 429
+        content: |-
+          {
+            "success": false,
+            "message": "驗證嘗試過於頻繁",
+            "error_code": "TOO_MANY_ATTEMPTS"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - POST
+    uri: api/auth/logout
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 登出
+      description: '撤銷當前使用者的 Sanctum Token 並記錄登出活動'
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "登出成功"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 401
+        content: |-
+          {
+            "success": false,
+            "message": "未授權",
+            "error_code": "UNAUTHENTICATED"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - GET
+    uri: api/auth/me
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 獲取當前認證使用者資訊
+      description: '處理未認證情況，返回 JSON 錯誤而非重定向（符合純 Bearer Token API 設計原則）'
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "取得使用者資訊成功",
+            "data": {
+              "id": 1,
+              "username": "admin",
+              "name": "管理員",
+              "email": "admin@lomis.com",
+              "roles": ["admin"],
+              "permissions": ["users.view", "users.create"]
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 401
+        content: |-
+          {
+            "success": false,
+            "message": "Unauthenticated.",
+            "error_code": "UNAUTHENTICATED",
+            "errors": null
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - POST
+    uri: api/auth/refresh
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: '刷新 Token'
+      description: '刷新當前的 API Token，延長有效期限'
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "Token 刷新成功",
+            "data": {
+              "token": "3|newtoken123...",
+              "expires_at": "2025-01-08T10:00:00.000000Z"
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 401
+        content: |-
+          {
+            "success": false,
+            "message": "未授權"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - POST
+    uri: api/auth/2fa/enable
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 啟用雙因子驗證
+      description: '為使用者帳號啟用2FA功能，生成QR Code供驗證器應用程式掃描'
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "2FA 已啟用，請掃描 QR Code",
+            "data": {
+              "qr_code": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+...",
+              "secret": "ABCDEFGHIJKLMNOP",
+              "recovery_codes": [
+                "abc123defg",
+                "hij456klmn",
+                "opq789rstu"
+              ],
+              "manual_entry_key": "ABCD EFGH IJKL MNOP"
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 401
+        content: |-
+          {
+            "success": false,
+            "message": "未授權"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 422
+        content: |-
+          {
+            "success": false,
+            "message": "雙因子驗證已啟用",
+            "error_code": "2FA_ALREADY_ENABLED"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - POST
+    uri: api/auth/2fa/confirm
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 確認雙因子驗證
+      description: 使用驗證器應用程式產生的代碼確認2FA設定
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      code:
+        name: code
+        description: 6位數驗證碼
+        required: true
+        example: '123456'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+    cleanBodyParameters:
+      code: '123456'
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "雙因子驗證確認成功",
+            "data": {
+              "confirmed_at": "2025-01-07T10:00:00.000000Z",
+              "recovery_codes": [
+                "abc123defg",
+                "hij456klmn",
+                "opq789rstu"
+              ]
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 400
+        content: |-
+          {
+            "success": false,
+            "message": "雙因子驗證尚未啟用",
+            "error_code": "2FA_NOT_ENABLED"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 422
+        content: |-
+          {
+            "success": false,
+            "message": "驗證碼錯誤",
+            "error_code": "INVALID_2FA_CODE"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - POST
+    uri: api/auth/2fa/disable
+    metadata:
+      groupName: 認證管理
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 停用雙因子驗證
+      description: 關閉使用者的2FA功能，需要密碼確認
+      authenticated: false
+      custom: []
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      password:
+        name: password
+        description: 使用者密碼
+        required: true
+        example: CurrentPassword123!
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+    cleanBodyParameters:
+      password: CurrentPassword123!
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "雙因子驗證已停用"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 400
+        content: |-
+          {
+            "success": false,
+            "message": "雙因子驗證尚未啟用",
+            "error_code": "2FA_NOT_ENABLED"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 422
+        content: |-
+          {
+            "success": false,
+            "message": "密碼錯誤",
+            "error_code": "INVALID_PASSWORD"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+    custom: []

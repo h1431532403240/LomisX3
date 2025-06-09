@@ -18,7 +18,10 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * 商品分類 API 控制器
- * 提供完整的 RESTful API 和進階功能
+ * 
+ * 提供完整的商品分類管理功能，包含樹狀結構、層級關係、快取優化等
+ * 
+ * @group 商品分類管理
  */
 class ProductCategoryController extends Controller
 {
@@ -35,6 +38,65 @@ class ProductCategoryController extends Controller
 
     /**
      * 取得分類清單
+     * 
+     * 支援分頁、篩選、搜尋等功能。可通過查詢參數控制返回結果。
+     * 
+     * @group 商品分類管理
+     * 
+     * @queryParam search string 搜尋關鍵字（支援名稱、描述） Example: 電子產品
+     * @queryParam status boolean 分類狀態篩選 Example: true
+     * @queryParam parent_id integer 父分類ID篩選 Example: 1
+     * @queryParam depth integer 分類深度篩選 Example: 2
+     * @queryParam with_children boolean 是否包含子分類 Example: true
+     * @queryParam max_depth integer 最大深度限制 Example: 3
+     * @queryParam with_trashed boolean 是否包含已刪除項目 Example: false
+     * @queryParam per_page integer 每頁項目數（1-100） Example: 20
+     * @queryParam page integer 頁碼 Example: 1
+     * 
+     * @response 200 {
+     *   "data": [
+     *     {
+     *       "id": 1,
+     *       "name": "電子產品",
+     *       "slug": "electronics",
+     *       "parent_id": null,
+     *       "position": 1,
+     *       "status": true,
+     *       "depth": 0,
+     *       "description": "各類電子產品分類",
+     *       "meta_title": "電子產品 | LomisX3",
+     *       "meta_description": "電子產品相關商品分類",
+     *       "path": "/1/",
+     *       "has_children": true,
+     *       "full_path": "電子產品",
+     *       "children_count": 5,
+     *       "created_at": "2025-01-07T10:00:00.000000Z",
+     *       "updated_at": "2025-01-07T10:00:00.000000Z"
+     *     }
+     *   ],
+     *   "links": {
+     *     "first": "http://localhost/api/product-categories?page=1",
+     *     "last": "http://localhost/api/product-categories?page=10",
+     *     "prev": null,
+     *     "next": "http://localhost/api/product-categories?page=2"
+     *   },
+     *   "meta": {
+     *     "current_page": 1,
+     *     "from": 1,
+     *     "last_page": 10,
+     *     "per_page": 20,
+     *     "to": 20,
+     *     "total": 200
+     *   }
+     * }
+     * 
+     * @response 422 {
+     *   "success": false,
+     *   "message": "驗證失敗",
+     *   "errors": {
+     *     "per_page": ["每頁項目數不能超過100"]
+     *   }
+     * }
      */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -52,6 +114,57 @@ class ProductCategoryController extends Controller
 
     /**
      * 儲存新分類
+     * 
+     * 創建新的商品分類。系統將自動計算層級深度、生成唯一slug，並觸發快取更新。
+     * 
+     * @group 商品分類管理
+     * 
+     * @bodyParam name string required 分類名稱（2-100字元） Example: 智慧型手機
+     * @bodyParam slug string 自訂URL別名（可選，系統會自動生成） Example: smartphones
+     * @bodyParam parent_id integer 父分類ID（可選） Example: 1
+     * @bodyParam position integer 排序位置（可選，預設自動計算） Example: 10
+     * @bodyParam status boolean 啟用狀態（預設true） Example: true
+     * @bodyParam description string 分類描述（可選） Example: 各種品牌的智慧型手機
+     * @bodyParam meta_title string SEO標題（可選，預設使用分類名稱） Example: 智慧型手機 | LomisX3
+     * @bodyParam meta_description string SEO描述（可選） Example: 提供各大品牌智慧型手機，包含最新機型與優惠價格
+     * 
+     * @response 201 {
+     *   "success": true,
+     *   "message": "分類建立成功",
+     *   "data": {
+     *     "id": 15,
+     *     "name": "智慧型手機",
+     *     "slug": "smartphones",
+     *     "parent_id": 1,
+     *     "position": 10,
+     *     "status": true,
+     *     "depth": 1,
+     *     "description": "各種品牌的智慧型手機",
+     *     "meta_title": "智慧型手機 | LomisX3",
+     *     "meta_description": "提供各大品牌智慧型手機，包含最新機型與優惠價格",
+     *     "path": "/1/15/",
+     *     "has_children": false,
+     *     "full_path": "電子產品 > 智慧型手機",
+     *     "children_count": 0,
+     *     "created_at": "2025-01-07T10:30:00.000000Z",
+     *     "updated_at": "2025-01-07T10:30:00.000000Z"
+     *   }
+     * }
+     * 
+     * @response 422 {
+     *   "success": false,
+     *   "message": "分類建立失敗：名稱已存在",
+     *   "code": "CATEGORY_CREATE_FAILED",
+     *   "errors": {
+     *     "name": ["分類名稱已存在"]
+     *   }
+     * }
+     * 
+     * @response 400 {
+     *   "success": false,
+     *   "message": "分類建立失敗：超過最大層級限制",
+     *   "code": "MAX_DEPTH_EXCEEDED"
+     * }
      */
     public function store(StoreProductCategoryRequest $request): JsonResponse
     {
@@ -81,6 +194,50 @@ class ProductCategoryController extends Controller
 
     /**
      * 顯示指定分類
+     * 
+     * 取得單一商品分類的詳細資訊，包含父分類和子分類資料。
+     * 
+     * @group 商品分類管理
+     * 
+     * @urlParam productCategory integer required 分類ID Example: 1
+     * 
+     * @response 200 {
+     *   "success": true,
+     *   "data": {
+     *     "id": 1,
+     *     "name": "電子產品",
+     *     "slug": "electronics",
+     *     "parent_id": null,
+     *     "position": 1,
+     *     "status": true,
+     *     "depth": 0,
+     *     "description": "各類電子產品分類",
+     *     "meta_title": "電子產品 | LomisX3",
+     *     "meta_description": "電子產品相關商品分類",
+     *     "path": "/1/",
+     *     "has_children": true,
+     *     "full_path": "電子產品",
+     *     "children_count": 5,
+     *     "parent": null,
+     *     "children": [
+     *       {
+     *         "id": 2,
+     *         "name": "智慧型手機",
+     *         "slug": "smartphones",
+     *         "parent_id": 1,
+     *         "status": true,
+     *         "depth": 1
+     *       }
+     *     ],
+     *     "created_at": "2025-01-07T10:00:00.000000Z",
+     *     "updated_at": "2025-01-07T10:00:00.000000Z"
+     *   }
+     * }
+     * 
+     * @response 404 {
+     *   "success": false,
+     *   "message": "分類不存在"
+     * }
      */
     public function show(ProductCategory $productCategory): JsonResponse
     {
@@ -92,6 +249,55 @@ class ProductCategoryController extends Controller
 
     /**
      * 更新指定分類
+     * 
+     * 更新商品分類資訊。變更父分類時會自動重新計算層級結構和快取。
+     * 
+     * @group 商品分類管理
+     * 
+     * @urlParam productCategory integer required 分類ID Example: 1
+     * 
+     * @bodyParam name string 分類名稱（2-100字元） Example: 更新的分類名稱
+     * @bodyParam slug string 自訂URL別名 Example: updated-slug
+     * @bodyParam parent_id integer 父分類ID（設為null表示設為根分類） Example: 2
+     * @bodyParam position integer 排序位置 Example: 15
+     * @bodyParam status boolean 啟用狀態 Example: false
+     * @bodyParam description string 分類描述 Example: 更新的分類描述
+     * @bodyParam meta_title string SEO標題 Example: 更新的SEO標題
+     * @bodyParam meta_description string SEO描述 Example: 更新的SEO描述
+     * 
+     * @response 200 {
+     *   "success": true,
+     *   "message": "分類更新成功",
+     *   "data": {
+     *     "id": 1,
+     *     "name": "更新的分類名稱",
+     *     "slug": "updated-slug",
+     *     "parent_id": 2,
+     *     "position": 15,
+     *     "status": false,
+     *     "depth": 1,
+     *     "description": "更新的分類描述",
+     *     "meta_title": "更新的SEO標題",
+     *     "meta_description": "更新的SEO描述",
+     *     "path": "/2/1/",
+     *     "has_children": true,
+     *     "full_path": "父分類 > 更新的分類名稱",
+     *     "children_count": 3,
+     *     "created_at": "2025-01-07T10:00:00.000000Z",
+     *     "updated_at": "2025-01-07T11:00:00.000000Z"
+     *   }
+     * }
+     * 
+     * @response 422 {
+     *   "success": false,
+     *   "message": "分類更新失敗：會造成循環引用",
+     *   "code": "CATEGORY_UPDATE_FAILED"
+     * }
+     * 
+     * @response 404 {
+     *   "success": false,
+     *   "message": "分類不存在"
+     * }
      */
     public function update(UpdateProductCategoryRequest $request, ProductCategory $productCategory): JsonResponse
     {
@@ -124,6 +330,28 @@ class ProductCategoryController extends Controller
 
     /**
      * 刪除指定分類
+     * 
+     * 軟刪除商品分類。只能刪除沒有子分類的分類，刪除後會觸發快取更新。
+     * 
+     * @group 商品分類管理
+     * 
+     * @urlParam productCategory integer required 分類ID Example: 1
+     * 
+     * @response 200 {
+     *   "success": true,
+     *   "message": "分類刪除成功"
+     * }
+     * 
+     * @response 422 {
+     *   "success": false,
+     *   "message": "分類刪除失敗：該分類包含子分類",
+     *   "code": "CATEGORY_DELETE_FAILED"
+     * }
+     * 
+     * @response 404 {
+     *   "success": false,
+     *   "message": "分類不存在"
+     * }
      */
     public function destroy(ProductCategory $productCategory): JsonResponse
     {
@@ -156,6 +384,50 @@ class ProductCategoryController extends Controller
 
     /**
      * 取得樹狀結構
+     * 
+     * 獲取完整的分類樹狀結構，支援快取優化，適用於選單展示和層級瀏覽。
+     * 
+     * @group 商品分類管理
+     * 
+     * @queryParam only_active boolean 僅顯示啟用的分類（預設true） Example: true
+     * @queryParam max_depth integer 最大顯示深度 Example: 3
+     * @queryParam root_id integer 指定根分類ID（顯示特定子樹） Example: 1
+     * 
+     * @response 200 {
+     *   "success": true,
+     *   "data": [
+     *     {
+     *       "id": 1,
+     *       "name": "電子產品",
+     *       "slug": "electronics",
+     *       "parent_id": null,
+     *       "position": 1,
+     *       "status": true,
+     *       "depth": 0,
+     *       "has_children": true,
+     *       "children_count": 3,
+     *       "children": [
+     *         {
+     *           "id": 2,
+     *           "name": "智慧型手機",
+     *           "slug": "smartphones",
+     *           "parent_id": 1,
+     *           "position": 1,
+     *           "status": true,
+     *           "depth": 1,
+     *           "has_children": false,
+     *           "children_count": 0,
+     *           "children": []
+     *         }
+     *       ]
+     *     }
+     *   ],
+     *   "meta": {
+     *     "total_categories": 25,
+     *     "max_depth": 3,
+     *     "cache_hit": true
+     *   }
+     * }
      */
     public function tree(Request $request): JsonResponse
     {

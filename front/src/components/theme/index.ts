@@ -3,4 +3,5 @@
  */
 
 export { ModeToggle } from './ModeToggle';
-export { ThemeProvider } from './theme-provider'; 
+export { ThemeProvider } from './theme-provider';
+export { ThemeToggle, SimpleThemeToggle } from './ThemeToggle'; 

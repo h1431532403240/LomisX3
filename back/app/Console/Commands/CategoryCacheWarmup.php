@@ -5,42 +5,39 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\ProductCategoryCacheService;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Collection;
+use App\Models\ProductCategory;
+use App\Services\ProductCategoryCacheService;
 
 /**
- * 商品分類快取預熱命令
+ * 商品分類快取熱身命令
  * 
- * 此命令用於預熱商品分類的快取資料，包括：
- * - 樹狀結構快取
- * - 統計資訊快取
- * - 支援僅預熱啟用分類或全部分類
+ * 用於預先載入分類樹狀結構到快取中，提升系統效能
+ * 支援僅載入啟用分類或全部分類
  */
 class CategoryCacheWarmup extends Command
 {
     /**
-     * 命令名稱和簽名
-     *
-     * @var string
+     * 命令簽名
      */
     protected $signature = 'category:cache-warmup 
-                           {--active : 只預熱啟用的分類}
-                           {--queue= : 指定使用的佇列名稱，預設為low}';
+                            {--active : 僅熱身啟用的分類}
+                            {--dry-run : 模擬執行，不實際修改快取}';
 
     /**
      * 命令描述
-     *
-     * @var string
      */
-    protected $description = '預熱商品分類快取資料，提升查詢效能';
+    protected $description = '預熱商品分類快取，提升系統效能';
 
     /**
-     * 快取服務實例
+     * 快取服務
      */
     private ProductCategoryCacheService $cacheService;
 
     /**
-     * 建立命令實例
+     * 建構函式
      */
     public function __construct(ProductCategoryCacheService $cacheService)
     {
@@ -53,187 +50,128 @@ class CategoryCacheWarmup extends Command
      */
     public function handle(): int
     {
-        $startTime = microtime(true);
         $onlyActive = $this->option('active');
-        $queueName = $this->option('queue') ?? config('cache.flush_queue', 'low');
+        $dryRun = $this->option('dry-run');
+        $startTime = microtime(true);
 
-        $this->info('🔥 開始預熱商品分類快取...');
-        $this->newLine();
-
-        // 顯示配置資訊
-        $this->displayConfiguration($onlyActive, $queueName);
+        $this->info('🔥 開始商品分類快取熱身...');
+        $this->info('模式: ' . ($onlyActive ? '僅啟用分類' : '全部分類'));
         
+        if ($dryRun) {
+            $this->warn('🧪 DRY RUN 模式 - 不會實際修改快取');
+        }
+
+        // 檢查佇列配置
+        $queueName = config('queue.product_category_flush', 'low');
+        $this->info("佇列: {$queueName}");
+
         try {
-            // 創建進度條
-            $progressBar = $this->output->createProgressBar(4);
-            $progressBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %message%');
-            $progressBar->setMessage('準備中...');
+            // 建立進度條
+            $progressBar = $this->output->createProgressBar($dryRun ? 1 : 2);
+            $progressBar->setFormat('verbose');
             $progressBar->start();
 
-            // 步驟1：預熱樹狀結構快取
-            $progressBar->setMessage('預熱樹狀結構快取...');
-            $this->warmupTreeCache($onlyActive);
-            $progressBar->advance();
+            if ($dryRun) {
+                // DRY RUN 模式：僅模擬操作
+                $this->line("\n🔍 模擬操作 - 檢查分類數據...");
+                
+                // 查詢分類數據但不載入到快取
+                $query = ProductCategory::query();
+                if ($onlyActive) {
+                    $query->where('status', true);
+                }
+                
+                $categoryCount = $query->count();
+                $rootCount = $query->whereNull('parent_id')->count();
+                
+                $this->line("   - 總分類數量: {$categoryCount}");
+                $this->line("   - 根分類數量: {$rootCount}");
+                $this->line("   - 預估快取大小: " . round($categoryCount * 0.5, 2) . " KB");
+                
+                $progressBar->advance();
+                
+            } else {
+                // 正常模式：實際執行快取操作
+                
+                // 步驟1: 清除現有快取
+                $this->line("\n🧹 清除現有快取...");
+                $this->cacheService->forgetTree();
+                $progressBar->advance();
 
-            // 步驟2：預熱統計資訊快取
-            $progressBar->setMessage('預熱統計資訊快取...');
-            $this->warmupStatisticsCache();
-            $progressBar->advance();
+                // 步驟2: 預載入分類樹
+                $this->line("\n📦 載入分類樹到快取...");
+                $tree = $this->cacheService->getTree($onlyActive);
+                $progressBar->advance();
+                
+                // 計算實際載入的分類數量
+                $categoryCount = $this->countCategories($tree);
+            }
 
-            // 步驟3：預熱根分類ID快取
-            $progressBar->setMessage('預熱根分類ID快取...');
-            $this->warmupRootIdsCache($onlyActive);
-            $progressBar->advance();
-
-            // 步驟4：預熱深度統計快取
-            $progressBar->setMessage('預熱深度統計快取...');
-            $this->warmupDepthStatistics();
-            $progressBar->advance();
-
-            $progressBar->setMessage('快取預熱完成！');
             $progressBar->finish();
-            
+
+            // 計算統計資訊
+            $elapsedTime = round(microtime(true) - $startTime, 3);
+            $memoryUsage = round(memory_get_peak_usage(true) / 1024 / 1024, 2);
+
+            // 顯示完成資訊
             $this->newLine(2);
             
-            // 顯示執行結果
-            $executionTime = round(microtime(true) - $startTime, 2);
-            $this->displayResults($executionTime, $onlyActive);
-            
-            // 記錄成功日誌
-            Log::info('Product category cache warmup completed', [
-                'only_active' => $onlyActive,
-                'execution_time' => $executionTime,
-                'queue' => $queueName,
-            ]);
-
-            return self::SUCCESS;
-
-        } catch (\Throwable $e) {
-            $this->newLine();
-            $this->error('❌ 快取預熱失敗：' . $e->getMessage());
-            
-            // 記錄錯誤日誌
-            Log::error('Product category cache warmup failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'only_active' => $onlyActive,
-            ]);
-
-            return self::FAILURE;
-        }
-    }
-
-    /**
-     * 顯示配置資訊
-     */
-    private function displayConfiguration(bool $onlyActive, string $queueName): void
-    {
-        $this->table(
-            ['配置項目', '設定值'],
-            [
-                ['預熱範圍', $onlyActive ? '僅啟用分類' : '全部分類'],
-                ['佇列名稱', $queueName],
-                ['快取驅動', config('cache.default')],
-                ['Redis標籤支援', config('cache.stores.redis') ? '✅' : '❌'],
-            ]
-        );
-        $this->newLine();
-    }
-
-    /**
-     * 預熱樹狀結構快取
-     */
-    private function warmupTreeCache(bool $onlyActive): void
-    {
-        try {
-            // 預熱啟用分類樹
-            $activeTree = $this->cacheService->getTree(true);
-            $activeCount = $this->countTreeNodes($activeTree);
-
-            if (!$onlyActive) {
-                // 預熱全部分類樹
-                $allTree = $this->cacheService->getTree(false);
-                $allCount = $this->countTreeNodes($allTree);
-                
-                $this->line("   ✅ 全部分類樹狀結構：{$allCount} 個節點");
-            }
-            
-            $this->line("   ✅ 啟用分類樹狀結構：{$activeCount} 個節點");
-            
-        } catch (\Throwable $e) {
-            $this->warn("   ⚠️  樹狀結構快取預熱部分失敗：{$e->getMessage()}");
-        }
-    }
-
-    /**
-     * 預熱統計資訊快取
-     */
-    private function warmupStatisticsCache(): void
-    {
-        try {
-            $stats = $this->cacheService->getStatistics();
-            
-            $this->line("   ✅ 統計資訊快取：總計 {$stats['total']} 個分類");
-            
-        } catch (\Throwable $e) {
-            $this->warn("   ⚠️  統計資訊快取預熱失敗：{$e->getMessage()}");
-        }
-    }
-
-    /**
-     * 預熱根分類ID快取
-     */
-    private function warmupRootIdsCache(bool $onlyActive): void
-    {
-        try {
-            // 這裡需要呼叫 CacheService 的方法來預熱根ID快取
-            // 由於原本的服務可能沒有直接的方法，我們透過取得樹狀結構來間接預熱
-            $this->cacheService->getTree($onlyActive);
-            
-            if (!$onlyActive) {
-                $this->cacheService->getTree(false);
-                $this->line("   ✅ 全部根分類ID快取");
-            }
-            
-            $this->line("   ✅ 啟用根分類ID快取");
-            
-        } catch (\Throwable $e) {
-            $this->warn("   ⚠️  根分類ID快取預熱失敗：{$e->getMessage()}");
-        }
-    }
-
-    /**
-     * 預熱深度統計快取
-     */
-    private function warmupDepthStatistics(): void
-    {
-        try {
-            $stats = $this->cacheService->getStatistics();
-            
-            if (isset($stats['depth_distribution'])) {
-                $depthCount = count($stats['depth_distribution']);
-                $this->line("   ✅ 深度統計快取：{$depthCount} 個深度層級");
+            if ($dryRun) {
+                $this->info('✅ DRY RUN 完成！（未實際修改快取）');
             } else {
-                $this->line("   ✅ 深度統計快取");
+                $this->info('✅ 快取熱身完成！');
             }
             
+            $this->table(
+                ['項目', '數值'],
+                [
+                    [$dryRun ? '預估分類數量' : '載入分類數量', $categoryCount],
+                    ['執行時間', "{$elapsedTime} 秒"],
+                    ['記憶體使用', "{$memoryUsage} MB"],
+                    ['快取模式', $onlyActive ? '僅啟用' : '全部'],
+                    ['佇列名稱', $queueName],
+                    ['執行模式', $dryRun ? 'DRY RUN' : '實際執行'],
+                ]
+            );
+
+            // 驗證快取是否成功（僅在非 DRY RUN 模式）
+            if (!$dryRun) {
+                $this->verifyCache($onlyActive);
+            } else {
+                $this->line("\n💡 提示: 移除 --dry-run 選項以實際執行快取熱身");
+            }
+
+            return Command::SUCCESS;
+
         } catch (\Throwable $e) {
-            $this->warn("   ⚠️  深度統計快取預熱失敗：{$e->getMessage()}");
+            $this->error('❌ 快取熱身失敗: ' . $e->getMessage());
+            $this->error('錯誤位置: ' . $e->getFile() . ':' . $e->getLine());
+            
+            if ($this->option('verbose')) {
+                $this->error('完整錯誤堆疊:');
+                $this->error($e->getTraceAsString());
+            }
+
+            return Command::FAILURE;
         }
     }
 
     /**
-     * 統計樹狀結構中的節點數量
+     * 計算分類數量（遞迴）
+     *
+     * @param array<int, mixed>|Collection<int, ProductCategory> $tree 分類樹
      */
-    private function countTreeNodes(array $tree): int
+    private function countCategories($tree): int
     {
-        $count = 0;
+        if ($tree instanceof Collection) {
+            $tree = $tree->toArray();
+        }
         
-        foreach ($tree as $node) {
-            $count++; // 當前節點
-            
-            if (isset($node['children']) && is_array($node['children'])) {
-                $count += $this->countTreeNodes($node['children']); // 遞迴計算子節點
+        $count = count($tree);
+        
+        foreach ($tree as $category) {
+            if (isset($category['children']) && is_array($category['children'])) {
+                $count += $this->countCategories($category['children']);
             }
         }
         
@@ -241,58 +179,31 @@ class CategoryCacheWarmup extends Command
     }
 
     /**
-     * 顯示執行結果
+     * 驗證快取是否成功載入
      */
-    private function displayResults(float $executionTime, bool $onlyActive): void
+    private function verifyCache(bool $onlyActive): void
     {
-        $this->info('✨ 快取預熱完成！');
-        $this->newLine();
-
-        // 顯示快取資訊
+        $this->line("\n🔍 驗證快取狀態...");
+        
         try {
+            // 取得快取資訊
             $cacheInfo = $this->cacheService->getCacheInfo();
             
-            $this->table(
-                ['快取項目', '狀態', '大小'],
-                [
-                    ['樹狀結構（啟用）', '✅ 已快取', $this->formatCacheSize($cacheInfo['tree_active'] ?? null)],
-                    ['樹狀結構（全部）', $onlyActive ? '⏭️  跳過' : '✅ 已快取', $this->formatCacheSize($cacheInfo['tree_all'] ?? null)],
-                    ['統計資訊', '✅ 已快取', $this->formatCacheSize($cacheInfo['statistics'] ?? null)],
-                    ['其他快取', '✅ 已快取', '-'],
-                ]
-            );
+            if ($cacheInfo['tree_cache_exists']) {
+                $this->info('✅ 分類樹快取已成功載入');
+                
+                // 顯示快取統計
+                if (isset($cacheInfo['cache_stats'])) {
+                    $stats = $cacheInfo['cache_stats'];
+                    $this->line("   - 快取大小: " . ($stats['size'] ?? 'N/A'));
+                    $this->line("   - 快取時間: " . ($stats['created_at'] ?? 'N/A'));
+                }
+            } else {
+                $this->warn('⚠️  分類樹快取可能未正確載入');
+            }
             
         } catch (\Throwable $e) {
-            $this->warn('無法取得快取資訊：' . $e->getMessage());
-        }
-
-        $this->newLine();
-        $this->info("⏱️  執行時間：{$executionTime} 秒");
-        
-        // 提供後續建議
-        $this->comment('💡 建議：');
-        $this->comment('   • 可以設定 cron job 定期執行此命令');
-        $this->comment('   • 在部署後執行此命令以提升首次查詢效能');
-        $this->comment('   • 監控快取命中率以評估預熱效果');
-    }
-
-    /**
-     * 格式化快取大小顯示
-     */
-    private function formatCacheSize(?string $data): string
-    {
-        if ($data === null) {
-            return '-';
-        }
-        
-        $size = strlen(serialize($data));
-        
-        if ($size < 1024) {
-            return "{$size} B";
-        } elseif ($size < 1024 * 1024) {
-            return round($size / 1024, 1) . ' KB';
-        } else {
-            return round($size / (1024 * 1024), 1) . ' MB';
+            $this->warn('⚠️  無法驗證快取狀態: ' . $e->getMessage());
         }
     }
 } 

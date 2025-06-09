@@ -1,0 +1,285 @@
+# LomisX3 商品分類模組 - Prometheus 警報規則
+# 包含應用效能、資料庫、快取、業務邏輯等全面監控警報
+
+groups:
+  # Laravel 應用效能警報
+  - name: laravel_application
+    rules:
+      # API 回應時間過長
+      - alert: HighAPIResponseTime
+        expr: histogram_quantile(0.95, laravel_request_duration_seconds_bucket) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          service: laravel-app
+        annotations:
+          summary: "Laravel API 回應時間過長"
+          description: "95% 的 API 請求回應時間超過 2 秒，目前值：{{ $value }}s"
+
+      # API 錯誤率過高
+      - alert: HighAPIErrorRate
+        expr: rate(laravel_requests_total{status=~"5.."}[5m]) / rate(laravel_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+          service: laravel-app
+        annotations:
+          summary: "Laravel API 錯誤率過高"
+          description: "API 5xx 錯誤率超過 5%，目前值：{{ $value | humanizePercentage }}"
+
+      # 記憶體使用量過高
+      - alert: HighMemoryUsage
+        expr: laravel_memory_usage_bytes / laravel_memory_limit_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: laravel-app
+        annotations:
+          summary: "Laravel 記憶體使用量過高"
+          description: "記憶體使用量超過 85%，目前值：{{ $value | humanizePercentage }}"
+
+      # Queue 任務堆積
+      - alert: QueueBacklog
+        expr: laravel_queue_size > 1000
+        for: 3m
+        labels:
+          severity: warning
+          service: laravel-queue
+        annotations:
+          summary: "Laravel Queue 任務堆積"
+          description: "待處理的 Queue 任務數量：{{ $value }}"
+
+      # Queue 失敗率過高
+      - alert: HighQueueFailureRate
+        expr: rate(laravel_queue_failed_jobs_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: laravel-queue
+        annotations:
+          summary: "Laravel Queue 失敗率過高"
+          description: "Queue 任務失敗率：{{ $value | humanizePercentage }}"
+
+  # MySQL 資料庫警報
+  - name: mysql_database
+    rules:
+      # MySQL 連接數過高
+      - alert: MySQLHighConnections
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
+        for: 3m
+        labels:
+          severity: warning
+          service: mysql
+        annotations:
+          summary: "MySQL 連接數過高"
+          description: "MySQL 連接數使用率：{{ $value | humanizePercentage }}"
+
+      # MySQL 查詢時間過長
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: mysql
+        annotations:
+          summary: "MySQL 慢查詢增加"
+          description: "慢查詢速率：{{ $value }}/s"
+
+      # MySQL 鎖等待
+      - alert: MySQLLockWaits
+        expr: mysql_global_status_innodb_row_lock_waits > 100
+        for: 2m
+        labels:
+          severity: critical
+          service: mysql
+        annotations:
+          summary: "MySQL InnoDB 鎖等待"
+          description: "InnoDB 行鎖等待數：{{ $value }}"
+
+      # MySQL 磁碟空間不足
+      - alert: MySQLDiskSpaceLow
+        expr: mysql_info_schema_table_size{schema="lomis_x3"} / 1024 / 1024 / 1024 > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: mysql
+        annotations:
+          summary: "MySQL 資料庫空間增長"
+          description: "資料庫大小：{{ $value }}GB"
+
+  # Redis 快取警報
+  - name: redis_cache
+    rules:
+      # Redis 記憶體使用量過高
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_config_maxmemory > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis 記憶體使用量過高"
+          description: "Redis 記憶體使用率：{{ $value | humanizePercentage }}"
+
+      # Redis 快取命中率過低
+      - alert: RedisCacheHitRateLow
+        expr: redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total) < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis 快取命中率過低"
+          description: "快取命中率：{{ $value | humanizePercentage }}"
+
+      # Redis 主從同步延遲
+      - alert: RedisReplicationLag
+        expr: redis_master_repl_offset - redis_slave_repl_offset > 1000
+        for: 3m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis 主從同步延遲"
+          description: "主從同步延遲：{{ $value }} bytes"
+
+      # Redis 連接數過高
+      - alert: RedisHighConnections
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis 連接數過高"
+          description: "Redis 當前連接數：{{ $value }}"
+
+  # 商品分類業務邏輯警報
+  - name: product_category_business
+    rules:
+      # 分類建立失敗率過高
+      - alert: HighCategoryCreationFailureRate
+        expr: rate(product_category_operations_total{operation="create",status="failed"}[5m]) / rate(product_category_operations_total{operation="create"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: critical
+          service: product-category
+        annotations:
+          summary: "商品分類建立失敗率過高"
+          description: "分類建立失敗率：{{ $value | humanizePercentage }}"
+
+      # 分類查詢效能下降
+      - alert: CategoryQueryPerformanceDegradation
+        expr: histogram_quantile(0.95, product_category_query_duration_seconds_bucket) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          service: product-category
+        annotations:
+          summary: "商品分類查詢效能下降"
+          description: "95% 分類查詢時間超過 1 秒，目前值：{{ $value }}s"
+
+      # 快取失效頻率過高
+      - alert: HighCacheInvalidationRate
+        expr: rate(product_category_cache_invalidations_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: product-category
+        annotations:
+          summary: "商品分類快取失效頻率過高"
+          description: "快取失效速率：{{ $value }}/s"
+
+      # 深度查詢頻率異常
+      - alert: AbnormalDeepQueryFrequency
+        expr: rate(product_category_deep_queries_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: info
+          service: product-category
+        annotations:
+          summary: "深度分類查詢頻率異常"
+          description: "深度查詢速率：{{ $value }}/s，可能需要優化"
+
+  # 系統資源警報
+  - name: system_resources
+    rules:
+      # CPU 使用率過高
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "系統 CPU 使用率過高"
+          description: "CPU 使用率：{{ $value }}%"
+
+      # 磁碟空間不足
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "磁碟空間不足"
+          description: "剩餘空間：{{ $value }}%"
+
+      # 網路連接數過高
+      - alert: HighNetworkConnections
+        expr: node_netstat_Tcp_CurrEstab > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "網路連接數過高"
+          description: "當前 TCP 連接數：{{ $value }}"
+
+  # 健康檢查警報
+  - name: health_checks
+    rules:
+      # 應用服務下線
+      - alert: ApplicationDown
+        expr: up{job="laravel-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: laravel-app
+        annotations:
+          summary: "Laravel 應用服務下線"
+          description: "無法連接到 Laravel 應用"
+
+      # 資料庫服務下線
+      - alert: DatabaseDown
+        expr: up{job="mysql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: mysql
+        annotations:
+          summary: "MySQL 資料庫服務下線"
+          description: "無法連接到 MySQL 資料庫"
+
+      # Redis 服務下線
+      - alert: RedisDown
+        expr: up{job="redis-master"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis 主節點下線"
+          description: "無法連接到 Redis 主節點"
+
+      # API 健康檢查失敗
+      - alert: APIHealthCheckFailed
+        expr: probe_success{job="api-health"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "API 健康檢查失敗"
+          description: "API 健康檢查端點無法訪問" 

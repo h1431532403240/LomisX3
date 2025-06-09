@@ -9,16 +9,18 @@ return [
     | Default Session Driver
     |--------------------------------------------------------------------------
     |
-    | This option determines the default session driver that is utilized for
-    | incoming requests. Laravel supports a variety of storage options to
-    | persist session data. Database storage is a great default choice.
+    | 🚫 純 Bearer Token API 模式 - Session 已禁用
+    |
+    | 在純 Bearer Token API 模式下，我們不需要持久化 Session
+    | 使用 'array' 驅動程式可以完全禁用 Session 持久化
+    | 所有狀態都通過 Bearer Token 進行管理
     |
     | Supported: "file", "cookie", "database", "memcached",
     |            "redis", "dynamodb", "array"
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    'driver' => env('SESSION_DRIVER', 'array'),
 
     /*
     |--------------------------------------------------------------------------
@@ -129,7 +131,7 @@ return [
 
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug(env('APP_NAME', 'laravel'), '_').'_session'
+        Str::slug(env('APP_NAME', 'laravel'), '_') . '_session'
     ),
 
     /*

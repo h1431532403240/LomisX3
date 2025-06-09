@@ -1,0 +1,17 @@
+User Service (Tests\Unit\UserService)
+ [x] Create user successfully
+ [x] Create user with duplicate username
+ [x] Create user with duplicate email
+ [x] Create user with weak password
+ [x] Password strength validation
+ [x] Update user successfully
+ [x] Batch status update successfully
+ [x] Batch status update with admin account
+ [x] Reset password successfully
+ [x] Store isolation check
+ [x] Update user get detail failure
+ [x] Cache clearing mechanism
+ [x] Transaction handling
+ [x] Invalid status handling
+ [x] Create user repository error
+

@@ -1,0 +1,167 @@
+groups:
+  - name: product_category_alerts
+    rules:
+      # 快取命中率告警
+      - alert: ProductCategoryCacheHitRateLow
+        expr: |
+          (
+            rate(product_category_cache_hits_total[5m]) / 
+            (rate(product_category_cache_hits_total[5m]) + rate(product_category_cache_misses_total[5m]))
+          ) < 0.8
+        for: 2m
+        labels:
+          severity: warning
+          service: product-category
+          component: cache
+          alert_level: P2
+        annotations:
+          summary: "商品分類快取命中率過低"
+          description: "商品分類快取命中率在過去 5 分鐘內低於 80%，當前值: {{ $value | humanizePercentage }}。這可能導致資料庫負載增加和回應時間變慢。"
+          runbook_url: "https://docs.example.com/runbooks/product-category-cache-low-hit-rate"
+          dashboard_url: "https://grafana.example.com/d/product-category-monitoring"
+          suggested_actions: |
+            1. 檢查 Redis 服務狀態和記憶體使用率
+            2. 查看最近是否有大量快取清除操作
+            3. 檢查商品分類資料是否有異常更新
+            4. 考慮調整快取 TTL 策略
+
+      # 快取清除 Job 失敗率告警
+      - alert: ProductCategoryCacheFlushJobFailureRateHigh
+        expr: |
+          (
+            rate(cache_flush_job_total{status="failed"}[5m]) / 
+            rate(cache_flush_job_total[5m])
+          ) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: product-category
+          component: cache
+          alert_level: P1
+        annotations:
+          summary: "商品分類快取清除 Job 失敗率過高"
+          description: "商品分類快取清除 Job 在過去 5 分鐘內失敗率超過 10%，當前值: {{ $value | humanizePercentage }}。這可能導致快取資料不一致。"
+          runbook_url: "https://docs.example.com/runbooks/cache-flush-job-failures"
+          dashboard_url: "https://grafana.example.com/d/product-category-monitoring"
+          suggested_actions: |
+            1. 檢查 Laravel Queue 處理狀況
+            2. 查看 Job 失敗日誌 (storage/logs/laravel.log)
+            3. 確認 Redis 連線狀態
+            4. 檢查是否有記憶體不足問題
+            5. 必要時重啟 Queue Worker
+
+      # API 回應時間告警
+      - alert: ProductCategoryAPILatencyHigh
+        expr: |
+          histogram_quantile(0.95, 
+            rate(laravel_http_request_duration_seconds_bucket{uri=~"/api/product-categories.*"}[5m])
+          ) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          service: product-category
+          component: api
+          alert_level: P2
+        annotations:
+          summary: "商品分類 API 回應時間過高"
+          description: "商品分類 API 的 P95 回應時間在過去 5 分鐘內超過 500ms，當前值: {{ $value | humanizeDuration }}。使用者體驗可能受到影響。"
+          runbook_url: "https://docs.example.com/runbooks/api-latency-high"
+          dashboard_url: "https://grafana.example.com/d/product-category-monitoring"
+          suggested_actions: |
+            1. 檢查快取命中率是否正常
+            2. 查看資料庫查詢效能
+            3. 檢查系統 CPU 和記憶體使用率
+            4. 確認是否有慢查詢或 N+1 問題
+            5. 考慮增加快取層級或最佳化查詢
+
+      # 快取清除 Job 執行時間告警
+      - alert: ProductCategoryCacheFlushJobDurationHigh
+        expr: |
+          histogram_quantile(0.95, 
+            rate(cache_flush_job_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+          service: product-category
+          component: cache
+          alert_level: P2
+        annotations:
+          summary: "商品分類快取清除 Job 執行時間過長"
+          description: "商品分類快取清除 Job 的 P95 執行時間在過去 5 分鐘內超過 1 秒，當前值: {{ $value | humanizeDuration }}。可能影響快取更新效率。"
+          runbook_url: "https://docs.example.com/runbooks/cache-flush-job-slow"
+          dashboard_url: "https://grafana.example.com/d/product-category-monitoring"
+          suggested_actions: |
+            1. 檢查 Redis 效能和網路延遲
+            2. 查看 Job 處理的快取範圍是否過大
+            3. 檢查是否有併發 Job 競爭資源
+            4. 考慮最佳化快取清除策略
+
+      # Queue 積壓告警
+      - alert: ProductCategoryQueueBacklogHigh
+        expr: |
+          laravel_queue_size{queue=~".*cache.*"} > 100
+        for: 5m
+        labels:
+          severity: critical
+          service: product-category
+          component: queue
+          alert_level: P1
+        annotations:
+          summary: "商品分類相關 Queue 積壓嚴重"
+          description: "商品分類相關的 Queue 中有 {{ $value }} 個待處理 Job，積壓時間超過 5 分鐘。可能導致快取更新延遲。"
+          runbook_url: "https://docs.example.com/runbooks/queue-backlog"
+          dashboard_url: "https://grafana.example.com/d/product-category-monitoring"
+          suggested_actions: |
+            1. 檢查 Queue Worker 運行狀態
+            2. 增加 Queue Worker 數量
+            3. 查看是否有 Job 執行異常
+            4. 檢查系統資源使用情況
+            5. 考慮臨時停止非關鍵 Job
+
+      # Redis 記憶體使用率告警
+      - alert: RedisMemoryUsageHigh
+        expr: |
+          (redis_memory_used_bytes / redis_memory_max_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: product-category
+          component: redis
+          alert_level: P2
+        annotations:
+          summary: "Redis 記憶體使用率過高"
+          description: "Redis 記憶體使用率超過 85%，當前值: {{ $value | humanizePercentage }}。可能影響快取效能和穩定性。"
+          runbook_url: "https://docs.example.com/runbooks/redis-memory-high"
+          dashboard_url: "https://grafana.example.com/d/product-category-monitoring"
+          suggested_actions: |
+            1. 檢查快取過期策略是否合理
+            2. 清理不必要的快取資料
+            3. 檢查是否有記憶體洩漏
+            4. 考慮增加 Redis 記憶體容量
+            5. 最佳化快取資料結構
+
+      # API 錯誤率告警
+      - alert: ProductCategoryAPIErrorRateHigh
+        expr: |
+          (
+            rate(laravel_http_requests_total{uri=~"/api/product-categories.*",status=~"5.."}[5m]) / 
+            rate(laravel_http_requests_total{uri=~"/api/product-categories.*"}[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: product-category
+          component: api
+          alert_level: P1
+        annotations:
+          summary: "商品分類 API 錯誤率過高"
+          description: "商品分類 API 的 5xx 錯誤率在過去 5 分鐘內超過 5%，當前值: {{ $value | humanizePercentage }}。服務可能出現異常。"
+          runbook_url: "https://docs.example.com/runbooks/api-error-rate-high"
+          dashboard_url: "https://grafana.example.com/d/product-category-monitoring"
+          suggested_actions: |
+            1. 檢查應用程式錯誤日誌
+            2. 確認資料庫連線狀態
+            3. 檢查快取服務是否正常
+            4. 查看系統資源使用情況
+            5. 必要時重啟相關服務 

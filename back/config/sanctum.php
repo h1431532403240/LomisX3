@@ -9,22 +9,24 @@ return [
     | Stateful Domains
     |--------------------------------------------------------------------------
     |
-    | Requests from the following domains / hosts will receive stateful API
-    | authentication cookies. Typically, these should include your local
-    | and production domains which access your API via a frontend SPA.
+    | 🚫 純 Bearer Token 模式 - 已禁用狀態化域名
+    | 
+    | 在純 Bearer Token API 模式下，我們不使用基於 Cookie 的認證
+    | 所有請求都使用 Authorization: Bearer {token} 標頭進行認證
+    | 因此不需要配置任何狀態化域名
     |
     */
 
     /**
-     * 狀態化域名配置
-     * 包含 Vite 開發服務器端口 (5173)
+     * 狀態化域名配置 - 純 Bearer Token 模式已禁用
+     * 
+     * 注意：在純 Bearer Token 模式下，此陣列應保持為空
+     * 所有認證都通過 Authorization 標頭處理，無需 Cookie
      */
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
-    ))),
+    'stateful' => [
+        // 🚫 純 Bearer Token 模式：不需要任何狀態化域名
+        // 所有 API 請求都使用 Authorization: Bearer {token} 標頭
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -73,9 +75,9 @@ return [
     | Sanctum Middleware
     |--------------------------------------------------------------------------
     |
-    | When authenticating your first-party SPA with Sanctum you may need to
-    | customize some of the middleware Sanctum uses while processing the
-    | request. You may change the middleware listed below as required.
+    | 純 Bearer Token 模式下，以下中間件設定僅作為向後相容保留
+    | 實際上不會被使用，因為所有認證都透過 Bearer Token 處理
+    | 無需 Session、Cookie 或 CSRF 處理
     |
     */
 

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔔 Sonner Toast 測試 - LomisX3</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 40px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 40px; 
+            border-radius: 16px; 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 32px;
+            font-size: 1.1rem;
+        }
+        .test-section {
+            margin-bottom: 32px;
+            padding: 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: #f9fafb;
+        }
+        .test-section h3 {
+            margin: 0 0 16px 0;
+            color: #374151;
+            font-size: 1.2rem;
+        }
+        .test-section p {
+            margin: 0 0 16px 0;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+        button { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 8px 8px 8px 0;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            min-width: 120px;
+        }
+        button:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        button.success { background: linear-gradient(135deg, #10b981, #059669); }
+        button.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        button.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        button.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        
+        .status {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 8px;
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            color: #075985;
+        }
+        
+        .migration-info {
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            color: #92400e;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .migration-info h4 {
+            margin: 0 0 8px 0;
+            color: #92400e;
+        }
+        
+        .code-block {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Sonner Toast 系統測試</h1>
+        <p class="subtitle">LomisX3 企業級管理系統 - Toast 通知系統升級驗證</p>
+        
+        <div class="migration-info">
+            <h4>🚀 重大升級通知</h4>
+            <p><strong>shadcn/ui Toast 已棄用</strong>，官方推薦使用 <span class="highlight">Sonner</span> 作為替代方案。</p>
+            <p>Sonner 提供更好的效能、更流暢的動畫和更簡潔的 API。</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 基本 Toast 通知測試</h3>
+            <p>測試各種類型的 Sonner Toast 通知，確認系統正常運作：</p>
+            <button class="success" onclick="testSuccess()">✅ 成功通知</button>
+            <button class="error" onclick="testError()">❌ 錯誤通知</button>
+            <button class="warning" onclick="testWarning()">⚠️ 警告通知</button>
+            <button class="info" onclick="testInfo()">ℹ️ 資訊通知</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 登入流程模擬測試</h3>
+            <p>模擬實際登入場景中的 Toast 通知：</p>
+            <button onclick="testLoginSuccess()">🎉 登入成功</button>
+            <button onclick="testLoginError()">🚨 登入失敗</button>
+            <button onclick="testTwoFactor()">🔒 2FA 驗證</button>
+            <button onclick="testLogout()">👋 登出成功</button>
+        </div>
+
+        <div class="test-section">
+            <h3>⚡ 進階功能測試</h3>
+            <p>測試 Sonner 的進階功能：</p>
+            <button onclick="testPromise()">⏳ Promise Toast</button>
+            <button onclick="testCustom()">🎨 自訂 Toast</button>
+            <button onclick="testDismiss()">🗑️ 關閉所有</button>
+        </div>
+
+        <div class="code-block">
+            <div>// Sonner API 使用範例:</div>
+            <div><span class="highlight">toast.success</span>("操作成功");</div>
+            <div><span class="highlight">toast.error</span>("發生錯誤");</div>
+            <div><span class="highlight">toast.info</span>("重要訊息");</div>
+            <div><span class="highlight">toast.warning</span>("警告訊息");</div>
+        </div>
+
+        <div class="status">
+            <strong>測試狀態：</strong> 等待手動測試...
+            <br><strong>預期結果：</strong> 每個按鈕點擊應在頁面右側顯示對應的 Toast 通知
+        </div>
+    </div>
+
+    <script>
+        // 注意：這只是測試頁面的模擬
+        // 實際 Sonner 需要在 React 環境中使用
+
+        function showMockToast(type, message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${getToastColor(type)};
+                color: white;
+                padding: 16px 20px;
+                border-radius: 8px;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                z-index: 9999;
+                font-weight: 500;
+                max-width: 300px;
+                animation: slideIn 0.3s ease-out;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        function getToastColor(type) {
+            switch(type) {
+                case 'success': return 'linear-gradient(135deg, #10b981, #059669)';
+                case 'error': return 'linear-gradient(135deg, #ef4444, #dc2626)';
+                case 'warning': return 'linear-gradient(135deg, #f59e0b, #d97706)';
+                case 'info': return 'linear-gradient(135deg, #3b82f6, #2563eb)';
+                default: return 'linear-gradient(135deg, #6b7280, #4b5563)';
+            }
+        }
+
+        // 添加動畫樣式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 基本測試函數
+        function testSuccess() {
+            showMockToast('success', '✅ 操作成功完成！');
+        }
+
+        function testError() {
+            showMockToast('error', '❌ 發生錯誤，請稍後再試');
+        }
+
+        function testWarning() {
+            showMockToast('warning', '⚠️ 警告：此操作可能有風險');
+        }
+
+        function testInfo() {
+            showMockToast('info', 'ℹ️ 重要資訊提醒');
+        }
+
+        // 登入流程模擬
+        function testLoginSuccess() {
+            showMockToast('success', '🎉 歡迎回來！登入成功');
+        }
+
+        function testLoginError() {
+            showMockToast('error', '🚨 帳號或密碼錯誤，請檢查您的登入資訊');
+        }
+
+        function testTwoFactor() {
+            showMockToast('info', '🔒 請輸入您的驗證碼以完成登入');
+        }
+
+        function testLogout() {
+            showMockToast('success', '👋 您已安全登出系統');
+        }
+
+        // 進階測試
+        function testPromise() {
+            showMockToast('info', '⏳ 正在處理請求...');
+            setTimeout(() => {
+                showMockToast('success', '✅ 請求處理完成');
+            }, 2000);
+        }
+
+        function testCustom() {
+            showMockToast('info', '🎨 這是自訂樣式的 Toast 通知');
+        }
+
+        function testDismiss() {
+            // 移除所有現有的 toast
+            const toasts = document.querySelectorAll('div[style*="position: fixed"]');
+            toasts.forEach(toast => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            });
+            showMockToast('info', '🗑️ 已關閉所有通知');
+        }
+
+        // 頁面載入完成提示
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                showMockToast('success', '🚀 Sonner Toast 測試頁面載入完成！');
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

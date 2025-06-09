@@ -123,8 +123,8 @@ class ProductCategoryServiceSlugTest extends TestCase
             
             // Assert: 檢查基本格式
             $this->assertMatchesRegularExpression('/^[a-z0-9-]+$/', $slug, "Slug 應僅包含小寫字母、數字和破折號: {$slug}");
-            $this->assertStringStartsNotWith('-', $slug, 'Slug 不應以破折號開始');
-            $this->assertStringEndsNotWith('-', $slug, 'Slug 不應以破折號結束');
+            $this->assertStringNotStartsWith('-', $slug, 'Slug 不應以破折號開始');
+            $this->assertStringNotEndsWith('-', $slug, 'Slug 不應以破折號結束');
             $this->assertStringNotContainsString('--', $slug, 'Slug 不應包含連續的破折號');
             
             // 檢查是否包含預期的關鍵字（可選）
